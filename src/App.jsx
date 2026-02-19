@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { SignedIn, SignedOut, SignInButton, UserButton, useUser } from "@clerk/clerk-react";
+import { Routes, Route, useNavigate, useParams, useLocation } from "react-router-dom";
 
 const styles = `
   @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
@@ -157,9 +158,11 @@ const styles = `
   .stat-label { font-family: 'Share Tech Mono', monospace; font-size: 0.65rem; color: var(--text-dim); letter-spacing: 2px; }
 
   /* CONTROLS */
-  .controls { padding: 0 40px 32px; display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
-  .controls-filters {
-    display: flex; gap: 10px; align-items: center; flex-wrap: wrap; width: 100%;
+  .controls { padding: 0 40px 24px; display: flex; flex-direction: column; gap: 12px; }
+  .controls-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; width: 100%; }
+  .controls-label {
+    font-family: 'Share Tech Mono', monospace; font-size: 0.6rem;
+    color: var(--text-dim); letter-spacing: 2px; white-space: nowrap; flex-shrink: 0;
   }
   .search-wrap { flex: 1; min-width: 200px; position: relative; }
   .search-icon {
@@ -184,6 +187,36 @@ const styles = `
   }
   .filter-btn:hover, .filter-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(0,170,255,0.08); }
   .filter-btn.active { box-shadow: var(--glow); }
+  .filter-divider { width: 1px; height: 24px; background: var(--border); flex-shrink: 0; }
+  .sort-btn {
+    background: var(--panel); border: 1px solid var(--border); color: var(--text-dim);
+    font-family: 'Share Tech Mono', monospace; font-size: 0.7rem; padding: 10px 16px;
+    cursor: pointer; letter-spacing: 1px; transition: all 0.2s;
+    clip-path: polygon(0 0, 90% 0, 100% 30%, 100% 100%, 10% 100%, 0 70%);
+    white-space: nowrap; flex-shrink: 0; display: flex; align-items: center; gap: 6px;
+  }
+  .sort-btn:hover, .sort-btn.active { border-color: var(--accent3); color: var(--accent3); background: rgba(0,255,204,0.06); }
+  .sort-btn.active { box-shadow: var(--glow-green); }
+  .pdf-toggle {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--panel); border: 1px solid var(--border);
+    padding: 10px 16px; cursor: pointer; transition: all 0.2s;
+    clip-path: polygon(0 0, 90% 0, 100% 30%, 100% 100%, 10% 100%, 0 70%);
+    flex-shrink: 0;
+  }
+  .pdf-toggle:hover { border-color: var(--accent2); }
+  .pdf-toggle.on { border-color: var(--accent2); background: rgba(255,102,0,0.08); box-shadow: var(--glow2); }
+  .pdf-toggle-box {
+    width: 14px; height: 14px; border: 1px solid var(--text-dim);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.6rem; transition: all 0.2s; flex-shrink: 0;
+  }
+  .pdf-toggle.on .pdf-toggle-box { border-color: var(--accent2); color: var(--accent2); background: rgba(255,102,0,0.15); }
+  .pdf-toggle-label {
+    font-family: 'Share Tech Mono', monospace; font-size: 0.65rem;
+    color: var(--text-dim); letter-spacing: 1px; transition: color 0.2s;
+  }
+  .pdf-toggle.on .pdf-toggle-label { color: var(--accent2); }
 
   /* SECTION HEADER */
   .section-header { padding: 0 40px 20px; display: flex; align-items: center; gap: 16px; }
@@ -618,19 +651,14 @@ const styles = `
     .stat-label { font-size: 0.55rem; letter-spacing: 1px; }
 
     /* Controls */
-    .controls { padding: 16px 16px 20px; gap: 10px; flex-direction: column; }
-    .controls-filters {
-      display: flex; gap: 8px; overflow-x: auto; flex-wrap: nowrap; width: 100%;
-      padding-bottom: 4px; /* room for scrollbar on android */
-      -webkit-overflow-scrolling: touch;
-      scrollbar-width: none;
-    }
-    .controls-filters::-webkit-scrollbar { display: none; }
-    .search-input { font-size: 0.9rem; padding: 12px 16px 12px 40px; } /* bigger touch area */
-    .filter-btn {
-      padding: 10px 14px; font-size: 0.65rem;
-      flex-shrink: 0; clip-path: none;
-    }
+    .controls { padding: 16px 16px 20px; gap: 10px; }
+    .controls-row { gap: 8px; overflow-x: auto; flex-wrap: nowrap; padding-bottom: 4px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+    .controls-row::-webkit-scrollbar { display: none; }
+    .controls-row:first-child { flex-wrap: wrap; overflow-x: visible; }
+    .search-input { font-size: 0.9rem; padding: 12px 16px 12px 40px; }
+    .filter-btn { padding: 10px 14px; font-size: 0.65rem; flex-shrink: 0; clip-path: none; }
+    .sort-btn { padding: 10px 14px; font-size: 0.65rem; flex-shrink: 0; clip-path: none; }
+    .pdf-toggle { clip-path: none; flex-shrink: 0; }
 
     /* Section header */
     .section-header { padding: 0 16px 14px; }
@@ -996,15 +1024,181 @@ const KITS = [
 
 const GRADES = ["ALL", "HG", "MG", "RG", "PG", "SD", "EG"];
 
+// Convert kit to URL slug: "EG 1/144 RX-78-2 Gundam" → "eg-144-rx78-2-gundam"
+const slugify = (kit) =>
+  `${kit.grade}-${kit.scale}-${kit.name}`
+    .toLowerCase()
+    .replace(/\//g, "-")
+    .replace(/[^a-z0-9-]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+
+const findKitBySlug = (slug) => KITS.find(k => slugify(k) === slug);
+
+// ─────────────────────────────────────────────────────────────
+// KIT DETAIL — separate component so it can use useParams
+// ─────────────────────────────────────────────────────────────
+function KitDetail({ gc, isSignedIn, favourites, buildProgress, toggleFavourite, setBuildStatus, openManualId, toggleManual, setOpenManualId, goHome }) {
+  const { slug } = useParams();
+  const navigate = useNavigate();
+  const kit = findKitBySlug(slug);
+
+  if (!kit) return (
+    <div style={{padding:"80px 40px",textAlign:"center",fontFamily:"'Share Tech Mono',monospace",color:"var(--text-dim)"}}>
+      <div style={{fontSize:"3rem",marginBottom:"16px",opacity:0.3}}>404</div>
+      <div style={{letterSpacing:"2px",marginBottom:"24px"}}>KIT NOT FOUND</div>
+      <button className="back-btn" style={{margin:"0 auto"}} onClick={goHome}>← BACK TO LIBRARY</button>
+    </div>
+  );
+
+  return (
+    <>
+      <button className="back-btn" onClick={() => navigate(-1)}>← BACK TO LIBRARY</button>
+
+      <div className="kit-detail-header">
+        <div className="detail-grade" style={{color:gc(kit.grade).accent}}>{kit.grade} GRADE — {kit.scale}</div>
+        <div className="detail-title">
+          {kit.name}
+          {isSignedIn && (
+            <button className="fav-btn" style={{marginLeft:"12px",fontSize:"1.4rem"}} onClick={e => toggleFavourite(e, kit.id)}>
+              {favourites.includes(kit.id) ? "⭐" : "☆"}
+            </button>
+          )}
+        </div>
+        <div className="detail-meta">
+          <span>◈ {kit.series}</span>
+          <span>◈ {kit.manuals.length} MANUAL{kit.manuals.length!==1?"S":""} AVAILABLE</span>
+        </div>
+      </div>
+
+      {isSignedIn && (
+        <div className="build-status-wrap">
+          <span className="build-status-label">◈ BUILD STATUS</span>
+          <div className="build-status-options">
+            {[
+              {id:"notstarted", label:"◻ NOT STARTED"},
+              {id:"inprogress", label:"⚙ IN PROGRESS"},
+              {id:"complete",   label:"✓ COMPLETE"},
+            ].map(s => (
+              <button
+                key={s.id}
+                className={`build-status-btn${buildProgress[kit.id]===s.id ? ` active-${s.id}` : ""}`}
+                onClick={() => setBuildStatus(kit.id, s.id)}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="manual-list">
+        <div className="section-header" style={{padding:"0 0 20px"}}>
+          <span className="section-title">AVAILABLE MANUALS</span>
+          <div className="section-line" />
+        </div>
+        {kit.manuals.map(manual => (
+          <div key={manual.id} className="manual-item" onClick={() => toggleManual(manual.id)}>
+            <div className="manual-item-row">
+              <div className="manual-item-left">
+                <div className="manual-icon">PDF</div>
+                <div>
+                  <div className="manual-name">{manual.name}</div>
+                  <div className="manual-meta">
+                    <span>LANG: {manual.lang}</span>
+                    <span>{manual.pages} PGS</span>
+                    <span>{manual.size}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="manual-actions">
+                <button
+                  className={`btn btn-view${openManualId === manual.id ? " active" : ""}`}
+                  onClick={e => { e.stopPropagation(); toggleManual(manual.id); }}
+                >
+                  {openManualId === manual.id ? "▼ CLOSE" : "▶ VIEW"}
+                </button>
+                <button className="btn btn-dl" onClick={e => { e.stopPropagation(); alert(`Download "${manual.name}" — connect your PDF files to enable downloads.`); }}>↓ DL</button>
+              </div>
+            </div>
+            <div className={`pdf-dropdown${openManualId === manual.id ? " open" : ""}`}>
+              <div className="pdf-dropdown-inner">
+                <div className="pdf-dropdown-header">
+                  <span className="pdf-dropdown-title">◈ {manual.name.toUpperCase()}</span>
+                  <button className="pdf-dropdown-close" onClick={e => { e.stopPropagation(); setOpenManualId(null); }}>✕</button>
+                </div>
+                <div className="pdf-frame-wrap">
+                  {manual.url ? (
+                    <iframe src={`${R2}/${manual.url}`} width="100%" height="100%" style={{border:"none"}} title={manual.name} />
+                  ) : (
+                    <div className="pdf-placeholder">
+                      <div className="big">PDF</div>
+                      <div>[ PDF VIEWER ]</div>
+                      <div style={{marginTop:12,fontSize:"0.65rem",opacity:0.6}}>
+                        Add a <code>url</code> field to this manual in the data<br/>to enable in-browser viewing.
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="kit-image-section">
+        <div className="kit-image-wrap" style={{"--ki-accent": gc(kit.grade).accent}}>
+          {kit.imageUrl ? (
+            <>
+              <img className="kit-image" src={kit.imageUrl} alt={`${kit.name} — ${kit.grade} ${kit.scale}`}
+                onError={e => { e.target.style.display="none"; e.target.nextSibling.style.display="flex"; }} />
+              <div className="kit-image-placeholder" style={{display:"none"}}>
+                <div className="kit-image-placeholder-icon">🤖</div>
+                <div className="kit-image-placeholder-text">IMAGE UNAVAILABLE<br/>REPLACE imageUrl IN DATA</div>
+              </div>
+            </>
+          ) : (
+            <div className="kit-image-placeholder">
+              <div className="kit-image-placeholder-icon">🤖</div>
+              <div className="kit-image-placeholder-text">NO IMAGE YET<br/>ADD imageUrl TO THIS KIT</div>
+            </div>
+          )}
+          <div className="kit-image-label">{kit.grade} {kit.scale} · {kit.name}</div>
+        </div>
+      </div>
+
+      {AMAZON_URLS[String(kit.id)] && (
+        <div className="affiliate-banner">
+          <div className="affiliate-left">
+            <div className="affiliate-icon">🛒</div>
+            <div>
+              <div className="affiliate-title">BUY ON AMAZON</div>
+              <div className="affiliate-sub">{kit.grade} {kit.scale} · {kit.name}</div>
+            </div>
+          </div>
+          <a className="btn-amazon" href={AMAZON_URLS[String(kit.id)]} target="_blank" rel="noopener noreferrer sponsored">
+            VIEW ON AMAZON →
+          </a>
+          <div className="affiliate-disclaimer">
+            ★ As an Amazon Associate, KitVault.io earns from qualifying purchases. This does not affect the price you pay.
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 export default function KitVault() {
   const { user, isSignedIn } = useUser();
-  const [page, setPage] = useState("home");
-  const [selectedKit, setSelectedKit] = useState(null);
+  const navigate = useNavigate();
+  const location = useLocation();
   const [gradeFilter, setGradeFilter] = useState("ALL");
   const [search, setSearch] = useState("");
   const [openManualId, setOpenManualId] = useState(null);
   const toggleManual = (id) => setOpenManualId(prev => prev === id ? null : id);
   const [showSettings, setShowSettings] = useState(false);
+  const [sortOrder, setSortOrder] = useState("default");
+  const [pdfOnly, setPdfOnly] = useState(true);
   const [favourites, setFavourites] = useState(() => {
     try { return JSON.parse(localStorage.getItem("kv_favourites") || "[]"); } catch { return []; }
   });
@@ -1032,34 +1226,26 @@ export default function KitVault() {
   };
 
   const filtered = KITS.filter(k => {
+    const hasPdf = k.manuals.some(m => m.url);
     const matchGrade = gradeFilter === "ALL" || k.grade === gradeFilter;
     const matchSearch = k.name.toLowerCase().includes(search.toLowerCase()) || k.series.toLowerCase().includes(search.toLowerCase());
-    return matchGrade && matchSearch;
+    return (!pdfOnly || hasPdf) && matchGrade && matchSearch;
+  }).sort((a, b) => {
+    if (sortOrder === "az") return a.name.localeCompare(b.name);
+    if (sortOrder === "za") return b.name.localeCompare(a.name);
+    return a.id - b.id;
   });
 
   const gc = (g) => GRADE_COLORS[g] || GRADE_COLORS["HG"];
-  const goHome = () => { setPage("home"); setSelectedKit(null); setOpenManualId(null); };
-  const goVault = () => { setPage("vault"); setSelectedKit(null); setOpenManualId(null); };
-  const goDisclaimer = () => { setPage("disclaimer"); setSelectedKit(null); setShowSettings(false); setOpenManualId(null); };
+  const goHome = () => { setOpenManualId(null); navigate("/"); };
+  const goVault = () => { setOpenManualId(null); navigate("/vault"); };
+  const goDisclaimer = () => { setOpenManualId(null); setShowSettings(false); navigate("/disclaimer"); };
+  const goKit = (kit) => { setOpenManualId(null); navigate(`/kit/${slugify(kit)}`); };
 
-  // Ensure proper mobile viewport and scroll behavior
-  useEffect(() => {
-    // Set viewport meta if not already set
-    let meta = document.querySelector('meta[name="viewport"]');
-    if (!meta) {
-      meta = document.createElement('meta');
-      meta.name = 'viewport';
-      document.head.appendChild(meta);
-    }
-    meta.content = 'width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover';
-    // Smooth scrolling
-    document.documentElement.style.scrollBehavior = 'smooth';
-  }, []);
-
-  // Scroll to top on page/kit change
+  // Scroll to top on route change
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [page, selectedKit]);
+  }, [location.pathname]);
 
   return (
     <>
@@ -1069,7 +1255,7 @@ export default function KitVault() {
 
         {/* HEADER */}
         <header className="header">
-          <div className="logo" onClick={goHome}>
+          <div className="logo" onClick={goHome} style={{cursor:"pointer"}}>
             <div className="logo-icon">▣</div>
             <div className="logo-text">
               <span>KIT<span style={{color:"#ff6600"}}>VAULT</span></span>
@@ -1082,7 +1268,7 @@ export default function KitVault() {
               <button
                 onClick={goVault}
                 style={{
-                  background:"none", border:"1px solid var(--border)", color: page==="vault" ? "var(--accent)" : "var(--text-dim)",
+                  background:"none", border:"1px solid var(--border)", color: location.pathname==="/vault" ? "var(--accent)" : "var(--text-dim)",
                   fontFamily:"'Share Tech Mono',monospace", fontSize:"0.65rem",
                   padding:"8px 14px", cursor:"pointer", letterSpacing:"1px", transition:"all 0.2s",
                   clipPath:"polygon(0 0, 88% 0, 100% 30%, 100% 100%, 12% 100%, 0 70%)"
@@ -1097,35 +1283,64 @@ export default function KitVault() {
                 <button className="auth-btn">LOG IN</button>
               </SignInButton>
             </SignedOut>
-            <button className={`cog-btn ${showSettings?"active":""}`} onClick={() => setShowSettings(true)} title="Settings">
-              ⚙
-            </button>
+            <button className={`cog-btn ${showSettings?"active":""}`} onClick={() => setShowSettings(true)} title="Settings">⚙</button>
           </div>
         </header>
 
-        {/* ===== MY VAULT PAGE ===== */}
-        {page === "vault" && (
-          <>
-            <div className="page-hero">
-              <div className="page-tag">PERSONAL COLLECTION</div>
-              <div className="page-title">MY <span style={{color:"var(--accent)"}}>VAULT</span></div>
-              <div className="page-sub">{favourites.length} SAVED KIT{favourites.length!==1?"S":""}</div>
-            </div>
-            {favourites.length === 0 ? (
-              <div className="vault-empty">
-                <span className="vault-empty-icon">⭐</span>
-                NO KITS SAVED YET<br/>
-                <span style={{fontSize:"0.7rem",opacity:0.5}}>STAR A KIT FROM THE LIBRARY TO ADD IT HERE</span>
+        <Routes>
+
+          {/* ===== HOME PAGE ===== */}
+          <Route path="/" element={
+            <>
+              <section className="hero">
+                <div className="hero-tag">GUNDAM MANUAL ARCHIVE</div>
+                <h1><span className="a1">KIT</span><span className="a2">VAULT</span></h1>
+                <p className="hero-sub">YOUR COMPLETE GUNPLA MANUAL DATABASE</p>
+                <div className="hero-stats">
+                  <div className="stat"><div className="stat-num">{KITS.length}</div><div className="stat-label">KITS INDEXED</div></div>
+                  <div className="stat"><div className="stat-num">{KITS.reduce((a,k)=>a+k.manuals.length,0)}</div><div className="stat-label">MANUALS</div></div>
+                  <div className="stat"><div className="stat-num">{GRADES.length-1}</div><div className="stat-label">GRADES</div></div>
+                </div>
+              </section>
+
+              <div className="controls">
+                <div className="controls-row">
+                  <div className="search-wrap">
+                    <span className="search-icon">⌕</span>
+                    <input className="search-input" placeholder="SEARCH KITS OR SERIES..." value={search} onChange={e=>setSearch(e.target.value)} />
+                  </div>
+                  <div className={`pdf-toggle ${pdfOnly?"on":""}`} onClick={()=>setPdfOnly(p=>!p)}>
+                    <div className="pdf-toggle-box">{pdfOnly?"✓":""}</div>
+                    <span className="pdf-toggle-label">PDF AVAILABLE</span>
+                  </div>
+                </div>
+                <div className="controls-row">
+                  <span className="controls-label">GRADE</span>
+                  {GRADES.map(g => (
+                    <button key={g} className={`filter-btn ${gradeFilter===g?"active":""}`} onClick={()=>setGradeFilter(g)}>{g}</button>
+                  ))}
+                  <div className="filter-divider" />
+                  <span className="controls-label">SORT</span>
+                  <button className={`sort-btn ${sortOrder==="az"?"active":""}`} onClick={()=>setSortOrder(s=>s==="az"?"default":"az")}>A→Z</button>
+                  <button className={`sort-btn ${sortOrder==="za"?"active":""}`} onClick={()=>setSortOrder(s=>s==="za"?"default":"za")}>Z→A</button>
+                </div>
               </div>
-            ) : (
-              <div className="vault-grid">
-                {KITS.filter(k => favourites.includes(k.id)).map(kit => {
+
+              <div className="section-header">
+                <span className="section-title">KIT LIBRARY</span>
+                <div className="section-line" />
+                <span className="section-count">{filtered.length} RESULTS</span>
+              </div>
+
+              <div className="kit-grid">
+                {filtered.map(kit => {
                   const c = gc(kit.grade);
+                  const isFav = favourites.includes(kit.id);
                   const progress = buildProgress[kit.id];
                   return (
                     <div key={kit.id} className="kit-card"
                       style={{"--card-accent":c.accent,"--card-accent-bg":c.bg}}
-                      onClick={()=>{ setPage("home"); setSelectedKit(kit); }}
+                      onClick={()=>goKit(kit)}
                     >
                       <div className="card-grade-banner" style={{background:c.accent}} />
                       <div className="card-body">
@@ -1134,7 +1349,12 @@ export default function KitVault() {
                           <div style={{display:"flex",alignItems:"center",gap:"6px"}}>
                             {progress === "inprogress" && <span className="build-badge inprogress">IN PROGRESS</span>}
                             {progress === "complete" && <span className="build-badge complete">COMPLETE</span>}
-                            <button className="fav-btn" onClick={e => toggleFavourite(e, kit.id)}>⭐</button>
+                            <span className="manual-count">{kit.manuals.length} MANUAL{kit.manuals.length!==1?"S":""}</span>
+                            {isSignedIn && (
+                              <button className="fav-btn" onClick={e => toggleFavourite(e, kit.id)} title={isFav?"Remove from favourites":"Add to favourites"}>
+                                {isFav ? "⭐" : "☆"}
+                              </button>
+                            )}
                           </div>
                         </div>
                         <div className="card-title">{kit.name}</div>
@@ -1148,292 +1368,118 @@ export default function KitVault() {
                   );
                 })}
               </div>
-            )}
-          </>
-        )}
+            </>
+          } />
 
-        {/* ===== DISCLAIMER PAGE ===== */}
-        {page === "disclaimer" && (
-          <>
-            <div className="page-hero">
-              <div className="page-tag">LEGAL NOTICE</div>
-              <div className="page-title">DISCLAIMER</div>
-              <div className="page-sub">PLEASE READ BEFORE USING THIS SITE</div>
-            </div>
-            <div className="page">
-              <div className="bandai-badge">
-                <div className="bandai-name">BANDAI NAMCO ENTERTAINMENT</div>
-                <div className="bandai-sub">© SOTSU · SUNRISE — ALL GUNDAM IP AND TRADEMARKS BELONG TO THEIR RESPECTIVE OWNERS</div>
+          {/* ===== KIT DETAIL PAGE ===== */}
+          <Route path="/kit/:slug" element={<KitDetail gc={gc} isSignedIn={isSignedIn} favourites={favourites} buildProgress={buildProgress} toggleFavourite={toggleFavourite} setBuildStatus={setBuildStatus} openManualId={openManualId} toggleManual={toggleManual} setOpenManualId={setOpenManualId} goHome={goHome} />} />
+
+          {/* ===== MY VAULT PAGE ===== */}
+          <Route path="/vault" element={
+            <>
+              <div className="page-hero">
+                <div className="page-tag">PERSONAL COLLECTION</div>
+                <div className="page-title">MY <span style={{color:"var(--accent)"}}>VAULT</span></div>
+                <div className="page-sub">{favourites.length} SAVED KIT{favourites.length!==1?"S":""}</div>
               </div>
-
-              <div className="disclaimer-grid">
-                <div className="disclaimer-card" style={{"--dc":"#ffcc00"}}>
-                  <div className="disclaimer-card-icon">🛡️</div>
-                  <div className="disclaimer-card-title">FAN PROJECT</div>
-                  <div className="disclaimer-card-text">KitVault.io is an unofficial, non-commercial fan-made website created out of love for the Gunpla hobby. It is not affiliated with, endorsed by, or connected to Bandai Namco Entertainment, Sotsu, or Sunrise in any way.</div>
+              {favourites.length === 0 ? (
+                <div className="vault-empty">
+                  <span className="vault-empty-icon">⭐</span>
+                  NO KITS SAVED YET<br/>
+                  <span style={{fontSize:"0.7rem",opacity:0.5}}>STAR A KIT FROM THE LIBRARY TO ADD IT HERE</span>
                 </div>
-                <div className="disclaimer-card" style={{"--dc":"#00aaff"}}>
-                  <div className="disclaimer-card-icon">📄</div>
-                  <div className="disclaimer-card-title">MANUAL CONTENT</div>
-                  <div className="disclaimer-card-text">All assembly manuals hosted on this site are the intellectual property of Bandai Namco Entertainment. They are provided here solely as a convenience resource for hobbyists who have already purchased these kits.</div>
-                </div>
-                <div className="disclaimer-card" style={{"--dc":"#00ffcc"}}>
-                  <div className="disclaimer-card-icon">🔗</div>
-                  <div className="disclaimer-card-title">AFFILIATE LINKS</div>
-                  <div className="disclaimer-card-text">This site participates in the Amazon Associates affiliate program. Links to Amazon products may earn a small commission at no extra cost to you. This helps cover server costs and keeps the site free for everyone.</div>
-                </div>
-                <div className="disclaimer-card" style={{"--dc":"#ff6600"}}>
-                  <div className="disclaimer-card-icon">💛</div>
-                  <div className="disclaimer-card-title">NON-PROFIT</div>
-                  <div className="disclaimer-card-text">Any revenue generated through affiliate links or donations is used solely to cover hosting and maintenance costs. This project is run by a hobbyist for hobbyists — not for profit.</div>
-                </div>
-              </div>
-
-              <div className="disclaimer-block">
-                <div className="disclaimer-block-title">INTELLECTUAL PROPERTY NOTICE</div>
-                <p><span className="hl">Gundam</span>, all associated mobile suit names, series titles, logos, and imagery are registered trademarks of <span className="hl-gold">Bandai Namco Entertainment Inc.</span>, <span className="hl-gold">Sotsu Co., Ltd.</span>, and <span className="hl-gold">Sunrise Inc.</span> All rights are reserved by their respective owners.</p>
-                <p>The assembly manuals available on this site are reproduced for informational and archival purposes only. If you are a rights holder and wish for any content to be removed, please contact us and it will be taken down promptly.</p>
-              </div>
-
-              <div className="disclaimer-block">
-                <div className="disclaimer-block-title">AMAZON ASSOCIATES DISCLOSURE</div>
-                <p>KitVault.io is a participant in the <span className="hl">Amazon Services LLC Associates Program</span>, an affiliate advertising program designed to provide a means for sites to earn advertising fees by advertising and linking to Amazon.com.</p>
-                <p>As an Amazon Associate, we earn from qualifying purchases. This does <span className="hl">not</span> increase the price you pay. Affiliate commissions help us keep this resource free and maintained for the community.</p>
-              </div>
-
-              <div className="disclaimer-block">
-                <div className="disclaimer-block-title">FAIR USE & INTENT</div>
-                <p>KitVault.io operates under the belief that hosting assembly manuals for kits that hobbyists have legitimately purchased constitutes fair use. We do not sell, redistribute for profit, or claim ownership over any Bandai intellectual property.</p>
-                <p>Our intent is to make the hobby more accessible — especially for international builders who may have received kits with manuals in a language they cannot read, or who have lost their original instruction sheets.</p>
-              </div>
-            </div>
-          </>
-        )}
-
-        {/* ===== HOME PAGE ===== */}
-        {page === "home" && !selectedKit && (
-          <>
-            <section className="hero">
-              <div className="hero-tag">GUNDAM MANUAL ARCHIVE</div>
-              <h1><span className="a1">KIT</span><span className="a2">VAULT</span></h1>
-              <p className="hero-sub">YOUR COMPLETE GUNPLA MANUAL DATABASE</p>
-              <div className="hero-stats">
-                <div className="stat"><div className="stat-num">{KITS.length}</div><div className="stat-label">KITS INDEXED</div></div>
-                <div className="stat"><div className="stat-num">{KITS.reduce((a,k)=>a+k.manuals.length,0)}</div><div className="stat-label">MANUALS</div></div>
-                <div className="stat"><div className="stat-num">{GRADES.length-1}</div><div className="stat-label">GRADES</div></div>
-              </div>
-            </section>
-
-            <div className="controls">
-              <div className="search-wrap">
-                <span className="search-icon">⌕</span>
-                <input className="search-input" placeholder="SEARCH KITS OR SERIES..." value={search} onChange={e=>setSearch(e.target.value)} />
-              </div>
-              <div className="controls-filters">
-                {GRADES.map(g => (
-                  <button key={g} className={`filter-btn ${gradeFilter===g?"active":""}`} onClick={()=>setGradeFilter(g)}>{g}</button>
-                ))}
-              </div>
-            </div>
-
-            <div className="section-header">
-              <span className="section-title">KIT LIBRARY</span>
-              <div className="section-line" />
-              <span className="section-count">{filtered.length} RESULTS</span>
-            </div>
-
-            <div className="kit-grid">
-              {filtered.map(kit => {
-                const c = gc(kit.grade);
-                const isFav = favourites.includes(kit.id);
-                const progress = buildProgress[kit.id];
-                return (
-                  <div key={kit.id} className="kit-card"
-                    style={{"--card-accent":c.accent,"--card-accent-bg":c.bg}}
-                    onClick={()=>setSelectedKit(kit)}
-                  >
-                    <div className="card-grade-banner" style={{background:c.accent}} />
-                    <div className="card-body">
-                      <div className="card-top">
-                        <span className="grade-badge">{kit.grade}</span>
-                        <div style={{display:"flex",alignItems:"center",gap:"6px"}}>
-                          {progress === "inprogress" && <span className="build-badge inprogress">IN PROGRESS</span>}
-                          {progress === "complete" && <span className="build-badge complete">COMPLETE</span>}
-                          <span className="manual-count">{kit.manuals.length} MANUAL{kit.manuals.length!==1?"S":""}</span>
-                          {isSignedIn && (
-                            <button className="fav-btn" onClick={e => toggleFavourite(e, kit.id)} title={isFav ? "Remove from favourites" : "Add to favourites"}>
-                              {isFav ? "⭐" : "☆"}
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                      <div className="card-title">{kit.name}</div>
-                      <div className="card-series">{kit.series}</div>
-                      <div className="card-footer">
-                        <span className="card-scale">SCALE {kit.scale}</span>
-                        <span className="card-arrow">→</span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </>
-        )}
-
-        {/* ===== KIT DETAIL PAGE ===== */}
-        {page === "home" && selectedKit && (
-          <>
-            <button className="back-btn" onClick={()=>setSelectedKit(null)}>← BACK TO LIBRARY</button>
-
-            <div className="kit-detail-header">
-              <div className="detail-grade" style={{color:gc(selectedKit.grade).accent}}>{selectedKit.grade} GRADE — {selectedKit.scale}</div>
-              <div className="detail-title">
-                {selectedKit.name}
-                {isSignedIn && (
-                  <button className="fav-btn" style={{marginLeft:"12px",fontSize:"1.4rem"}} onClick={e => toggleFavourite(e, selectedKit.id)}>
-                    {favourites.includes(selectedKit.id) ? "⭐" : "☆"}
-                  </button>
-                )}
-              </div>
-              <div className="detail-meta">
-                <span>◈ {selectedKit.series}</span>
-                <span>◈ {selectedKit.manuals.length} MANUAL{selectedKit.manuals.length!==1?"S":""} AVAILABLE</span>
-              </div>
-            </div>
-
-            {/* BUILD STATUS TRACKER */}
-            {isSignedIn && (
-              <div className="build-status-wrap">
-                <span className="build-status-label">◈ BUILD STATUS</span>
-                <div className="build-status-options">
-                  {[
-                    {id:"notstarted", label:"◻ NOT STARTED"},
-                    {id:"inprogress", label:"⚙ IN PROGRESS"},
-                    {id:"complete",   label:"✓ COMPLETE"},
-                  ].map(s => (
-                    <button
-                      key={s.id}
-                      className={`build-status-btn${buildProgress[selectedKit.id]===s.id ? ` active-${s.id}` : ""}`}
-                      onClick={() => setBuildStatus(selectedKit.id, s.id)}
-                    >
-                      {s.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* AVAILABLE MANUALS */}
-            <div className="manual-list">
-              <div className="section-header" style={{padding:"0 0 20px"}}>
-                <span className="section-title">AVAILABLE MANUALS</span>
-                <div className="section-line" />
-              </div>
-              {selectedKit.manuals.map(manual => (
-                <div key={manual.id} className="manual-item" onClick={() => toggleManual(manual.id)}>
-                  <div className="manual-item-row">
-                    <div className="manual-item-left">
-                      <div className="manual-icon">PDF</div>
-                      <div>
-                        <div className="manual-name">{manual.name}</div>
-                        <div className="manual-meta">
-                          <span>LANG: {manual.lang}</span>
-                          <span>{manual.pages} PGS</span>
-                          <span>{manual.size}</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="manual-actions">
-                      <button
-                        className={`btn btn-view${openManualId === manual.id ? " active" : ""}`}
-                        onClick={e => { e.stopPropagation(); toggleManual(manual.id); }}
+              ) : (
+                <div className="vault-grid">
+                  {KITS.filter(k => favourites.includes(k.id)).map(kit => {
+                    const c = gc(kit.grade);
+                    const progress = buildProgress[kit.id];
+                    return (
+                      <div key={kit.id} className="kit-card"
+                        style={{"--card-accent":c.accent,"--card-accent-bg":c.bg}}
+                        onClick={()=>goKit(kit)}
                       >
-                        {openManualId === manual.id ? "▼ CLOSE" : "▶ VIEW"}
-                      </button>
-                      <button className="btn btn-dl" onClick={e => { e.stopPropagation(); alert(`Download "${manual.name}" — connect your PDF files to enable downloads.`); }}>↓ DL</button>
-                    </div>
-                  </div>
-                  {/* INLINE PDF DROPDOWN */}
-                  <div className={`pdf-dropdown${openManualId === manual.id ? " open" : ""}`}>
-                    <div className="pdf-dropdown-inner">
-                      <div className="pdf-dropdown-header">
-                        <span className="pdf-dropdown-title">◈ {manual.name.toUpperCase()}</span>
-                        <button className="pdf-dropdown-close" onClick={() => setOpenManualId(null)}>✕</button>
-                      </div>
-                      <div className="pdf-frame-wrap">
-                        {manual.url ? (
-                          <iframe
-                            src={`${R2}/${manual.url}`}
-                            width="100%"
-                            height="100%"
-                            style={{border:"none"}}
-                            title={manual.name}
-                          />
-                        ) : (
-                          <div className="pdf-placeholder">
-                            <div className="big">PDF</div>
-                            <div>[ PDF VIEWER ]</div>
-                            <div style={{marginTop:12,fontSize:"0.65rem",opacity:0.6}}>
-                              Add a <code>url</code> field to this manual in the data<br/>
-                              to enable in-browser viewing.
+                        <div className="card-grade-banner" style={{background:c.accent}} />
+                        <div className="card-body">
+                          <div className="card-top">
+                            <span className="grade-badge">{kit.grade}</span>
+                            <div style={{display:"flex",alignItems:"center",gap:"6px"}}>
+                              {progress === "inprogress" && <span className="build-badge inprogress">IN PROGRESS</span>}
+                              {progress === "complete" && <span className="build-badge complete">COMPLETE</span>}
+                              <button className="fav-btn" onClick={e => toggleFavourite(e, kit.id)}>⭐</button>
                             </div>
                           </div>
-                        )}
+                          <div className="card-title">{kit.name}</div>
+                          <div className="card-series">{kit.series}</div>
+                          <div className="card-footer">
+                            <span className="card-scale">SCALE {kit.scale}</span>
+                            <span className="card-arrow">→</span>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </div>
+                    );
+                  })}
                 </div>
-              ))}
-            </div>
+              )}
+            </>
+          } />
 
-            {/* KIT IMAGE */}
-            <div className="kit-image-section">
-              <div className="kit-image-wrap" style={{"--ki-accent": gc(selectedKit.grade).accent}}>
-                {selectedKit.imageUrl ? (
-                  <>
-                    <img
-                      className="kit-image"
-                      src={selectedKit.imageUrl}
-                      alt={`${selectedKit.name} — ${selectedKit.grade} ${selectedKit.scale}`}
-                      onError={e => { e.target.style.display="none"; e.target.nextSibling.style.display="flex"; }}
-                    />
-                    <div className="kit-image-placeholder" style={{display:"none"}}>
-                      <div className="kit-image-placeholder-icon">🤖</div>
-                      <div className="kit-image-placeholder-text">IMAGE UNAVAILABLE<br/>REPLACE imageUrl IN DATA</div>
-                    </div>
-                  </>
-                ) : (
-                  <div className="kit-image-placeholder">
-                    <div className="kit-image-placeholder-icon">🤖</div>
-                    <div className="kit-image-placeholder-text">NO IMAGE YET<br/>ADD imageUrl TO THIS KIT</div>
-                  </div>
-                )}
-                <div className="kit-image-label">{selectedKit.grade} {selectedKit.scale} · {selectedKit.name}</div>
+          {/* ===== DISCLAIMER PAGE ===== */}
+          <Route path="/disclaimer" element={
+            <>
+              <div className="page-hero">
+                <div className="page-tag">LEGAL NOTICE</div>
+                <div className="page-title">DISCLAIMER</div>
+                <div className="page-sub">PLEASE READ BEFORE USING THIS SITE</div>
               </div>
-            </div>
-
-            {/* AMAZON AFFILIATE BANNER — only shown if a real URL exists in AMAZON_URLS */}
-            {AMAZON_URLS[String(selectedKit.id)] && (
-              <div className="affiliate-banner">
-                <div className="affiliate-left">
-                  <div className="affiliate-icon">🛒</div>
-                  <div>
-                    <div className="affiliate-title">BUY ON AMAZON</div>
-                    <div className="affiliate-sub">{selectedKit.grade} {selectedKit.scale} · {selectedKit.name}</div>
+              <div className="page">
+                <div className="bandai-badge">
+                  <div className="bandai-name">BANDAI NAMCO ENTERTAINMENT</div>
+                  <div className="bandai-sub">© SOTSU · SUNRISE — ALL GUNDAM IP AND TRADEMARKS BELONG TO THEIR RESPECTIVE OWNERS</div>
+                </div>
+                <div className="disclaimer-grid">
+                  <div className="disclaimer-card" style={{"--dc":"#ffcc00"}}>
+                    <div className="disclaimer-card-icon">🛡️</div>
+                    <div className="disclaimer-card-title">FAN PROJECT</div>
+                    <div className="disclaimer-card-text">KitVault.io is an unofficial, non-commercial fan-made website created out of love for the Gunpla hobby. It is not affiliated with, endorsed by, or connected to Bandai Namco Entertainment, Sotsu, or Sunrise in any way.</div>
+                  </div>
+                  <div className="disclaimer-card" style={{"--dc":"#00aaff"}}>
+                    <div className="disclaimer-card-icon">📄</div>
+                    <div className="disclaimer-card-title">MANUAL CONTENT</div>
+                    <div className="disclaimer-card-text">All assembly manuals hosted on this site are the intellectual property of Bandai Namco Entertainment. They are provided here solely as a convenience resource for hobbyists who have already purchased these kits.</div>
+                  </div>
+                  <div className="disclaimer-card" style={{"--dc":"#00ffcc"}}>
+                    <div className="disclaimer-card-icon">🔗</div>
+                    <div className="disclaimer-card-title">AFFILIATE LINKS</div>
+                    <div className="disclaimer-card-text">This site participates in the Amazon Associates affiliate program. Links to Amazon products may earn a small commission at no extra cost to you. This helps cover server costs and keeps the site free for everyone.</div>
+                  </div>
+                  <div className="disclaimer-card" style={{"--dc":"#ff6600"}}>
+                    <div className="disclaimer-card-icon">💛</div>
+                    <div className="disclaimer-card-title">NON-PROFIT</div>
+                    <div className="disclaimer-card-text">Any revenue generated through affiliate links or donations is used solely to cover hosting and maintenance costs. This project is run by a hobbyist for hobbyists — not for profit.</div>
                   </div>
                 </div>
-                <a className="btn-amazon" href={AMAZON_URLS[String(selectedKit.id)]} target="_blank" rel="noopener noreferrer sponsored">
-                  VIEW ON AMAZON →
-                </a>
-                <div className="affiliate-disclaimer">
-                  ★ As an Amazon Associate, KitVault.io earns from qualifying purchases. This does not affect the price you pay.
+                <div className="disclaimer-block">
+                  <div className="disclaimer-block-title">INTELLECTUAL PROPERTY NOTICE</div>
+                  <p><span className="hl">Gundam</span>, all associated mobile suit names, series titles, logos, and imagery are registered trademarks of <span className="hl-gold">Bandai Namco Entertainment Inc.</span>, <span className="hl-gold">Sotsu Co., Ltd.</span>, and <span className="hl-gold">Sunrise Inc.</span> All rights are reserved by their respective owners.</p>
+                  <p>The assembly manuals available on this site are reproduced for informational and archival purposes only. If you are a rights holder and wish for any content to be removed, please contact us and it will be taken down promptly.</p>
+                </div>
+                <div className="disclaimer-block">
+                  <div className="disclaimer-block-title">AMAZON ASSOCIATES DISCLOSURE</div>
+                  <p>KitVault.io is a participant in the <span className="hl">Amazon Services LLC Associates Program</span>, an affiliate advertising program designed to provide a means for sites to earn advertising fees by advertising and linking to Amazon.com.</p>
+                  <p>As an Amazon Associate, we earn from qualifying purchases. This does <span className="hl">not</span> increase the price you pay. Affiliate commissions help us keep this resource free and maintained for the community.</p>
+                </div>
+                <div className="disclaimer-block">
+                  <div className="disclaimer-block-title">FAIR USE & INTENT</div>
+                  <p>KitVault.io operates under the belief that hosting assembly manuals for kits that hobbyists have legitimately purchased constitutes fair use. We do not sell, redistribute for profit, or claim ownership over any Bandai intellectual property.</p>
+                  <p>Our intent is to make the hobby more accessible — especially for international builders who may have received kits with manuals in a language they cannot read, or who have lost their original instruction sheets.</p>
                 </div>
               </div>
-            )}
-          </>
-        )}
+            </>
+          } />
 
+        </Routes>
+
+        {/* SETTINGS MODAL */}
         {/* SETTINGS MODAL */}
         {showSettings && (
           <div className="modal-overlay" onClick={()=>setShowSettings(false)}>
