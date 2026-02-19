@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { SignedIn, SignedOut, SignInButton, UserButton, useUser } from "@clerk/clerk-react";
 
 const styles = `
   @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
@@ -310,11 +311,13 @@ const styles = `
   .btn-dl:hover { background: rgba(255,102,0,0.2); box-shadow: var(--glow2); }
 
   /* PDF INLINE DROPDOWN */
-  .manual-item { flex-direction: column; align-items: stretch; gap: 0; }
+  .manual-item { flex-direction: column; align-items: stretch; gap: 0; cursor: pointer; }
   .manual-item-row {
     display: flex; align-items: center; justify-content: space-between;
     width: 100%; gap: 16px;
   }
+  .manual-item:hover { border-color: var(--border-bright); background: var(--bg3); }
+  .manual-item:hover::before { opacity: 1; }
   .pdf-dropdown {
     overflow: hidden;
     max-height: 0;
@@ -323,7 +326,7 @@ const styles = `
     width: 100%;
   }
   .pdf-dropdown.open {
-    max-height: 520px;
+    max-height: 1000px;
     opacity: 1;
   }
   .pdf-dropdown-inner {
@@ -348,7 +351,7 @@ const styles = `
   .pdf-dropdown-close:hover { border-color: var(--red); color: var(--red); }
   .pdf-frame-wrap {
     background: var(--bg); border: 1px solid var(--border);
-    height: 420px; width: 100%; display: flex; align-items: center; justify-content: center;
+    height: 850px; width: 100%; display: flex; align-items: center; justify-content: center;
     position: relative;
   }
   .pdf-placeholder {
@@ -357,6 +360,19 @@ const styles = `
   }
   .pdf-placeholder .big { font-size: 2.5rem; margin-bottom: 12px; color: var(--accent); opacity: 0.3; }
   .btn-view.active { background: rgba(0,170,255,0.22); box-shadow: var(--glow); }
+
+  /* MODAL OVERLAY (settings) */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 200;
+    display: flex; align-items: center; justify-content: center; padding: 20px;
+    backdrop-filter: blur(4px);
+  }
+  .modal-close {
+    background: none; border: 1px solid var(--border); color: var(--text-dim);
+    width: 28px; height: 28px; cursor: pointer; font-size: 0.9rem;
+    display: flex; align-items: center; justify-content: center; transition: all 0.2s;
+  }
+  .modal-close:hover { border-color: var(--red); color: var(--red); }
 
   /* SETTINGS MODAL */
   .settings-modal {
@@ -496,6 +512,64 @@ const styles = `
     color: var(--text-dim); letter-spacing: 2px; text-align: center;
   }
 
+  /* AUTH BUTTONS */
+  .auth-btn {
+    background: rgba(0,170,255,0.08); border: 1px solid var(--border-bright);
+    color: var(--accent); font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem; padding: 8px 14px; cursor: pointer; letter-spacing: 1px;
+    transition: all 0.2s; white-space: nowrap;
+    clip-path: polygon(0 0, 88% 0, 100% 30%, 100% 100%, 12% 100%, 0 70%);
+  }
+  .auth-btn:hover { background: rgba(0,170,255,0.2); box-shadow: var(--glow); }
+
+  /* FAVOURITE BUTTON */
+  .fav-btn {
+    background: none; border: none; cursor: pointer;
+    font-size: 1.1rem; transition: transform 0.2s;
+    line-height: 1; padding: 2px; flex-shrink: 0;
+  }
+  .fav-btn:hover { transform: scale(1.3); }
+
+  /* BUILD STATUS */
+  .build-status-wrap {
+    margin: 0 40px 24px;
+    background: var(--panel); border: 1px solid var(--border);
+    padding: 16px 20px;
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    clip-path: polygon(0 0, 98% 0, 100% 15%, 100% 100%, 2% 100%, 0 85%);
+  }
+  .build-status-label {
+    font-family: 'Share Tech Mono', monospace; font-size: 0.65rem;
+    color: var(--text-dim); letter-spacing: 2px; white-space: nowrap;
+  }
+  .build-status-options { display: flex; gap: 8px; flex-wrap: wrap; }
+  .build-status-btn {
+    font-family: 'Share Tech Mono', monospace; font-size: 0.65rem;
+    padding: 6px 14px; cursor: pointer; letter-spacing: 1px;
+    border: 1px solid var(--border); background: none; color: var(--text-dim);
+    transition: all 0.2s;
+    clip-path: polygon(0 0, 88% 0, 100% 30%, 100% 100%, 12% 100%, 0 70%);
+  }
+  .build-status-btn.active-notstarted { border-color: var(--text-dim); color: var(--text-dim); background: rgba(255,255,255,0.05); }
+  .build-status-btn.active-inprogress { border-color: var(--gold); color: var(--gold); background: rgba(255,204,0,0.08); box-shadow: 0 0 10px rgba(255,204,0,0.2); }
+  .build-status-btn.active-complete { border-color: var(--green); color: var(--green); background: rgba(0,255,136,0.08); box-shadow: 0 0 10px rgba(0,255,136,0.2); }
+
+  /* MY VAULT PAGE */
+  .vault-grid { padding: 0 40px 60px; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+  .vault-empty {
+    padding: 80px 40px; text-align: center;
+    font-family: 'Share Tech Mono', monospace; color: var(--text-dim);
+    font-size: 0.8rem; letter-spacing: 2px; line-height: 3;
+  }
+  .vault-empty-icon { font-size: 3rem; opacity: 0.3; display: block; margin-bottom: 16px; }
+  .kit-card .build-badge {
+    font-family: 'Share Tech Mono', monospace; font-size: 0.55rem;
+    padding: 3px 8px; letter-spacing: 1px; border-radius: 0;
+    border: 1px solid; margin-left: 6px;
+  }
+  .build-badge.inprogress { border-color: var(--gold); color: var(--gold); }
+  .build-badge.complete { border-color: var(--green); color: var(--green); }
+
   /* FOOTER */
   .footer {
     border-top: 1px solid var(--border); padding: 24px 40px;
@@ -622,8 +696,8 @@ const styles = `
     }
 
     /* PDF dropdown */
-    .pdf-frame-wrap { height: 300px; }
-    .pdf-dropdown.open { max-height: 380px; }
+    .pdf-frame-wrap { height: 500px; }
+    .pdf-dropdown.open { max-height: 600px; }
 
     /* Settings modal */
     .modal-overlay { padding: 0; align-items: flex-end; }
@@ -921,6 +995,7 @@ const KITS = [
 const GRADES = ["ALL", "HG", "MG", "RG", "PG", "SD", "EG"];
 
 export default function KitVault() {
+  const { user, isSignedIn } = useUser();
   const [page, setPage] = useState("home");
   const [selectedKit, setSelectedKit] = useState(null);
   const [gradeFilter, setGradeFilter] = useState("ALL");
@@ -928,6 +1003,31 @@ export default function KitVault() {
   const [openManualId, setOpenManualId] = useState(null);
   const toggleManual = (id) => setOpenManualId(prev => prev === id ? null : id);
   const [showSettings, setShowSettings] = useState(false);
+  const [favourites, setFavourites] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("kv_favourites") || "[]"); } catch { return []; }
+  });
+  const [buildProgress, setBuildProgress] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("kv_progress") || "{}"); } catch { return {}; }
+  });
+
+  const toggleFavourite = (e, kitId) => {
+    e.stopPropagation();
+    if (!isSignedIn) return;
+    setFavourites(prev => {
+      const next = prev.includes(kitId) ? prev.filter(id => id !== kitId) : [...prev, kitId];
+      localStorage.setItem("kv_favourites", JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const setBuildStatus = (kitId, status) => {
+    if (!isSignedIn) return;
+    setBuildProgress(prev => {
+      const next = { ...prev, [kitId]: status };
+      localStorage.setItem("kv_progress", JSON.stringify(next));
+      return next;
+    });
+  };
 
   const filtered = KITS.filter(k => {
     const matchGrade = gradeFilter === "ALL" || k.grade === gradeFilter;
@@ -937,6 +1037,7 @@ export default function KitVault() {
 
   const gc = (g) => GRADE_COLORS[g] || GRADE_COLORS["HG"];
   const goHome = () => { setPage("home"); setSelectedKit(null); setOpenManualId(null); };
+  const goVault = () => { setPage("vault"); setSelectedKit(null); setOpenManualId(null); };
   const goDisclaimer = () => { setPage("disclaimer"); setSelectedKit(null); setShowSettings(false); setOpenManualId(null); };
 
   // Ensure proper mobile viewport and scroll behavior
@@ -975,11 +1076,79 @@ export default function KitVault() {
           </div>
           <div className="header-right">
             <div className="status-dot" />
+            <SignedIn>
+              <button
+                onClick={goVault}
+                style={{
+                  background:"none", border:"1px solid var(--border)", color: page==="vault" ? "var(--accent)" : "var(--text-dim)",
+                  fontFamily:"'Share Tech Mono',monospace", fontSize:"0.65rem",
+                  padding:"8px 14px", cursor:"pointer", letterSpacing:"1px", transition:"all 0.2s",
+                  clipPath:"polygon(0 0, 88% 0, 100% 30%, 100% 100%, 12% 100%, 0 70%)"
+                }}
+              >
+                ⭐ MY VAULT
+              </button>
+              <UserButton afterSignOutUrl="/" />
+            </SignedIn>
+            <SignedOut>
+              <SignInButton mode="modal">
+                <button className="auth-btn">LOG IN</button>
+              </SignInButton>
+            </SignedOut>
             <button className={`cog-btn ${showSettings?"active":""}`} onClick={() => setShowSettings(true)} title="Settings">
               ⚙
             </button>
           </div>
         </header>
+
+        {/* ===== MY VAULT PAGE ===== */}
+        {page === "vault" && (
+          <>
+            <div className="page-hero">
+              <div className="page-tag">PERSONAL COLLECTION</div>
+              <div className="page-title">MY <span style={{color:"var(--accent)"}}>VAULT</span></div>
+              <div className="page-sub">{favourites.length} SAVED KIT{favourites.length!==1?"S":""}</div>
+            </div>
+            {favourites.length === 0 ? (
+              <div className="vault-empty">
+                <span className="vault-empty-icon">⭐</span>
+                NO KITS SAVED YET<br/>
+                <span style={{fontSize:"0.7rem",opacity:0.5}}>STAR A KIT FROM THE LIBRARY TO ADD IT HERE</span>
+              </div>
+            ) : (
+              <div className="vault-grid">
+                {KITS.filter(k => favourites.includes(k.id)).map(kit => {
+                  const c = gc(kit.grade);
+                  const progress = buildProgress[kit.id];
+                  return (
+                    <div key={kit.id} className="kit-card"
+                      style={{"--card-accent":c.accent,"--card-accent-bg":c.bg}}
+                      onClick={()=>{ setPage("home"); setSelectedKit(kit); }}
+                    >
+                      <div className="card-grade-banner" style={{background:c.accent}} />
+                      <div className="card-body">
+                        <div className="card-top">
+                          <span className="grade-badge">{kit.grade}</span>
+                          <div style={{display:"flex",alignItems:"center",gap:"6px"}}>
+                            {progress === "inprogress" && <span className="build-badge inprogress">IN PROGRESS</span>}
+                            {progress === "complete" && <span className="build-badge complete">COMPLETE</span>}
+                            <button className="fav-btn" onClick={e => toggleFavourite(e, kit.id)}>⭐</button>
+                          </div>
+                        </div>
+                        <div className="card-title">{kit.name}</div>
+                        <div className="card-series">{kit.series}</div>
+                        <div className="card-footer">
+                          <span className="card-scale">SCALE {kit.scale}</span>
+                          <span className="card-arrow">→</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </>
+        )}
 
         {/* ===== DISCLAIMER PAGE ===== */}
         {page === "disclaimer" && (
@@ -1074,6 +1243,8 @@ export default function KitVault() {
             <div className="kit-grid">
               {filtered.map(kit => {
                 const c = gc(kit.grade);
+                const isFav = favourites.includes(kit.id);
+                const progress = buildProgress[kit.id];
                 return (
                   <div key={kit.id} className="kit-card"
                     style={{"--card-accent":c.accent,"--card-accent-bg":c.bg}}
@@ -1083,7 +1254,16 @@ export default function KitVault() {
                     <div className="card-body">
                       <div className="card-top">
                         <span className="grade-badge">{kit.grade}</span>
-                        <span className="manual-count">{kit.manuals.length} MANUAL{kit.manuals.length!==1?"S":""}</span>
+                        <div style={{display:"flex",alignItems:"center",gap:"6px"}}>
+                          {progress === "inprogress" && <span className="build-badge inprogress">IN PROGRESS</span>}
+                          {progress === "complete" && <span className="build-badge complete">COMPLETE</span>}
+                          <span className="manual-count">{kit.manuals.length} MANUAL{kit.manuals.length!==1?"S":""}</span>
+                          {isSignedIn && (
+                            <button className="fav-btn" onClick={e => toggleFavourite(e, kit.id)} title={isFav ? "Remove from favourites" : "Add to favourites"}>
+                              {isFav ? "⭐" : "☆"}
+                            </button>
+                          )}
+                        </div>
                       </div>
                       <div className="card-title">{kit.name}</div>
                       <div className="card-series">{kit.series}</div>
@@ -1106,12 +1286,41 @@ export default function KitVault() {
 
             <div className="kit-detail-header">
               <div className="detail-grade" style={{color:gc(selectedKit.grade).accent}}>{selectedKit.grade} GRADE — {selectedKit.scale}</div>
-              <div className="detail-title">{selectedKit.name}</div>
+              <div className="detail-title">
+                {selectedKit.name}
+                {isSignedIn && (
+                  <button className="fav-btn" style={{marginLeft:"12px",fontSize:"1.4rem"}} onClick={e => toggleFavourite(e, selectedKit.id)}>
+                    {favourites.includes(selectedKit.id) ? "⭐" : "☆"}
+                  </button>
+                )}
+              </div>
               <div className="detail-meta">
                 <span>◈ {selectedKit.series}</span>
                 <span>◈ {selectedKit.manuals.length} MANUAL{selectedKit.manuals.length!==1?"S":""} AVAILABLE</span>
               </div>
             </div>
+
+            {/* BUILD STATUS TRACKER */}
+            {isSignedIn && (
+              <div className="build-status-wrap">
+                <span className="build-status-label">◈ BUILD STATUS</span>
+                <div className="build-status-options">
+                  {[
+                    {id:"notstarted", label:"◻ NOT STARTED"},
+                    {id:"inprogress", label:"⚙ IN PROGRESS"},
+                    {id:"complete",   label:"✓ COMPLETE"},
+                  ].map(s => (
+                    <button
+                      key={s.id}
+                      className={`build-status-btn${buildProgress[selectedKit.id]===s.id ? ` active-${s.id}` : ""}`}
+                      onClick={() => setBuildStatus(selectedKit.id, s.id)}
+                    >
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* AVAILABLE MANUALS */}
             <div className="manual-list">
@@ -1120,7 +1329,7 @@ export default function KitVault() {
                 <div className="section-line" />
               </div>
               {selectedKit.manuals.map(manual => (
-                <div key={manual.id} className="manual-item">
+                <div key={manual.id} className="manual-item" onClick={() => toggleManual(manual.id)}>
                   <div className="manual-item-row">
                     <div className="manual-item-left">
                       <div className="manual-icon">PDF</div>
@@ -1136,11 +1345,11 @@ export default function KitVault() {
                     <div className="manual-actions">
                       <button
                         className={`btn btn-view${openManualId === manual.id ? " active" : ""}`}
-                        onClick={() => toggleManual(manual.id)}
+                        onClick={e => { e.stopPropagation(); toggleManual(manual.id); }}
                       >
                         {openManualId === manual.id ? "▼ CLOSE" : "▶ VIEW"}
                       </button>
-                      <button className="btn btn-dl" onClick={()=>alert(`Download "${manual.name}" — connect your PDF files to enable downloads.`)}>↓ DL</button>
+                      <button className="btn btn-dl" onClick={e => { e.stopPropagation(); alert(`Download "${manual.name}" — connect your PDF files to enable downloads.`); }}>↓ DL</button>
                     </div>
                   </div>
                   {/* INLINE PDF DROPDOWN */}
