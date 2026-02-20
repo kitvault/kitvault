@@ -119,9 +119,8 @@ const styles = `
   @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
 
   /* NAV DROPDOWNS */
-  .nav-center {
+  .nav-right {
     display: flex; align-items: center; gap: 4px;
-    position: absolute; left: 50%; transform: translateX(-50%);
   }
   .nav-item { position: relative; }
   .nav-btn {
@@ -135,11 +134,11 @@ const styles = `
   .nav-btn-arrow { font-size: 0.5rem; transition: transform 0.2s; opacity: 0.6; }
   .nav-item.open .nav-btn-arrow { transform: rotate(180deg); }
   .nav-dropdown {
-    position: absolute; top: calc(100% + 12px); left: 50%; transform: translateX(-50%);
+    position: absolute; top: calc(100% + 12px); right: 0;
     background: var(--bg2); border: 1px solid var(--border-bright);
-    min-width: 280px; z-index: 200;
+    min-width: 300px; z-index: 200;
     clip-path: polygon(0 0, 97% 0, 100% 3%, 100% 100%, 3% 100%, 0 97%);
-    opacity: 0; pointer-events: none; transform: translateX(-50%) translateY(-8px);
+    opacity: 0; pointer-events: none; transform: translateY(-8px);
     transition: opacity 0.18s, transform 0.18s;
   }
   .nav-dropdown::before {
@@ -147,7 +146,7 @@ const styles = `
     background: linear-gradient(90deg, transparent, var(--accent), transparent);
   }
   .nav-item.open .nav-dropdown {
-    opacity: 1; pointer-events: all; transform: translateX(-50%) translateY(0);
+    opacity: 1; pointer-events: all; transform: translateY(0);
   }
   .nav-dropdown-header {
     padding: 12px 16px 8px;
@@ -173,7 +172,136 @@ const styles = `
     display: block; margin-top: 1px;
   }
   .nav-dd-item:hover .nav-dd-label { color: var(--accent); }
-  @media (max-width: 860px) { .nav-center { display: none; } }
+  @media (max-width: 860px) { .nav-right { display: none; } }
+
+  /* GRADE DETAIL PAGE */
+  .grade-page { padding: 0 40px 60px; }
+  .grade-page-hero {
+    padding: 60px 40px 40px; text-align: center; position: relative;
+    border-bottom: 1px solid var(--border); margin-bottom: 40px;
+  }
+  .grade-page-hero::after {
+    content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
+    width: 200px; height: 1px; background: var(--grade-color, var(--accent)); opacity: 0.6;
+  }
+  .grade-page-tag {
+    font-family: 'Share Tech Mono', monospace; font-size: 0.65rem;
+    letter-spacing: 4px; margin-bottom: 12px; opacity: 0.7;
+  }
+  .grade-page-title {
+    font-family: 'Orbitron', monospace; font-size: clamp(2.5rem, 6vw, 4rem);
+    font-weight: 900; color: var(--text-bright); letter-spacing: 3px; margin-bottom: 8px;
+  }
+  .grade-page-sub {
+    font-family: 'Share Tech Mono', monospace; font-size: 0.8rem;
+    color: var(--text-dim); letter-spacing: 2px; margin-bottom: 20px;
+  }
+  .grade-page-badge {
+    display: inline-block; font-family: 'Orbitron', monospace; font-size: 0.7rem;
+    font-weight: 700; padding: 6px 18px; letter-spacing: 3px;
+    border: 1px solid var(--grade-color, var(--accent));
+    color: var(--grade-color, var(--accent));
+    background: rgba(0,0,0,0.3);
+  }
+  .grade-section {
+    background: var(--panel); border: 1px solid var(--border);
+    padding: 28px 32px; margin-bottom: 16px;
+    clip-path: polygon(0 0, 98% 0, 100% 4%, 100% 100%, 2% 100%, 0 96%);
+    position: relative;
+  }
+  .grade-section::before {
+    content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+    background: var(--grade-color, var(--accent)); opacity: 0.7;
+  }
+  .grade-section-title {
+    font-family: 'Orbitron', monospace; font-size: 0.75rem; font-weight: 700;
+    color: var(--grade-color, var(--accent)); letter-spacing: 3px; margin-bottom: 12px;
+  }
+  .grade-section-body {
+    font-family: 'Rajdhani', sans-serif; font-size: 1rem; color: var(--text);
+    line-height: 1.8; letter-spacing: 0.3px;
+  }
+  .grade-section-body strong { color: var(--text-bright); font-weight: 600; }
+  .grade-stat-row {
+    display: flex; gap: 16px; flex-wrap: wrap; margin-top: 20px;
+  }
+  .grade-stat {
+    flex: 1; min-width: 120px; text-align: center;
+    border: 1px solid var(--border); padding: 14px 20px;
+    background: rgba(0,0,0,0.2);
+  }
+  .grade-stat-val {
+    font-family: 'Orbitron', monospace; font-size: 1.2rem; font-weight: 700;
+    color: var(--grade-color, var(--accent)); margin-bottom: 4px;
+  }
+  .grade-stat-lbl {
+    font-family: 'Share Tech Mono', monospace; font-size: 0.6rem;
+    color: var(--text-dim); letter-spacing: 1.5px;
+  }
+  .grade-kits-link {
+    display: inline-flex; align-items: center; gap: 8px; margin-top: 24px;
+    background: rgba(0,0,0,0.2); border: 1px solid var(--grade-color, var(--accent));
+    color: var(--grade-color, var(--accent)); font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem; padding: 10px 20px; cursor: pointer; letter-spacing: 1.5px;
+    transition: all 0.2s; clip-path: polygon(0 0, 90% 0, 100% 30%, 100% 100%, 10% 100%, 0 70%);
+  }
+  .grade-kits-link:hover { background: rgba(255,255,255,0.05); box-shadow: 0 0 15px rgba(0,170,255,0.2); }
+  @media (max-width: 640px) {
+    .grade-page { padding: 0 16px 40px; }
+    .grade-page-hero { padding: 36px 16px 28px; }
+    .grade-section { padding: 20px; clip-path: none; }
+  }
+
+  /* RESOURCES PAGE */
+  .resources-page { padding: 0 40px 60px; }
+  .resources-section-title {
+    font-family: 'Orbitron', monospace; font-size: 0.8rem; font-weight: 700;
+    color: var(--accent); letter-spacing: 3px; margin-bottom: 16px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .resources-section-title::after { content:''; flex:1; height:1px; background: linear-gradient(90deg, var(--border), transparent); }
+  .resources-section { margin-bottom: 40px; }
+  .resources-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+  .resource-card {
+    display: flex; align-items: flex-start; gap: 16px;
+    background: var(--panel); border: 1px solid var(--border);
+    padding: 20px; text-decoration: none; transition: all 0.2s;
+    clip-path: polygon(0 0, 96% 0, 100% 8%, 100% 100%, 4% 100%, 0 92%);
+    position: relative; overflow: hidden;
+  }
+  .resource-card::before {
+    content:''; position:absolute; top:0; left:0; right:0; height:2px;
+    background: linear-gradient(90deg, transparent, var(--rc-color, var(--accent)), transparent);
+    opacity:0; transition: opacity 0.2s;
+  }
+  .resource-card:hover { border-color: var(--rc-color, var(--accent)); transform: translateY(-2px); box-shadow: 0 6px 24px rgba(0,0,0,0.4); }
+  .resource-card:hover::before { opacity:1; }
+  .resource-card-icon {
+    font-size: 1.6rem; flex-shrink: 0; width: 40px; text-align: center; margin-top: 2px;
+  }
+  .resource-card-body {}
+  .resource-card-label {
+    font-family: 'Rajdhani', sans-serif; font-size: 1.05rem; font-weight: 700;
+    color: var(--text-bright); letter-spacing: 0.5px; margin-bottom: 4px; display: block;
+    transition: color 0.2s;
+  }
+  .resource-card:hover .resource-card-label { color: var(--rc-color, var(--accent)); }
+  .resource-card-sub {
+    font-family: 'Share Tech Mono', monospace; font-size: 0.62rem;
+    color: var(--text-dim); letter-spacing: 0.5px; line-height: 1.7; display: block;
+  }
+  .resource-card-tag {
+    display: inline-block; margin-top: 8px;
+    font-family: 'Share Tech Mono', monospace; font-size: 0.55rem;
+    color: var(--rc-color, var(--accent)); letter-spacing: 1px;
+    border: 1px solid var(--rc-color, var(--accent)); padding: 2px 8px;
+    opacity: 0.7;
+  }
+  @media (max-width: 640px) {
+    .resources-page { padding: 0 16px 40px; }
+    .resources-grid { grid-template-columns: 1fr; }
+    .resource-card { clip-path: none; }
+  }
 
   /* HERO */
   .hero {
@@ -705,23 +833,125 @@ const styles = `
     font-family: 'Share Tech Mono', monospace; font-size: 0.65rem; color: var(--text-dim);
   }
 
-  /* VAULT PROGRESS BAR */
-  .vault-card-progress { margin-top: 10px; }
-  .vault-progress-bar-wrap {
-    height: 4px; background: var(--bg); border: 1px solid var(--border);
-    margin-bottom: 4px; overflow: hidden;
+
+  /* ── XP PROGRESS BAR ── */
+  .xp-wrap {
+    position: relative;
   }
-  .vault-progress-bar-fill {
-    height: 100%; transition: width 0.4s ease;
-    background: linear-gradient(90deg, var(--accent), var(--accent3));
+
+  /* Full bar — kit detail page */
+  .xp-bar-full {
+    margin: 0 40px 0;
+    background: var(--panel); border: 1px solid var(--border);
+    padding: 20px 24px 20px;
+    clip-path: polygon(0 0, 98% 0, 100% 8%, 100% 100%, 2% 100%, 0 92%);
+    position: relative; overflow: hidden;
   }
-  .vault-progress-bar-fill.complete { background: linear-gradient(90deg, var(--green), var(--accent3)); }
-  .vault-progress-label {
+  .xp-bar-full::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--xp-color, var(--accent)), transparent);
+  }
+  .xp-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 10px;
+  }
+  .xp-label {
     font-family: 'Share Tech Mono', monospace; font-size: 0.6rem;
-    color: var(--text-dim); letter-spacing: 1px;
-    display: flex; justify-content: space-between;
+    color: var(--accent); letter-spacing: 3px;
   }
-  .vault-progress-pct { color: var(--accent); font-weight: 700; }
+  .xp-pct {
+    font-family: 'Orbitron', monospace; font-size: 1.1rem; font-weight: 700;
+    color: var(--xp-color, var(--accent));
+    text-shadow: 0 0 12px var(--xp-color, var(--accent));
+    transition: color 0.6s, text-shadow 0.6s;
+  }
+  .xp-track {
+    height: 14px; background: rgba(0,0,0,0.5);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 2px; overflow: hidden; position: relative; margin-bottom: 14px;
+  }
+  .xp-track-segments {
+    position: absolute; inset: 0; display: flex;
+    pointer-events: none; z-index: 2;
+  }
+  .xp-segment {
+    flex: 1; border-right: 1px solid rgba(0,0,0,0.35);
+  }
+  .xp-segment:last-child { border-right: none; }
+  .xp-fill {
+    height: 100%; border-radius: 2px;
+    background: linear-gradient(90deg, var(--xp-start, #3a6aff), var(--xp-end, var(--accent)));
+    box-shadow: 0 0 10px var(--xp-glow, rgba(0,170,255,0.6));
+    transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+                background 0.6s ease,
+                box-shadow 0.6s ease;
+    position: relative; z-index: 1;
+  }
+  .xp-fill::after {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(180deg, rgba(255,255,255,0.15) 0%, transparent 60%);
+    border-radius: 2px;
+  }
+  .xp-input-row {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .xp-input-label {
+    font-family: 'Share Tech Mono', monospace; font-size: 0.6rem;
+    color: var(--text-dim); letter-spacing: 1.5px; flex-shrink: 0;
+  }
+  .xp-input {
+    width: 70px; background: var(--bg); border: 1px solid var(--border);
+    color: var(--text-bright); font-family: 'Share Tech Mono', monospace;
+    font-size: 0.85rem; padding: 5px 10px; outline: none; text-align: center;
+    transition: border-color 0.2s;
+    -moz-appearance: textfield;
+  }
+  .xp-input::-webkit-outer-spin-button,
+  .xp-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+  .xp-input:focus { border-color: var(--accent); box-shadow: 0 0 8px rgba(0,170,255,0.3); }
+  .xp-total {
+    font-family: 'Share Tech Mono', monospace; font-size: 0.7rem; color: var(--text-dim);
+  }
+  .xp-manual-name {
+    font-family: 'Rajdhani', sans-serif; font-weight: 600; font-size: 0.85rem;
+    color: var(--text-dim); letter-spacing: 1px; margin-bottom: 14px;
+  }
+  .xp-multi-wrap { display: flex; flex-direction: column; gap: 18px; }
+
+  /* Slim bar — kit cards + vault cards */
+  .xp-slim {
+    margin-top: 12px;
+  }
+  .xp-slim-track {
+    height: 6px; background: rgba(0,0,0,0.5);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 1px; overflow: hidden; margin-bottom: 4px;
+  }
+  .xp-slim-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--xp-start, #3a6aff), var(--xp-end, var(--accent)));
+    box-shadow: 0 0 6px var(--xp-glow, rgba(0,170,255,0.5));
+    transition: width 0.5s cubic-bezier(0.4,0,0.2,1);
+    border-radius: 1px;
+  }
+  .xp-slim-label {
+    display: flex; justify-content: space-between;
+    font-family: 'Share Tech Mono', monospace; font-size: 0.55rem;
+    color: var(--text-dim); letter-spacing: 1px;
+  }
+  .xp-slim-pct { color: var(--xp-color, var(--accent)); font-weight: 700; }
+
+  @media (max-width: 640px) {
+    .xp-bar-full { margin: 0 16px; clip-path: none; padding: 16px; }
+  }
+
+  /* VAULT PROGRESS BAR — now uses xp-slim, kept for backward compat */
+  .vault-card-progress { margin-top: 10px; }
+  .vault-progress-bar-wrap { display: none; }
+  .vault-progress-bar-fill { display: none; }
+  .vault-progress-label { display: none; }
+  .vault-progress-pct { display: none; }
 
   /* MY VAULT PAGE */
   .vault-grid { padding: 0 40px 60px; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
@@ -945,9 +1175,9 @@ const GRADE_COLORS = {
 const KITS = [
   // ── ENTRY GRADE ──────────────────────────────────────────────
   { id:1, grade:"EG", scale:"1/144", name:"RX-78-2 Gundam", series:"Mobile Suit Gundam", imageUrl:null,
-    manuals:[{id:1,name:"Quick Assembly Guide",lang:"EN/JP",size:"2.4 MB",url:"eg-144-rx78-2-assembly.pdf"}] },
+    manuals:[{id:1,name:"Assembly",lang:"EN/JP",size:"2.4 MB",url:"eg-144-rx78-2-assembly.pdf"}] },
   { id:2, grade:"EG", scale:"1/144", name:"Strike Gundam", series:"Mobile Suit Gundam SEED", imageUrl:null,
-    manuals:[{id:2,name:"Quick Assembly Guide",lang:"EN/JP",size:"2.1 MB",url:"eg-144-strike-assembly.pdf"}] },
+    manuals:[{id:2,name:"Assembly",lang:"EN/JP",size:"2.1 MB",url:"eg-144-strike-assembly.pdf"}] },
 
   // ── HIGH GRADE (HG) ───────────────────────────────────────────
   { id:3, grade:"HG", scale:"1/144", name:"RX-78-2 Gundam (Revive)", series:"Mobile Suit Gundam", imageUrl:null,
@@ -1171,6 +1401,136 @@ const slugify = (kit) =>
 
 const findKitBySlug = (slug) => KITS.find(k => slugify(k) === slug);
 
+
+// ─────────────────────────────────────────────────────────────
+// GRADE DETAIL — separate component so it can use useParams
+// ─────────────────────────────────────────────────────────────
+const GRADE_DATA = {
+  eg: {
+    name: "Entry Grade", abbr: "EG", color: "#aa88ff", scale: "1/144",
+    tagline: "THE PERFECT STARTING POINT",
+    intro: "Entry Grade kits were introduced by Bandai in 2020 as the most accessible way to experience Gunpla. Designed specifically for first-time builders, EG kits require <strong>no nippers, no tools, and no prior experience</strong> — parts snap cleanly off the runner by hand without leaving unsightly gate marks.",
+    sections: [
+      { title: "◈ BUILD EXPERIENCE", body: "EG kits are engineered for simplicity without sacrificing the iconic look of the mobile suits. The part count is kept low, assembly steps are intuitive, and the instruction manual is easy to follow even for children. A typical EG kit can be completed in <strong>1–2 hours</strong>, making it ideal for an afternoon project." },
+      { title: "◈ WHAT YOU GET", body: "Despite being entry-level, EG kits deliver impressive articulation and screen-accurate proportions. Most include a small selection of weapons and accessories. The plastic quality is high — the same Bandai engineering behind MG and RG kits, just simplified for accessibility." },
+      { title: "◈ WHO IS IT FOR?", body: "EG is perfect for <strong>absolute beginners</strong>, younger builders, or anyone who wants a quick, satisfying build without committing hours to a complex kit. They also make great gifts. Experienced builders often pick up EG kits as palette cleansers between large MG or PG projects." },
+      { title: "◈ TOOLS NEEDED", body: "<strong>None required.</strong> Parts are designed to be hand-separated cleanly. That said, a pair of nippers and a hobby knife will give cleaner results if you have them. No glue, cement, or painting is necessary — though EG kits respond well to panel lining and top coating if you want to take them further." },
+    ],
+    stats: [{ val:"1/144", lbl:"SCALE" }, { val:"1–2 HRS", lbl:"BUILD TIME" }, { val:"NONE", lbl:"TOOLS NEEDED" }, { val:"★☆☆☆☆", lbl:"DIFFICULTY" }],
+  },
+  hg: {
+    name: "High Grade", abbr: "HG", color: "#00aaff", scale: "1/144",
+    tagline: "THE BACKBONE OF GUNPLA",
+    intro: "High Grade is the most diverse and widely available grade in all of Gunpla. Running since 1990, HG kits cover virtually every mobile suit from every Gundam series — if a kit exists, there's almost certainly an HG version of it. At 1/144 scale, they're compact, affordable, and endlessly varied.",
+    sections: [
+      { title: "◈ BUILD EXPERIENCE", body: "HG kits are the <strong>gateway to serious Gunpla building</strong>. They require nippers for clean gate removal and benefit from a hobby knife for cleanup, but are otherwise very approachable. A standard HG takes <strong>3–6 hours</strong> to complete. The part count is moderate and the build flow is well-paced." },
+      { title: "◈ WHAT YOU GET", body: "Most HG kits include a good range of accessories — beam sabers, shields, rifles — and feature solid articulation for their size. Newer HG kits (post-2015) have benefited from Bandai's improved engineering, with better proportions, color separation, and posability than older releases." },
+      { title: "◈ WHO IS IT FOR?", body: "HG is the ideal grade for <strong>beginners to intermediate builders</strong>. They're a great place to practice panel lining, decal application, and top coating. Advanced builders often collect HG kits for their variety, or use them as customisation bases for kitbashing and painting projects." },
+      { title: "◈ TOOLS NEEDED", body: "<strong>Nippers are essential.</strong> A hobby knife for gate cleanup and panel line markers are highly recommended. No glue required for standard assembly. Nippers, a cutting mat, and panel line markers are the standard starter toolkit for HG builds." },
+    ],
+    stats: [{ val:"1/144", lbl:"SCALE" }, { val:"3–6 HRS", lbl:"BUILD TIME" }, { val:"NIPPERS", lbl:"TOOLS NEEDED" }, { val:"★★☆☆☆", lbl:"DIFFICULTY" }],
+  },
+  rg: {
+    name: "Real Grade", abbr: "RG", color: "#ff2244", scale: "1/144",
+    tagline: "MASTER GRADE DETAIL IN A SMALLER PACKAGE",
+    intro: "Real Grade kits are Bandai's most technically ambitious 1/144 scale offerings. Launched in 2010, RG kits pack <strong>Master Grade-level internal structure and detail</strong> into a compact frame, making them one of the most impressive grade-for-size achievements in the Gunpla lineup.",
+    sections: [
+      { title: "◈ BUILD EXPERIENCE", body: "RG kits feature a pre-built Advanced MS Joint inner frame — a flexible, pre-assembled skeleton that forms the core of the kit. Outer armor parts snap onto this frame. The result is exceptional poseability and detail, but the small part size and complex assembly make RG one of the more <strong>challenging grades</strong>. Expect <strong>6–12 hours</strong> for most kits." },
+      { title: "◈ WHAT YOU GET", body: "RG kits typically include <strong>waterslide decals</strong> for panel markings, an inner frame visible through translucent or removable outer armor, and an impressive level of color separation considering the scale. The finished product is often the most detailed display piece possible at 1/144 scale." },
+      { title: "◈ WHO IS IT FOR?", body: "RG is aimed at <strong>intermediate to advanced builders</strong> who want the detail of an MG without the footprint. The small parts demand patience and steady hands. It's not recommended as a first kit, but experienced HG builders looking for their next challenge will find RG enormously rewarding." },
+      { title: "◈ TOOLS NEEDED", body: "<strong>Sharp nippers are critical</strong> — blunt nippers will crack small RG parts. A precision hobby knife, tweezers for waterslide decals, and a fine-tipped panel liner are all highly recommended. A good magnifying lamp helps significantly with the fine detail work." },
+    ],
+    stats: [{ val:"1/144", lbl:"SCALE" }, { val:"6–12 HRS", lbl:"BUILD TIME" }, { val:"SHARP NIPPERS", lbl:"TOOLS NEEDED" }, { val:"★★★★☆", lbl:"DIFFICULTY" }],
+  },
+  mg: {
+    name: "Master Grade", abbr: "MG", color: "#ff6600", scale: "1/100",
+    tagline: "THE GOLD STANDARD OF GUNPLA",
+    intro: "Master Grade is the prestige grade of the Gunpla line — the sweet spot between complexity and display quality that most serious collectors aspire to. Introduced in 1995, MG kits feature <strong>fully developed inner frames, detailed cockpit interiors, and exceptional articulation</strong> at the substantial 1/100 scale.",
+    sections: [
+      { title: "◈ BUILD EXPERIENCE", body: "Building an MG is a <strong>multi-session commitment</strong>. Most kits take 8–20 hours depending on complexity. You'll build the skeleton first — a fully articulated inner frame — and then layer outer armor panels over it. The process is deeply satisfying and teaches builders a thorough understanding of the mobile suit's structure." },
+      { title: "◈ WHAT YOU GET", body: "MG kits are packed with features: opening hatches, poseable fingers (on many releases), pilot figures, cockpit details, extensive weapon loadouts, and markings. The 1/100 scale means detail work like panel lining and decal application is much more forgiving than RG or HG." },
+      { title: "◈ WHO IS IT FOR?", body: "MG is the target grade for <strong>intermediate to advanced builders</strong> who want a substantial, impressive display piece. It's also the most customisation-friendly grade — the inner frame construction makes repainting, kitbashing, and modification more approachable than smaller grades." },
+      { title: "◈ TOOLS NEEDED", body: "<strong>Quality nippers are essential.</strong> A hobby knife, panel liners, and either waterslide or dry transfer decals (depending on the kit) round out the standard toolkit. Airbrush painting elevates MG kits significantly, though hand painting works well too at this scale." },
+    ],
+    stats: [{ val:"1/100", lbl:"SCALE" }, { val:"8–20 HRS", lbl:"BUILD TIME" }, { val:"NIPPERS + KNIFE", lbl:"TOOLS NEEDED" }, { val:"★★★☆☆", lbl:"DIFFICULTY" }],
+  },
+  pg: {
+    name: "Perfect Grade", abbr: "PG", color: "#ffcc00", scale: "1/60",
+    tagline: "THE ULTIMATE GUNPLA EXPERIENCE",
+    intro: "Perfect Grade represents the absolute pinnacle of Bandai's Gunpla engineering. Released only for the most iconic mobile suits, PG kits are <strong>enormous, extraordinarily detailed, and built to impress</strong>. At 1/60 scale, a completed PG is a centerpiece — not just a model, but a statement.",
+    sections: [
+      { title: "◈ BUILD EXPERIENCE", body: "Building a PG is a <strong>major undertaking</strong>. Most kits take 20–40+ hours to complete. Every detail is accounted for — full inner frame, opening cockpit, LED lighting units (on select releases), poseable hands, and interlocking mechanical joints. The build experience itself is considered a highlight by collectors who have completed one." },
+      { title: "◈ WHAT YOU GET", body: "PG kits come with everything: chrome parts, rubber tubing, clear parts, full weapon arrays, pilot figures, detailed cockpit interiors, and on some releases, pre-installed LED systems. The box alone is often the size of a shoebox. These are the kits that go in glass display cabinets." },
+      { title: "◈ WHO IS IT FOR?", body: "PG is for <strong>experienced, dedicated builders</strong> who want the best that Gunpla has to offer and are prepared to invest significant time and money. Most PG builders have completed multiple MG or RG kits beforehand. A PG is not a casual weekend project — it's a long-term build that rewards patience and skill." },
+      { title: "◈ TOOLS NEEDED", body: "<strong>The full toolkit</strong> — quality nippers, precision hobby knife, multiple panel liners, tweezers, sprue cutters, and ideally an airbrush setup. LED wiring on applicable kits benefits from basic electronics knowledge. A dedicated workspace is recommended given the scale and part count." },
+    ],
+    stats: [{ val:"1/60", lbl:"SCALE" }, { val:"20–40+ HRS", lbl:"BUILD TIME" }, { val:"FULL TOOLKIT", lbl:"TOOLS NEEDED" }, { val:"★★★★★", lbl:"DIFFICULTY" }],
+  },
+  sd: {
+    name: "Super Deformed", abbr: "SD", color: "#00ffcc", scale: "SD",
+    tagline: "BIG PERSONALITY, COMPACT SCALE",
+    intro: "Super Deformed kits take the iconic mobile suits of Gundam and reimagine them in a <strong>chibi, big-headed, cute aesthetic</strong> that is instantly charming. SD Gundam has been part of Bandai's lineup since the 1980s and has developed its own dedicated fanbase that loves the playful designs and quick build experience.",
+    sections: [
+      { title: "◈ BUILD EXPERIENCE", body: "SD kits are among the <strong>fastest to build</strong> in the Gunpla lineup. Most can be completed in 1–3 hours. The part count is low, the steps are simple, and the result is immediately fun and displayable. The SD EX-Standard and Cross Silhouette sub-lines have modernised the grade with better articulation." },
+      { title: "◈ WHAT YOU GET", body: "SD kits come with weapons and accessories appropriate to the mobile suit, though the emphasis is on the character design rather than mechanical detail. Cross Silhouette kits include an inner frame for improved articulation and can even accept 1/144 HG legs for a more proportional 'SD Kai' look." },
+      { title: "◈ WHO IS IT FOR?", body: "SD kits are <strong>great for all skill levels</strong>. Beginners love them for their speed and accessibility. Collectors love them for their unique aesthetic. Experienced builders enjoy them as quick palette-cleansers between larger builds, or as customisation and diorama subjects." },
+      { title: "◈ TOOLS NEEDED", body: "<strong>Nippers recommended</strong> but not always strictly necessary on newer SD kits. A hobby knife for gate cleanup improves the finish. Panel lining is very effective on SD kits — the exaggerated details really pop with a wash. Top coating is highly recommended to protect the finish." },
+    ],
+    stats: [{ val:"SD", lbl:"SCALE" }, { val:"1–3 HRS", lbl:"BUILD TIME" }, { val:"NIPPERS", lbl:"TOOLS NEEDED" }, { val:"★☆☆☆☆", lbl:"DIFFICULTY" }],
+  },
+};
+
+function GradeDetail({ setGradeFilter }) {
+  const { gradeSlug } = useParams();
+  const navigate = useNavigate();
+  const g = GRADE_DATA[gradeSlug];
+  if (!g) return (
+    <div style={{padding:"80px 40px",textAlign:"center",fontFamily:"'Share Tech Mono',monospace",color:"var(--text-dim)"}}>
+      <div style={{fontSize:"3rem",marginBottom:"16px",opacity:0.3}}>404</div>
+      <div style={{letterSpacing:"2px",marginBottom:"24px"}}>GRADE NOT FOUND</div>
+      <button className="back-btn" style={{margin:"0 auto"}} onClick={() => navigate("/")}>← BACK TO LIBRARY</button>
+    </div>
+  );
+  return (
+    <>
+      <button className="back-btn" onClick={() => navigate(-1)}>← BACK</button>
+      <div style={{"--grade-color": g.color}}>
+        <div className="grade-page-hero">
+          <div className="grade-page-tag" style={{color:g.color}}>◈ GRADE GUIDE — {g.abbr}</div>
+          <div className="grade-page-title" style={{color:g.color}}>{g.abbr}</div>
+          <div className="grade-page-sub">{g.name.toUpperCase()} — {g.tagline}</div>
+          <div className="grade-page-badge">{g.abbr} — {g.name.toUpperCase()} — SCALE {g.scale}</div>
+          <div className="grade-stat-row" style={{justifyContent:"center",marginTop:"28px"}}>
+            {g.stats.map(s => (
+              <div key={s.lbl} className="grade-stat">
+                <div className="grade-stat-val" style={{color:g.color}}>{s.val}</div>
+                <div className="grade-stat-lbl">{s.lbl}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="grade-page">
+          <div className="grade-section">
+            <div className="grade-section-title">◈ OVERVIEW</div>
+            <div className="grade-section-body" dangerouslySetInnerHTML={{__html: g.intro}} />
+          </div>
+          {g.sections.map(s => (
+            <div key={s.title} className="grade-section">
+              <div className="grade-section-title">{s.title}</div>
+              <div className="grade-section-body" dangerouslySetInnerHTML={{__html: s.body}} />
+            </div>
+          ))}
+          <div style={{textAlign:"center",marginTop:"24px"}}>
+            <button className="grade-kits-link" onClick={() => { setGradeFilter(g.abbr); navigate("/"); }}>
+              VIEW ALL {g.abbr} KITS IN THE LIBRARY →
+            </button>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
 // ─────────────────────────────────────────────────────────────
 // KIT DETAIL — separate component so it can use useParams
 // ─────────────────────────────────────────────────────────────
@@ -1264,51 +1624,80 @@ function KitDetail({ gc, isSignedIn, favourites, buildProgress, pageProgress, to
         </div>
       )}
 
-      {/* PAGE PROGRESS TRACKER */}
-      {isSignedIn && (
-        <div className="progress-tracker">
-          <div className="progress-tracker-title">◈ PAGE PROGRESS TRACKER</div>
-          {kit.manuals.map(manual => {
-            const key = `${kit.id}-${manual.id}`;
-            const total = realPages[manual.id]; // undefined while loading
-            const current = pageProgress[key]?.current || 0;
-            const pct = total > 0 ? Math.round((Math.min(current, total) / total) * 100) : 0;
-            const isLoading = manual.url && total === undefined;
-            return (
-              <div key={manual.id} className="progress-manual">
-                <div className="progress-manual-name">
-                  <span>{manual.name}</span>
-                  <span className="progress-pct" style={{color: pct===100 ? "var(--green)" : pct>0 ? "var(--gold)" : "var(--text-dim)"}}>
-                    {isLoading ? "..." : `${pct}%`}
-                  </span>
-                </div>
-                <div className="progress-bar-wrap">
-                  <div className={`progress-bar-fill${pct===100?" complete":""}`} style={{width: isLoading ? "0%" : `${pct}%`}} />
-                </div>
-                <div className="progress-input-row">
-                  <span className="progress-label">CURRENT PAGE</span>
-                  <input
-                    className="progress-input"
-                    type="number"
-                    min="0"
-                    max={total || 9999}
-                    value={current || ""}
-                    placeholder="0"
-                    onChange={e => {
-                      const val = Math.max(0, parseInt(e.target.value) || 0);
-                      const clamped = total ? Math.min(val, total) : val;
-                      setManualPage(kit.id, manual.id, clamped, total || clamped);
-                    }}
-                  />
-                  <span className="progress-total">
-                    / {isLoading ? <span style={{opacity:0.4}}>loading...</span> : `${total} PGS`}
-                  </span>
-                </div>
+
+
+      <div style={{height:"16px"}} />
+      {isSignedIn && kit.manuals.some(m => m.url) && (() => {
+        // Compute overall progress across all manuals with real page data
+        const manualRows = kit.manuals.filter(m => m.url).map(m => {
+          const key = `${kit.id}-${m.id}`;
+          const total = realPages[m.id];
+          const current = Math.min(pageProgress[key]?.current || 0, total || 0);
+          return { m, key, total, current };
+        });
+        const hasAnyTotal = manualRows.some(r => r.total > 0);
+        const overallTotal = manualRows.reduce((s, r) => s + (r.total || 0), 0);
+        const overallCurrent = manualRows.reduce((s, r) => s + r.current, 0);
+        const overallPct = overallTotal > 0 ? Math.round((overallCurrent / overallTotal) * 100) : 0;
+        const colors = overallPct >= 100
+          ? { "--xp-start":"#00cc66","--xp-end":"#00ffcc","--xp-glow":"rgba(0,255,136,0.7)","--xp-color":"#00ff88" }
+          : overallPct >= 50
+          ? { "--xp-start":"#cc8800","--xp-end":"#ffcc00","--xp-glow":"rgba(255,204,0,0.6)","--xp-color":"#ffcc00" }
+          : { "--xp-start":"#1a4aff","--xp-end":"#00aaff","--xp-glow":"rgba(0,170,255,0.6)","--xp-color":"#00aaff" };
+
+        // 10 segments for the XP track
+        const SEGMENTS = 10;
+
+        return (
+          <div className="xp-bar-full" style={colors}>
+            <div className="xp-header">
+              <span className="xp-label">◈ BUILD PROGRESS</span>
+              <span className="xp-pct">{hasAnyTotal ? `${overallPct}%` : "—"}</span>
+            </div>
+            <div className="xp-track">
+              <div className="xp-track-segments">
+                {Array.from({length: SEGMENTS}).map((_,i) => <div key={i} className="xp-segment" />)}
               </div>
-            );
-          })}
-        </div>
-      )}
+              <div className="xp-fill" style={{width: hasAnyTotal ? `${overallPct}%` : "0%"}} />
+            </div>
+            <div className="xp-multi-wrap">
+              {manualRows.map(({ m, key, total, current }) => {
+                const pct = total > 0 ? Math.round((current / total) * 100) : 0;
+                const isLoading = total === undefined;
+                return (
+                  <div key={m.id}>
+                    <div className="xp-manual-name">{m.name}</div>
+                    <div className="xp-input-row">
+                      <span className="xp-input-label">CURRENT PAGE</span>
+                      <input
+                        className="xp-input"
+                        type="number"
+                        min="0"
+                        max={total || 9999}
+                        value={current || ""}
+                        placeholder="0"
+                        onChange={e => {
+                          const val = Math.max(0, parseInt(e.target.value) || 0);
+                          const clamped = total ? Math.min(val, total) : val;
+                          setManualPage(kit.id, m.id, clamped, total || clamped);
+                        }}
+                      />
+                      <span className="xp-total">
+                        / {isLoading ? <span style={{opacity:0.4}}>loading...</span> : `${total} PGS`}
+                      </span>
+                      {total > 0 && (
+                        <span style={{marginLeft:"auto",fontFamily:"'Share Tech Mono',monospace",fontSize:"0.6rem",color: pct===100?"var(--green)":pct>0?"var(--gold)":"var(--text-dim)"}}>
+                          {pct}%
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
 
       <div className="manual-list">
         <div className="section-header" style={{padding:"0 0 20px"}}>
@@ -1503,6 +1892,13 @@ export default function KitVault() {
     return total > 0 ? Math.round((current / total) * 100) : 0;
   };
 
+  // Returns CSS custom properties for XP bar colour based on %
+  const xpColors = (pct) => {
+    if (pct >= 100) return { "--xp-start":"#00cc66", "--xp-end":"#00ffcc", "--xp-glow":"rgba(0,255,136,0.7)", "--xp-color":"#00ff88" };
+    if (pct >= 50)  return { "--xp-start":"#cc8800", "--xp-end":"#ffcc00", "--xp-glow":"rgba(255,204,0,0.6)",  "--xp-color":"#ffcc00" };
+    return                 { "--xp-start":"#1a4aff", "--xp-end":"#00aaff", "--xp-glow":"rgba(0,170,255,0.6)", "--xp-color":"#00aaff" };
+  };
+
   const filtered = KITS.filter(k => {
     const hasPdf = k.manuals.some(m => m.url);
     const matchGrade = gradeFilter === "ALL" || k.grade === gradeFilter;
@@ -1541,95 +1937,72 @@ export default function KitVault() {
             </div>
           </div>
 
-          {/* ── NAV CENTER ── */}
-          <nav className="nav-center">
-
-            {/* TOOLS */}
-            <div className={`nav-item${openNav==="tools"?" open":""}`}>
-              <button className="nav-btn" onClick={()=>toggleNav("tools")}>
-                TOOLS <span className="nav-btn-arrow">▼</span>
-              </button>
-              <div className="nav-dropdown">
-                <div className="nav-dropdown-header">◈ HOBBY TOOLS</div>
-                {[
-                  {icon:"✂️", label:"Nippers", sub:"Side cutters for clean gate removal — the most essential Gunpla tool"},
-                  {icon:"🔧", label:"Panel Line Markers", sub:"Gundam markers & enamel washes for detail lines"},
-                  {icon:"📐", label:"Scribers & Chisels", sub:"For adding custom panel lines and surface detail"},
-                  {icon:"🪵", label:"Sanding Sticks", sub:"400→1000→2000 grit for seamline removal & gate cleanup"},
-                  {icon:"🎨", label:"Paints & Primers", sub:"Mr. Color, Citadel, Vallejo — airbrushing & hand painting"},
-                  {icon:"💨", label:"Airbrushes", sub:"Iwata, Badger, GSI Creos — recommended starter setups"},
-                  {icon:"🧴", label:"Top Coats", sub:"Gloss, semi-gloss, matte — protecting & unifying your finish"},
-                  {icon:"🪚", label:"Hobby Knives", sub:"Olfa & X-Acto knives for cleanup and minor modifications"},
-                ].map(item => (
-                  <div key={item.label} className="nav-dd-item" onClick={closeNav}>
-                    <span className="nav-dd-icon">{item.icon}</span>
-                    <span className="nav-dd-text">
-                      <span className="nav-dd-label">{item.label}</span>
-                      <span className="nav-dd-sub">{item.sub}</span>
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* RESOURCES */}
-            <div className={`nav-item${openNav==="resources"?" open":""}`}>
-              <button className="nav-btn" onClick={()=>toggleNav("resources")}>
-                RESOURCES <span className="nav-btn-arrow">▼</span>
-              </button>
-              <div className="nav-dropdown">
-                <div className="nav-dropdown-header">◈ COMMUNITY & GUIDES</div>
-                {[
-                  {icon:"📖", label:"Gunpla Wiki", sub:"r/Gunpla wiki — grades explained, beginner guides", href:"https://www.reddit.com/r/Gunpla/wiki/"},
-                  {icon:"💬", label:"r/Gunpla Community", sub:"The largest Gunpla community — WIPs, reviews & advice", href:"https://www.reddit.com/r/Gunpla/"},
-                  {icon:"▶️", label:"Syd Mead (YouTube)", sub:"One of the best Gunpla build channels — reviews & tutorials", href:"https://www.youtube.com/@SydneysWorkshop"},
-                  {icon:"▶️", label:"CG Customs (YouTube)", sub:"In-depth painting, scribing & modification tutorials", href:"https://www.youtube.com/@CGCustoms"},
-                  {icon:"🛒", label:"Hobbylink Japan", sub:"The go-to import store — widest selection, ships worldwide", href:"https://www.hlj.com"},
-                  {icon:"🛒", label:"Gundam Planet", sub:"US-based Gunpla retailer with fast domestic shipping", href:"https://www.gundamplanet.com"},
-                  {icon:"🎨", label:"Painting & Weathering Guide", sub:"Beginner to advanced — primers, washes, chipping & oils", href:"https://www.reddit.com/r/Gunpla/wiki/painting"},
-                  {icon:"🔗", label:"Dalong.net Kit Reviews", sub:"Comprehensive Japanese kit review database", href:"http://www.dalong.net"},
-                ].map(item => (
-                  <a key={item.label} className="nav-dd-item" href={item.href} target="_blank" rel="noopener noreferrer" onClick={closeNav}>
-                    <span className="nav-dd-icon">{item.icon}</span>
-                    <span className="nav-dd-text">
-                      <span className="nav-dd-label">{item.label}</span>
-                      <span className="nav-dd-sub">{item.sub}</span>
-                    </span>
-                  </a>
-                ))}
-              </div>
-            </div>
-
-            {/* GRADES */}
-            <div className={`nav-item${openNav==="grades"?" open":""}`}>
-              <button className="nav-btn" onClick={()=>toggleNav("grades")}>
-                GRADES <span className="nav-btn-arrow">▼</span>
-              </button>
-              <div className="nav-dropdown">
-                <div className="nav-dropdown-header">◈ KIT GRADE GUIDE</div>
-                {[
-                  {icon:"⚡", label:"EG — Entry Grade", sub:"Snap-fit, no nippers needed. Perfect first kit", color:"#aa88ff"},
-                  {icon:"🔵", label:"HG — High Grade", sub:"1/144 scale. Best variety, great for beginners", color:"#00aaff"},
-                  {icon:"🔴", label:"RG — Real Grade", sub:"1/144 with MG-level detail. Advanced snap-fit", color:"#ff2244"},
-                  {icon:"🟠", label:"MG — Master Grade", sub:"1/100 scale with inner frame. Intermediate", color:"#ff6600"},
-                  {icon:"🟡", label:"PG — Perfect Grade", sub:"1/60 scale. The ultimate Gunpla experience", color:"#ffcc00"},
-                  {icon:"🟢", label:"SD — Super Deformed", sub:"Chibi-style, fun and quick builds for all levels", color:"#00ffcc"},
-                ].map(item => (
-                  <div key={item.label} className="nav-dd-item" onClick={closeNav}>
-                    <span className="nav-dd-icon">{item.icon}</span>
-                    <span className="nav-dd-text">
-                      <span className="nav-dd-label" style={{color:item.color}}>{item.label}</span>
-                      <span className="nav-dd-sub">{item.sub}</span>
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-          </nav>
-
           <div className="header-right">
             <div className="status-dot" />
+
+            {/* ── NAV RIGHT ── */}
+            <nav className="nav-right">
+
+              {/* TOOLS */}
+              <div className={`nav-item${openNav==="tools"?" open":""}`}>
+                <button className="nav-btn" onClick={()=>toggleNav("tools")}>
+                  TOOLS <span className="nav-btn-arrow">▼</span>
+                </button>
+                <div className="nav-dropdown">
+                  <div className="nav-dropdown-header">◈ HOBBY TOOLS</div>
+                  {[
+                    {icon:"✂️", label:"Nippers", sub:"Side cutters for clean gate removal — the most essential Gunpla tool"},
+                    {icon:"🔧", label:"Panel Line Markers", sub:"Gundam markers & enamel washes for detail lines"},
+                    {icon:"📐", label:"Scribers & Chisels", sub:"For adding custom panel lines and surface detail"},
+                    {icon:"🪵", label:"Sanding Sticks", sub:"400→1000→2000 grit for seamline removal & gate cleanup"},
+                    {icon:"🎨", label:"Paints & Primers", sub:"Mr. Color, Citadel, Vallejo — airbrushing & hand painting"},
+                    {icon:"💨", label:"Airbrushes", sub:"Iwata, Badger, GSI Creos — recommended starter setups"},
+                    {icon:"🧴", label:"Top Coats", sub:"Gloss, semi-gloss, matte — protecting & unifying your finish"},
+                    {icon:"🪚", label:"Hobby Knives", sub:"Olfa & X-Acto knives for cleanup and minor modifications"},
+                  ].map(item => (
+                    <div key={item.label} className="nav-dd-item" onClick={closeNav}>
+                      <span className="nav-dd-icon">{item.icon}</span>
+                      <span className="nav-dd-text">
+                        <span className="nav-dd-label">{item.label}</span>
+                        <span className="nav-dd-sub">{item.sub}</span>
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* RESOURCES */}
+              <button className="nav-btn" onClick={() => { closeNav(); navigate("/resources"); }} style={{color: location.pathname==="/resources" ? "var(--accent)" : ""}}>
+                RESOURCES
+              </button>
+
+              {/* GRADES */}
+              <div className={`nav-item${openNav==="grades"?" open":""}`}>
+                <button className="nav-btn" onClick={()=>toggleNav("grades")}>
+                  GRADES <span className="nav-btn-arrow">▼</span>
+                </button>
+                <div className="nav-dropdown">
+                  <div className="nav-dropdown-header">◈ KIT GRADE GUIDE</div>
+                  {[
+                    {slug:"eg", label:"EG — Entry Grade", sub:"Snap-fit, no nippers needed. Perfect first kit", color:"#aa88ff"},
+                    {slug:"hg", label:"HG — High Grade", sub:"1/144 scale. Best variety, great for beginners", color:"#00aaff"},
+                    {slug:"rg", label:"RG — Real Grade", sub:"1/144 with MG-level detail. Advanced snap-fit", color:"#ff2244"},
+                    {slug:"mg", label:"MG — Master Grade", sub:"1/100 scale with inner frame. Intermediate", color:"#ff6600"},
+                    {slug:"pg", label:"PG — Perfect Grade", sub:"1/60 scale. The ultimate Gunpla experience", color:"#ffcc00"},
+                    {slug:"sd", label:"SD — Super Deformed", sub:"Chibi-style, fun and quick builds for all levels", color:"#00ffcc"},
+                  ].map(item => (
+                    <div key={item.slug} className="nav-dd-item" onClick={() => { closeNav(); navigate(`/grade/${item.slug}`); }}>
+                      <span className="nav-dd-text">
+                        <span className="nav-dd-label" style={{color:item.color}}>{item.label}</span>
+                        <span className="nav-dd-sub">{item.sub}</span>
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+            </nav>
+
             <SignedIn>
               <button
                 onClick={goVault}
@@ -1721,6 +2094,26 @@ export default function KitVault() {
                         </div>
                         <div className="card-title">{kit.name}</div>
                         <div className="card-series">{kit.series}</div>
+                        {isSignedIn && (() => {
+                          const pct = getKitProgress(kit);
+                          if (pct === null) return null;
+                          const colors = pct >= 100
+                            ? { "--xp-start":"#00cc66","--xp-end":"#00ffcc","--xp-glow":"rgba(0,255,136,0.7)","--xp-color":"#00ff88" }
+                            : pct >= 50
+                            ? { "--xp-start":"#cc8800","--xp-end":"#ffcc00","--xp-glow":"rgba(255,204,0,0.6)","--xp-color":"#ffcc00" }
+                            : { "--xp-start":"#1a4aff","--xp-end":"#00aaff","--xp-glow":"rgba(0,170,255,0.6)","--xp-color":"#00aaff" };
+                          return (
+                            <div className="xp-slim" style={colors}>
+                              <div className="xp-slim-track">
+                                <div className="xp-slim-fill" style={{width:`${pct}%`}} />
+                              </div>
+                              <div className="xp-slim-label">
+                                <span>BUILD PROGRESS</span>
+                                <span className="xp-slim-pct">{pct}%</span>
+                              </div>
+                            </div>
+                          );
+                        })()}
                         <div className="card-footer">
                           <span className="card-scale">SCALE {kit.scale}</span>
                           <span className="card-arrow">→</span>
@@ -1780,17 +2173,24 @@ export default function KitVault() {
                         </div>
                         <div className="card-title">{kit.name}</div>
                         <div className="card-series">{kit.series}</div>
-                        {pct !== null && (
-                          <div className="vault-card-progress">
-                            <div className="vault-progress-bar-wrap">
-                              <div className={`vault-progress-bar-fill${pct===100?" complete":""}`} style={{width:`${pct}%`}} />
+                        {pct !== null && (() => {
+                          const colors = pct >= 100
+                            ? { "--xp-start":"#00cc66","--xp-end":"#00ffcc","--xp-glow":"rgba(0,255,136,0.7)","--xp-color":"#00ff88" }
+                            : pct >= 50
+                            ? { "--xp-start":"#cc8800","--xp-end":"#ffcc00","--xp-glow":"rgba(255,204,0,0.6)","--xp-color":"#ffcc00" }
+                            : { "--xp-start":"#1a4aff","--xp-end":"#00aaff","--xp-glow":"rgba(0,170,255,0.6)","--xp-color":"#00aaff" };
+                          return (
+                            <div className="xp-slim" style={colors}>
+                              <div className="xp-slim-track">
+                                <div className="xp-slim-fill" style={{width:`${pct}%`}} />
+                              </div>
+                              <div className="xp-slim-label">
+                                <span>BUILD PROGRESS</span>
+                                <span className="xp-slim-pct">{pct}%</span>
+                              </div>
                             </div>
-                            <div className="vault-progress-label">
-                              <span>BUILD PROGRESS</span>
-                              <span className="vault-progress-pct">{pct}%</span>
-                            </div>
-                          </div>
-                        )}
+                          );
+                        })()}
                         <div className="card-footer">
                           <span className="card-scale">SCALE {kit.scale}</span>
                           <span className="card-arrow">→</span>
@@ -1850,6 +2250,85 @@ export default function KitVault() {
                   </>
                 );
               })()}
+            </>
+          } />
+
+          {/* ===== GRADE DETAIL PAGE ===== */}
+          <Route path="/grade/:gradeSlug" element={<GradeDetail setGradeFilter={setGradeFilter} />} />
+
+          {/* ===== RESOURCES PAGE ===== */}
+          <Route path="/resources" element={
+            <>
+              <div className="page-hero">
+                <div className="page-tag">GUIDES & LINKS</div>
+                <div className="page-title">RESOURCES</div>
+                <div className="page-sub">EVERYTHING YOU NEED TO BUILD BETTER</div>
+              </div>
+              <div className="resources-page">
+
+                {/* COMMUNITY */}
+                <div className="resources-section">
+                  <div className="resources-section-title">◈ COMMUNITY</div>
+                  <div className="resources-grid">
+                    {[
+                      { icon:"📖", label:"Gunpla Wiki", sub:"The definitive beginner resource — grades explained, tool guides, technique breakdowns, and FAQs. The best place to start if you're new to the hobby.", tag:"WIKI", href:"https://www.reddit.com/r/Gunpla/wiki/", color:"#00aaff" },
+                      { icon:"💬", label:"r/Gunpla", sub:"The largest Gunpla community on the internet. Share your builds, ask questions, browse WIPs, and get feedback from thousands of builders worldwide.", tag:"REDDIT", href:"https://www.reddit.com/r/Gunpla/", color:"#ff6600" },
+                      { icon:"🌐", label:"Gundam Base Online", sub:"Bandai's official Gunpla storefront and news hub. Best place to track new kit announcements, P-Bandai exclusives, and limited releases straight from the source.", tag:"OFFICIAL", href:"https://p-bandai.com/", color:"#00ffcc" },
+                    ].map(r => (
+                      <a key={r.label} className="resource-card" href={r.href} target="_blank" rel="noopener noreferrer" style={{"--rc-color": r.color}}>
+                        <span className="resource-card-icon">{r.icon}</span>
+                        <span className="resource-card-body">
+                          <span className="resource-card-label">{r.label}</span>
+                          <span className="resource-card-sub">{r.sub}</span>
+                          <span className="resource-card-tag">{r.tag}</span>
+                        </span>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+
+                {/* WHERE TO BUY */}
+                <div className="resources-section">
+                  <div className="resources-section-title">◈ WHERE TO BUY</div>
+                  <div className="resources-grid">
+                    {[
+                      { icon:"🛒", label:"Hobbylink Japan (HLJ)", sub:"The go-to import retailer. Widest selection of kits at Japanese retail prices, ships worldwide. Great for pre-orders and hard-to-find kits.", tag:"IMPORT", href:"https://www.hlj.com", color:"#ff2244" },
+                      { icon:"🛒", label:"Gundam Planet", sub:"US-based Gunpla specialist with fast domestic shipping. Good stock on current HG and MG releases, no import wait times.", tag:"US", href:"https://www.gundamplanet.com", color:"#00aaff" },
+                      { icon:"🛒", label:"Nin-Nin Game", sub:"French-based import store with competitive pricing and reliable worldwide shipping. A strong alternative to HLJ, especially for EU builders.", tag:"IMPORT", href:"https://www.nin-nin-game.com", color:"#aa88ff" },
+                      { icon:"🛒", label:"AmiAmi", sub:"Japanese marketplace with new and pre-owned kits at excellent prices. Pre-owned section is fantastic for older or discontinued releases.", tag:"IMPORT", href:"https://www.amiami.com", color:"#00ffcc" },
+                    ].map(r => (
+                      <a key={r.label} className="resource-card" href={r.href} target="_blank" rel="noopener noreferrer" style={{"--rc-color": r.color}}>
+                        <span className="resource-card-icon">{r.icon}</span>
+                        <span className="resource-card-body">
+                          <span className="resource-card-label">{r.label}</span>
+                          <span className="resource-card-sub">{r.sub}</span>
+                          <span className="resource-card-tag">{r.tag}</span>
+                        </span>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+
+                {/* KIT REVIEWS */}
+                <div className="resources-section">
+                  <div className="resources-section-title">◈ KIT REVIEWS & DATABASE</div>
+                  <div className="resources-grid">
+                    {[
+                      { icon:"🔗", label:"Dalong.net Kit Reviews", sub:"Comprehensive Japanese kit review database with photos, runner breakdowns, and assembly notes on thousands of kits. Essential for research before buying.", tag:"DATABASE", href:"http://www.dalong.net", color:"#ffcc00" },
+                    ].map(r => (
+                      <a key={r.label} className="resource-card" href={r.href} target="_blank" rel="noopener noreferrer" style={{"--rc-color": r.color}}>
+                        <span className="resource-card-icon">{r.icon}</span>
+                        <span className="resource-card-body">
+                          <span className="resource-card-label">{r.label}</span>
+                          <span className="resource-card-sub">{r.sub}</span>
+                          <span className="resource-card-tag">{r.tag}</span>
+                        </span>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+
+              </div>
             </>
           } />
 
@@ -1924,14 +2403,13 @@ export default function KitVault() {
                 <div className="settings-section">
                   <div className="settings-section-label">SUPPORT KITVAULT</div>
                   <div className="donate-block">
-                    <div className="donate-title">♥ SUPPORT THIS PROJECT</div>
+                    <div className="donate-title">☕ BUY ME A COFFEE</div>
                     <div className="donate-sub">
                       KitVault.io is a free, non-profit fan resource.<br/>
                       Donations help cover hosting costs and keep the vault online.
                     </div>
-                    {/* Replace href with your Ko-fi, PayPal, or other donation link */}
-                    <a className="btn-donate" href="https://ko-fi.com/your-page" target="_blank" rel="noopener noreferrer">
-                      ♥ DONATE / TIP JAR
+                    <a className="btn-donate" href="https://ko-fi.com/YOUR_KOFI_USERNAME" target="_blank" rel="noopener noreferrer">
+                      ☕ BUY ME A COFFEE
                     </a>
                   </div>
                 </div>
