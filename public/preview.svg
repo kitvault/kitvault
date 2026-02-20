@@ -1,0 +1,143 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <!-- Background gradient -->
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#060a10"/>
+      <stop offset="100%" style="stop-color:#0d1420"/>
+    </linearGradient>
+    <!-- Accent glow -->
+    <radialGradient id="glow1" cx="30%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#00aaff;stop-opacity:0.12"/>
+      <stop offset="100%" style="stop-color:#00aaff;stop-opacity:0"/>
+    </radialGradient>
+    <radialGradient id="glow2" cx="80%" cy="40%" r="40%">
+      <stop offset="0%" style="stop-color:#ff6600;stop-opacity:0.08"/>
+      <stop offset="100%" style="stop-color:#ff6600;stop-opacity:0"/>
+    </radialGradient>
+    <!-- Grid pattern -->
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#00aaff" stroke-width="0.4" opacity="0.15"/>
+    </pattern>
+    <!-- Clip for main card -->
+    <clipPath id="mainclip">
+      <polygon points="0,0 1200,0 1200,630 0,630"/>
+    </clipPath>
+  </defs>
+
+  <!-- Base background -->
+  <rect width="1200" height="630" fill="url(#bg)"/>
+
+  <!-- Grid overlay -->
+  <rect width="1200" height="630" fill="url(#grid)"/>
+
+  <!-- Glow blobs -->
+  <rect width="1200" height="630" fill="url(#glow1)"/>
+  <rect width="1200" height="630" fill="url(#glow2)"/>
+
+  <!-- Scanlines effect -->
+  <rect width="1200" height="630" fill="none" stroke="#000" stroke-width="0"
+    style="background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px)"/>
+
+  <!-- Top accent line -->
+  <line x1="0" y1="0" x2="1200" y2="0" stroke="#00aaff" stroke-width="3" opacity="0.8"/>
+
+  <!-- Decorative corner — top left -->
+  <polygon points="0,0 120,0 0,60" fill="#00aaff" opacity="0.06"/>
+  <line x1="0" y1="0" x2="120" y2="0" stroke="#00aaff" stroke-width="1.5" opacity="0.4"/>
+  <line x1="0" y1="0" x2="0" y2="60" stroke="#00aaff" stroke-width="1.5" opacity="0.4"/>
+
+  <!-- Decorative corner — bottom right -->
+  <polygon points="1200,630 1080,630 1200,570" fill="#ff6600" opacity="0.06"/>
+  <line x1="1200" y1="630" x2="1080" y2="630" stroke="#ff6600" stroke-width="1.5" opacity="0.3"/>
+  <line x1="1200" y1="630" x2="1200" y2="570" stroke="#ff6600" stroke-width="1.5" opacity="0.3"/>
+
+  <!-- Decorative vertical lines left side -->
+  <line x1="60" y1="0" x2="60" y2="630" stroke="#00aaff" stroke-width="0.5" opacity="0.12"/>
+  <line x1="80" y1="0" x2="80" y2="630" stroke="#00aaff" stroke-width="0.5" opacity="0.06"/>
+
+  <!-- Decorative vertical lines right side -->
+  <line x1="1140" y1="0" x2="1140" y2="630" stroke="#00aaff" stroke-width="0.5" opacity="0.12"/>
+  <line x1="1120" y1="0" x2="1120" y2="630" stroke="#00aaff" stroke-width="0.5" opacity="0.06"/>
+
+  <!-- LOGO BOX -->
+  <polygon points="108,230 148,230 152,234 152,270 112,270 108,266" fill="rgba(0,170,255,0.08)" stroke="#00aaff" stroke-width="1.5"/>
+  <!-- KV icon text -->
+  <text x="130" y="257" font-family="'Courier New', monospace" font-size="18" font-weight="bold" fill="#00aaff" text-anchor="middle">KV</text>
+
+  <!-- KITVAULT main title -->
+  <text x="175" y="262"
+    font-family="'Courier New', Courier, monospace"
+    font-size="68"
+    font-weight="900"
+    fill="#e8f4ff"
+    letter-spacing="6">KITVAULT</text>
+
+  <!-- .IO subdomain -->
+  <text x="820" y="262"
+    font-family="'Courier New', Courier, monospace"
+    font-size="40"
+    font-weight="400"
+    fill="#00aaff"
+    opacity="0.9"
+    letter-spacing="2">.IO</text>
+
+  <!-- Underline accent beneath title -->
+  <line x1="108" y1="278" x2="870" y2="278" stroke="url(#titleline)" stroke-width="1.5" opacity="0.5"/>
+  <defs>
+    <linearGradient id="titleline" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#00aaff;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#00aaff;stop-opacity:0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Tagline -->
+  <text x="108" y="320"
+    font-family="'Courier New', Courier, monospace"
+    font-size="18"
+    fill="#5a7a9f"
+    letter-spacing="5">GUNDAM ASSEMBLY MANUAL ARCHIVE</text>
+
+
+
+  <!-- Grade badges right side -->
+  <!-- HG -->
+  <rect x="920" y="210" width="76" height="36" fill="rgba(0,170,255,0.08)" stroke="#00aaff" stroke-width="1.2" rx="0"/>
+  <text x="958" y="234" font-family="'Courier New', Courier, monospace" font-size="16" font-weight="bold" fill="#00aaff" text-anchor="middle" letter-spacing="1">HG</text>
+
+  <!-- MG -->
+  <rect x="1006" y="210" width="76" height="36" fill="rgba(255,102,0,0.08)" stroke="#ff6600" stroke-width="1.2" rx="0"/>
+  <text x="1044" y="234" font-family="'Courier New', Courier, monospace" font-size="16" font-weight="bold" fill="#ff6600" text-anchor="middle" letter-spacing="1">MG</text>
+
+  <!-- RG -->
+  <rect x="920" y="256" width="76" height="36" fill="rgba(255,34,68,0.08)" stroke="#ff2244" stroke-width="1.2" rx="0"/>
+  <text x="958" y="280" font-family="'Courier New', Courier, monospace" font-size="16" font-weight="bold" fill="#ff2244" text-anchor="middle" letter-spacing="1">RG</text>
+
+  <!-- PG -->
+  <rect x="1006" y="256" width="76" height="36" fill="rgba(255,204,0,0.08)" stroke="#ffcc00" stroke-width="1.2" rx="0"/>
+  <text x="1044" y="280" font-family="'Courier New', Courier, monospace" font-size="16" font-weight="bold" fill="#ffcc00" text-anchor="middle" letter-spacing="1">PG</text>
+
+  <!-- EG -->
+  <rect x="920" y="302" width="76" height="36" fill="rgba(170,136,255,0.08)" stroke="#aa88ff" stroke-width="1.2" rx="0"/>
+  <text x="958" y="326" font-family="'Courier New', Courier, monospace" font-size="16" font-weight="bold" fill="#aa88ff" text-anchor="middle" letter-spacing="1">EG</text>
+
+  <!-- SD -->
+  <rect x="1006" y="302" width="76" height="36" fill="rgba(0,255,204,0.08)" stroke="#00ffcc" stroke-width="1.2" rx="0"/>
+  <text x="1044" y="326" font-family="'Courier New', Courier, monospace" font-size="16" font-weight="bold" fill="#00ffcc" text-anchor="middle" letter-spacing="1">SD</text>
+
+  <!-- Bottom status bar -->
+  <rect x="0" y="580" width="1200" height="50" fill="rgba(0,0,0,0.5)"/>
+  <line x1="0" y1="580" x2="1200" y2="580" stroke="#1a2f50" stroke-width="1"/>
+
+  <!-- Status dot -->
+  <circle cx="120" cy="605" r="5" fill="#00ffcc"/>
+  <text x="135" y="610" font-family="'Courier New', Courier, monospace" font-size="12" fill="#5a7a9f" letter-spacing="2">SYSTEM ONLINE</text>
+
+  <!-- URL -->
+  <text x="600" y="610" font-family="'Courier New', Courier, monospace" font-size="13" fill="#00aaff" text-anchor="middle" letter-spacing="3" opacity="0.8">KITVAULT.IO</text>
+
+  <!-- Right status -->
+  <text x="1080" y="610" font-family="'Courier New', Courier, monospace" font-size="11" fill="#5a7a9f" letter-spacing="1" text-anchor="middle">v1.0.0 · FREE · NO ADS</text>
+
+  <!-- Bottom accent line -->
+  <line x1="0" y1="630" x2="1200" y2="630" stroke="#00aaff" stroke-width="2" opacity="0.4"/>
+</svg>

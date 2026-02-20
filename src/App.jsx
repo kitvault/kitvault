@@ -566,7 +566,7 @@ const styles = `
     width: 100%;
   }
   .pdf-dropdown.open {
-    max-height: 1000px;
+    max-height: 1200px;
     opacity: 1;
   }
   .pdf-dropdown-inner {
@@ -591,7 +591,7 @@ const styles = `
   .pdf-dropdown-close:hover { border-color: var(--red); color: var(--red); }
   .pdf-frame-wrap {
     background: var(--bg); border: 1px solid var(--border);
-    height: 600px; width: 100%; display: flex; align-items: center; justify-content: center;
+    height: 850px; width: 100%; display: flex; align-items: center; justify-content: center;
     position: relative; overflow: hidden;
   }
   .pdf-frame-wrap iframe { width: 100%; height: 100%; border: none; display: block; }
@@ -1188,7 +1188,7 @@ const styles = `
 
     /* PDF dropdown */
     .pdf-frame-wrap { height: 500px; }
-    .pdf-dropdown.open { max-height: 600px; }
+    .pdf-dropdown.open { max-height: 650px; }
 
     /* Settings modal */
     .modal-overlay { padding: 0; align-items: flex-end; }
@@ -2087,8 +2087,6 @@ const KITS = [
     manuals:[{id:404,name:"Assembly",lang:"JP",size:"",url:"mg-100-amx-004-3-qubeley-mk-ii-neo-zeon-prototype-mobile-suit-for-newtype-assembly.pdf"}] },
   { id:405, grade:"MG", scale:"1/100", name:"Asw-g-08 Gundam Barbatos", series:"", imageUrl:null,
     manuals:[{id:405,name:"Assembly",lang:"JP",size:"",url:"mg-100-asw-g-08-gundam-barbatos-assembly.pdf"}] },
-  { id:406, grade:"MG", scale:"1/100", name:"Asw-g-08 Gundam Barbatos", series:"", imageUrl:null,
-    manuals:[{id:406,name:"Assembly",lang:"JP",size:"",url:"mg-100-asw-g-08-gundam-barbatos-assembly.pdf"}] },
   { id:407, grade:"MG", scale:"1/100", name:"Asw-g-08 Gundam Barbatos Lupus", series:"", imageUrl:null,
     manuals:[{id:407,name:"Assembly",lang:"JP",size:"",url:"mg-100-asw-g-08-gundam-barbatos-lupus-assembly.pdf"}] },
   { id:408, grade:"MG", scale:"1/100", name:"Asw-g-xx Gundam Vidar", series:"", imageUrl:null,
@@ -2367,7 +2365,7 @@ const KITS = [
     manuals:[{id:544,name:"Assembly",lang:"JP",size:"",url:"mg-100-zgmf-1000-a1-gunner-zaku-warrior-lunamaria-hawke-custom-assembly.pdf"}] },
   { id:545, grade:"MG", scale:"1/100", name:"Zgmf-1017 Mobile Ginn", series:"", imageUrl:null,
     manuals:[{id:545,name:"Assembly",lang:"JP",size:"",url:"mg-100-zgmf-1017-mobile-ginn-assembly.pdf"}] },
-  { id:546, grade:"MG", scale:"1/100", name:"Zgmf-x10a Freedom Gundam", series:"", imageUrl:null,
+  { id:546, grade:"MG", scale:"1/100", name:"MGSD Freedom Gundam", series:"", imageUrl:null,
     manuals:[{id:546,name:"Assembly",lang:"JP",size:"",url:"mg-100-zgmf-x10a-freedom-gundam-assembly.pdf"}] },
   { id:547, grade:"MG", scale:"1/100", name:"Zgmf-x42s Destiny Gundam", series:"", imageUrl:null,
     manuals:[{id:547,name:"Assembly",lang:"JP",size:"",url:"mg-100-zgmf-x42s-destiny-gundam-assembly.pdf"}] },
