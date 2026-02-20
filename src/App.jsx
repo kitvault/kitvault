@@ -922,7 +922,7 @@ const styles = `
     position: relative;
   }
 
-  /* Full bar — kit detail page */
+  /* Full bar: kit detail page */
   .xp-bar-full {
     margin: 0 40px 0;
     background: var(--panel); border: 1px solid var(--border);
@@ -1016,7 +1016,7 @@ const styles = `
   }
   .xp-multi-wrap { display: flex; flex-direction: column; gap: 18px; }
 
-  /* Slim bar — kit cards + vault cards */
+  /* Slim bar: kit cards + vault cards */
   .xp-slim {
     margin-top: 12px;
   }
@@ -1043,7 +1043,7 @@ const styles = `
     .xp-bar-full { margin: 0 16px; clip-path: none; padding: 16px; }
   }
 
-  /* VAULT PROGRESS BAR — now uses xp-slim, kept for backward compat */
+  /* VAULT PROGRESS BAR: now uses xp-slim, kept for backward compat */
   .vault-card-progress { margin-top: 10px; }
   .vault-progress-bar-wrap { display: none; }
   .vault-progress-bar-fill { display: none; }
@@ -1127,7 +1127,7 @@ const styles = `
     .section-header { padding: 0 16px 14px; }
     .section-title { font-size: 0.75rem; letter-spacing: 2px; }
 
-    /* Kit grid — single column on mobile */
+    /* Kit grid: single column on mobile */
     .kit-grid {
       padding: 0 16px 40px;
       grid-template-columns: 1fr;
@@ -1283,14 +1283,76 @@ const styles = `
     display: flex; flex-direction: column;
     clip-path: polygon(0 0, 96% 0, 100% 4%, 100% 100%, 4% 100%, 0 96%);
     position: relative; overflow: hidden;
-    transition: border-color 0.2s, transform 0.2s;
+    transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
   }
   .tool-card::before {
     content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
-    background: var(--tc, var(--accent)); opacity: 0.8;
+    background: var(--accent); opacity: 0.6;
+    transition: opacity 0.2s;
   }
-  .tool-card:hover { border-color: var(--tc, var(--accent)); transform: translateY(-3px); box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
+  .tool-card::after {
+    content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px;
+    background: var(--accent); opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .tool-card:hover { border-color: var(--border-bright); transform: translateY(-3px); box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 20px rgba(0,170,255,0.08); }
+  .tool-card:hover::before { opacity: 1; }
+  .tool-card:hover::after { opacity: 0.5; }
 
+  .tool-card-body { padding: 22px 20px 16px; flex: 1; display: flex; flex-direction: column; gap: 10px; }
+  .tool-card-brand {
+    font-family: 'Share Tech Mono', monospace; font-size: 0.58rem;
+    color: var(--accent); letter-spacing: 3px; opacity: 0.7;
+  }
+  .tool-card-name {
+    font-family: 'Rajdhani', sans-serif; font-size: 1.15rem; font-weight: 700;
+    color: var(--text-bright); line-height: 1.3;
+  }
+  .tool-card-price-tag {
+    font-family: 'Share Tech Mono', monospace; font-size: 0.68rem;
+    color: var(--text-dim); letter-spacing: 1px;
+    padding: 3px 0;
+  }
+  .tool-card-desc {
+    font-family: 'Rajdhani', sans-serif; font-size: 0.95rem;
+    color: var(--text); line-height: 1.7; flex: 1;
+  }
+  .tool-card-best-for {
+    display: flex; align-items: flex-start; gap: 10px; margin-top: 4px;
+    padding-top: 12px; border-top: 1px solid var(--border);
+  }
+  .tool-best-label {
+    font-family: 'Share Tech Mono', monospace; font-size: 0.55rem;
+    color: var(--text-dim); letter-spacing: 2px; white-space: nowrap; padding-top: 1px;
+  }
+  .tool-best-val {
+    font-family: 'Share Tech Mono', monospace; font-size: 0.6rem;
+    color: var(--accent); letter-spacing: 1px; line-height: 1.6;
+  }
+
+  .tool-card-footer {
+    padding: 14px 20px; border-top: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; flex-wrap: wrap;
+    background: rgba(0,0,0,0.1);
+  }
+  .tool-badge {
+    font-family: 'Share Tech Mono', monospace; font-size: 0.55rem;
+    letter-spacing: 1.5px; border: 1px solid var(--border-bright);
+    color: var(--text-dim); padding: 4px 10px;
+    white-space: nowrap;
+  }
+  .tool-amazon-btn {
+    background: rgba(255,153,0,0.1); border: 1px solid rgba(255,153,0,0.5);
+    color: #ff9900; font-family: 'Share Tech Mono', monospace;
+    font-size: 0.62rem; padding: 8px 14px; cursor: pointer;
+    letter-spacing: 1px; transition: all 0.2s; text-decoration: none;
+    white-space: nowrap;
+    clip-path: polygon(0 0, 90% 0, 100% 30%, 100% 100%, 10% 100%, 0 70%);
+  }
+  .tool-amazon-btn:hover { background: rgba(255,153,0,0.22); box-shadow: 0 0 14px rgba(255,153,0,0.3); }
+
+  /* Nippers page retains tier-bar — kept intentionally */
   .tool-card-tier-bar {
     display: flex; align-items: center; justify-content: space-between;
     padding: 12px 20px; border-bottom: 1px solid var(--border);
@@ -1304,52 +1366,6 @@ const styles = `
     font-family: 'Share Tech Mono', monospace; font-size: 0.75rem;
     color: var(--text-bright); letter-spacing: 1px;
   }
-
-  .tool-card-body { padding: 20px; flex: 1; display: flex; flex-direction: column; gap: 10px; }
-  .tool-card-brand {
-    font-family: 'Share Tech Mono', monospace; font-size: 0.6rem;
-    color: var(--tc, var(--accent)); letter-spacing: 3px; opacity: 0.8;
-  }
-  .tool-card-name {
-    font-family: 'Rajdhani', sans-serif; font-size: 1.15rem; font-weight: 700;
-    color: var(--text-bright); line-height: 1.3;
-  }
-  .tool-card-desc {
-    font-family: 'Rajdhani', sans-serif; font-size: 0.95rem;
-    color: var(--text); line-height: 1.7; flex: 1;
-  }
-  .tool-card-best-for {
-    display: flex; align-items: center; gap: 10px; margin-top: 4px;
-    padding-top: 12px; border-top: 1px solid var(--border);
-  }
-  .tool-best-label {
-    font-family: 'Share Tech Mono', monospace; font-size: 0.55rem;
-    color: var(--text-dim); letter-spacing: 2px; white-space: nowrap;
-  }
-  .tool-best-val {
-    font-family: 'Share Tech Mono', monospace; font-size: 0.6rem;
-    color: var(--tc, var(--accent)); letter-spacing: 1px;
-  }
-
-  .tool-card-footer {
-    padding: 14px 20px; border-top: 1px solid var(--border);
-    display: flex; align-items: center; justify-content: space-between;
-    gap: 12px; flex-wrap: wrap;
-  }
-  .tool-badge {
-    font-family: 'Share Tech Mono', monospace; font-size: 0.55rem;
-    letter-spacing: 1.5px; border: 1px solid; padding: 4px 10px;
-    white-space: nowrap;
-  }
-  .tool-amazon-btn {
-    background: rgba(255,153,0,0.1); border: 1px solid rgba(255,153,0,0.5);
-    color: #ff9900; font-family: 'Share Tech Mono', monospace;
-    font-size: 0.62rem; padding: 8px 14px; cursor: pointer;
-    letter-spacing: 1px; transition: all 0.2s; text-decoration: none;
-    white-space: nowrap;
-    clip-path: polygon(0 0, 90% 0, 100% 30%, 100% 100%, 10% 100%, 0 70%);
-  }
-  .tool-amazon-btn:hover { background: rgba(255,153,0,0.22); box-shadow: 0 0 14px rgba(255,153,0,0.3); }
 
   .tools-affiliate-note {
     font-family: 'Share Tech Mono', monospace; font-size: 0.6rem;
@@ -1373,14 +1389,14 @@ const styles = `
 // Kits with no entry (or left as "") will simply show no banner.
 // ─────────────────────────────────────────────────────────────
 // ─────────────────────────────────────────────────────────────
-// CLOUDFLARE R2 — PDF STORAGE BASE URL
+// CLOUDFLARE R2: PDF STORAGE BASE URL
 // All manual PDFs are served from this bucket.
 // To update storage, change this one line only.
 // ─────────────────────────────────────────────────────────────
 const R2 = "https://pub-633dac494e3b4bdb808035bd3c437f27.r2.dev";
 
 const AMAZON_URLS = {
-  // PASTE YOUR JSON HERE — example format:
+  // PASTE YOUR JSON HERE (example format):
   // "1": "https://www.amazon.com/dp/XXXXXXX?tag=yourtag-20",
   // "2": "https://www.amazon.com/dp/XXXXXXX?tag=yourtag-20",
 };
@@ -1394,7 +1410,7 @@ const GRADE_COLORS = {
   "EG": { accent: "#aa88ff", bg: "rgba(170,136,255,0.1)" },
 };
 
-// Kit data — set imageUrl per kit when you have photos ready
+// Kit data: set imageUrl per kit when you have photos ready
 const KITS = [
   // ── ENTRY GRADE (EG) ──────────────────────────────────
   { id:1, grade:"EG", scale:"1/144", name:"Action Base 1 Black", series:"", imageUrl:null,
@@ -2644,28 +2660,28 @@ const findKitBySlug = (slug) => KITS.find(k => slugify(k) === slug);
 
 
 // ─────────────────────────────────────────────────────────────
-// GRADE DETAIL — separate component so it can use useParams
+// GRADE DETAIL: separate component so it can use useParams
 // ─────────────────────────────────────────────────────────────
 const GRADE_DATA = {
   eg: {
     name: "Entry Grade", abbr: "EG", color: "#aa88ff", scale: "1/144",
     tagline: "THE PERFECT STARTING POINT",
-    intro: "Entry Grade kits were introduced by Bandai in 2020 as the most accessible way to experience Gunpla. Designed specifically for first-time builders, EG kits require <strong>no nippers, no tools, and no prior experience</strong> — parts snap cleanly off the runner by hand without leaving unsightly gate marks.",
+    intro: "Entry Grade kits were introduced by Bandai in 2020 as the most accessible way to experience Gunpla. Designed specifically for first-time builders, EG kits require <strong>no nippers, no tools, and no prior experience</strong>. Parts snap cleanly off the runner by hand without leaving unsightly gate marks.",
     sections: [
       { title: "◈ BUILD EXPERIENCE", body: "EG kits are engineered for simplicity without sacrificing the iconic look of the mobile suits. The part count is kept low, assembly steps are intuitive, and the instruction manual is easy to follow even for children. A typical EG kit can be completed in <strong>1–2 hours</strong>, making it ideal for an afternoon project." },
-      { title: "◈ WHAT YOU GET", body: "Despite being entry-level, EG kits deliver impressive articulation and screen-accurate proportions. Most include a small selection of weapons and accessories. The plastic quality is high — the same Bandai engineering behind MG and RG kits, just simplified for accessibility." },
+      { title: "◈ WHAT YOU GET", body: "Despite being entry-level, EG kits deliver impressive articulation and screen-accurate proportions. Most include a small selection of weapons and accessories. The plastic quality is solid too. Same Bandai engineering behind MG and RG kits, just simplified." },
       { title: "◈ WHO IS IT FOR?", body: "EG is perfect for <strong>absolute beginners</strong>, younger builders, or anyone who wants a quick, satisfying build without committing hours to a complex kit. They also make great gifts. Experienced builders often pick up EG kits as palette cleansers between large MG or PG projects." },
-      { title: "◈ TOOLS NEEDED", body: "<strong>None required.</strong> Parts are designed to be hand-separated cleanly. That said, a pair of nippers and a hobby knife will give cleaner results if you have them. No glue, cement, or painting is necessary — though EG kits respond well to panel lining and top coating if you want to take them further." },
+      { title: "◈ TOOLS NEEDED", body: "<strong>None required.</strong> Parts are designed to be hand-separated cleanly. That said, a pair of nippers and a hobby knife will give cleaner results if you have them. No glue, cement, or painting needed, though EG kits respond really well to panel lining and a topcoat if you want to push them further." },
     ],
     stats: [{ val:"1/144", lbl:"SCALE" }, { val:"1–2 HRS", lbl:"BUILD TIME" }, { val:"NONE", lbl:"TOOLS NEEDED" }, { val:"★☆☆☆☆", lbl:"DIFFICULTY" }],
   },
   hg: {
     name: "High Grade", abbr: "HG", color: "#00aaff", scale: "1/144",
     tagline: "THE BACKBONE OF GUNPLA",
-    intro: "High Grade is the most diverse and widely available grade in all of Gunpla. Running since 1990, HG kits cover virtually every mobile suit from every Gundam series — if a kit exists, there's almost certainly an HG version of it. At 1/144 scale, they're compact, affordable, and endlessly varied.",
+    intro: "High Grade is the most diverse and widely available grade in all of Gunpla. Running since 1990, HG kits cover virtually every mobile suit from every Gundam series. If a suit exists, there's almost certainly an HG version of it. At 1/144 scale, they're compact, affordable, and endlessly varied.",
     sections: [
       { title: "◈ BUILD EXPERIENCE", body: "HG kits are the <strong>gateway to serious Gunpla building</strong>. They require nippers for clean gate removal and benefit from a hobby knife for cleanup, but are otherwise very approachable. A standard HG takes <strong>3–6 hours</strong> to complete. The part count is moderate and the build flow is well-paced." },
-      { title: "◈ WHAT YOU GET", body: "Most HG kits include a good range of accessories — beam sabers, shields, rifles — and feature solid articulation for their size. Newer HG kits (post-2015) have benefited from Bandai's improved engineering, with better proportions, color separation, and posability than older releases." },
+      { title: "◈ WHAT YOU GET", body: "Most HG kits include a good range of accessories (beam sabers, shields, rifles) and solid articulation for their size. Newer HG kits (post-2015) have benefited from Bandai's improved engineering, with better proportions, color separation, and posability than older releases." },
       { title: "◈ WHO IS IT FOR?", body: "HG is the ideal grade for <strong>beginners to intermediate builders</strong>. They're a great place to practice panel lining, decal application, and top coating. Advanced builders often collect HG kits for their variety, or use them as customisation bases for kitbashing and painting projects." },
       { title: "◈ TOOLS NEEDED", body: "<strong>Nippers are essential.</strong> A hobby knife for gate cleanup and panel line markers are highly recommended. No glue required for standard assembly. Nippers, a cutting mat, and panel line markers are the standard starter toolkit for HG builds." },
     ],
@@ -2676,21 +2692,21 @@ const GRADE_DATA = {
     tagline: "MASTER GRADE DETAIL IN A SMALLER PACKAGE",
     intro: "Real Grade kits are Bandai's most technically ambitious 1/144 scale offerings. Launched in 2010, RG kits pack <strong>Master Grade-level internal structure and detail</strong> into a compact frame, making them one of the most impressive grade-for-size achievements in the Gunpla lineup.",
     sections: [
-      { title: "◈ BUILD EXPERIENCE", body: "RG kits feature a pre-built Advanced MS Joint inner frame — a flexible, pre-assembled skeleton that forms the core of the kit. Outer armor parts snap onto this frame. The result is exceptional poseability and detail, but the small part size and complex assembly make RG one of the more <strong>challenging grades</strong>. Expect <strong>6–12 hours</strong> for most kits." },
+      { title: "◈ BUILD EXPERIENCE", body: "RG kits feature a pre-built Advanced MS Joint inner frame, basically a flexible pre-assembled skeleton that forms the core of the kit. Outer armor parts snap onto this frame. The result is exceptional poseability and detail, but the small part size and complex assembly make RG one of the more <strong>challenging grades</strong>. Expect <strong>6–12 hours</strong> for most kits." },
       { title: "◈ WHAT YOU GET", body: "RG kits typically include <strong>waterslide decals</strong> for panel markings, an inner frame visible through translucent or removable outer armor, and an impressive level of color separation considering the scale. The finished product is often the most detailed display piece possible at 1/144 scale." },
       { title: "◈ WHO IS IT FOR?", body: "RG is aimed at <strong>intermediate to advanced builders</strong> who want the detail of an MG without the footprint. The small parts demand patience and steady hands. It's not recommended as a first kit, but experienced HG builders looking for their next challenge will find RG enormously rewarding." },
-      { title: "◈ TOOLS NEEDED", body: "<strong>Sharp nippers are critical</strong> — blunt nippers will crack small RG parts. A precision hobby knife, tweezers for waterslide decals, and a fine-tipped panel liner are all highly recommended. A good magnifying lamp helps significantly with the fine detail work." },
+      { title: "◈ TOOLS NEEDED", body: "<strong>Sharp nippers are critical.</strong> Blunt nippers will crack small RG parts. A precision hobby knife, tweezers for waterslide decals, and a fine-tipped panel liner are all highly recommended. A good magnifying lamp helps significantly with the fine detail work." },
     ],
     stats: [{ val:"1/144", lbl:"SCALE" }, { val:"6–12 HRS", lbl:"BUILD TIME" }, { val:"SHARP NIPPERS", lbl:"TOOLS NEEDED" }, { val:"★★★★☆", lbl:"DIFFICULTY" }],
   },
   mg: {
     name: "Master Grade", abbr: "MG", color: "#ff6600", scale: "1/100",
     tagline: "THE GOLD STANDARD OF GUNPLA",
-    intro: "Master Grade is the prestige grade of the Gunpla line — the sweet spot between complexity and display quality that most serious collectors aspire to. Introduced in 1995, MG kits feature <strong>fully developed inner frames, detailed cockpit interiors, and exceptional articulation</strong> at the substantial 1/100 scale.",
+    intro: "Master Grade is the prestige grade of the Gunpla line. It sits in that sweet spot between complexity and display quality that most serious collectors aspire to. Introduced in 1995, MG kits feature <strong>fully developed inner frames, detailed cockpit interiors, and exceptional articulation</strong> at the substantial 1/100 scale.",
     sections: [
-      { title: "◈ BUILD EXPERIENCE", body: "Building an MG is a <strong>multi-session commitment</strong>. Most kits take 8–20 hours depending on complexity. You'll build the skeleton first — a fully articulated inner frame — and then layer outer armor panels over it. The process is deeply satisfying and teaches builders a thorough understanding of the mobile suit's structure." },
+      { title: "◈ BUILD EXPERIENCE", body: "Building an MG is a <strong>multi-session commitment</strong>. Most kits take 8–20 hours depending on complexity. You'll build the skeleton first, a fully articulated inner frame, then layer the outer armor panels over it. The process is deeply satisfying and teaches builders a thorough understanding of the mobile suit's structure." },
       { title: "◈ WHAT YOU GET", body: "MG kits are packed with features: opening hatches, poseable fingers (on many releases), pilot figures, cockpit details, extensive weapon loadouts, and markings. The 1/100 scale means detail work like panel lining and decal application is much more forgiving than RG or HG." },
-      { title: "◈ WHO IS IT FOR?", body: "MG is the target grade for <strong>intermediate to advanced builders</strong> who want a substantial, impressive display piece. It's also the most customisation-friendly grade — the inner frame construction makes repainting, kitbashing, and modification more approachable than smaller grades." },
+      { title: "◈ WHO IS IT FOR?", body: "MG is the target grade for <strong>intermediate to advanced builders</strong> who want a substantial, impressive display piece. It's also the most customisation-friendly grade out there. The inner frame construction makes repainting, kitbashing, and modification more approachable than smaller grades." },
       { title: "◈ TOOLS NEEDED", body: "<strong>Quality nippers are essential.</strong> A hobby knife, panel liners, and either waterslide or dry transfer decals (depending on the kit) round out the standard toolkit. Airbrush painting elevates MG kits significantly, though hand painting works well too at this scale." },
     ],
     stats: [{ val:"1/100", lbl:"SCALE" }, { val:"8–20 HRS", lbl:"BUILD TIME" }, { val:"NIPPERS + KNIFE", lbl:"TOOLS NEEDED" }, { val:"★★★☆☆", lbl:"DIFFICULTY" }],
@@ -2698,12 +2714,12 @@ const GRADE_DATA = {
   pg: {
     name: "Perfect Grade", abbr: "PG", color: "#ffcc00", scale: "1/60",
     tagline: "THE ULTIMATE GUNPLA EXPERIENCE",
-    intro: "Perfect Grade represents the absolute pinnacle of Bandai's Gunpla engineering. Released only for the most iconic mobile suits, PG kits are <strong>enormous, extraordinarily detailed, and built to impress</strong>. At 1/60 scale, a completed PG is a centerpiece — not just a model, but a statement.",
+    intro: "Perfect Grade represents the absolute pinnacle of Bandai's Gunpla engineering. Released only for the most iconic mobile suits, PG kits are <strong>enormous, extraordinarily detailed, and built to impress</strong>. At 1/60 scale, a completed PG is a proper centerpiece. Not just a model.",
     sections: [
-      { title: "◈ BUILD EXPERIENCE", body: "Building a PG is a <strong>major undertaking</strong>. Most kits take 20–40+ hours to complete. Every detail is accounted for — full inner frame, opening cockpit, LED lighting units (on select releases), poseable hands, and interlocking mechanical joints. The build experience itself is considered a highlight by collectors who have completed one." },
+      { title: "◈ BUILD EXPERIENCE", body: "Building a PG is a <strong>major undertaking</strong>. Most kits take 20–40+ hours to complete. Every detail is accounted for: full inner frame, opening cockpit, LED lighting units (on select releases), poseable hands, interlocking mechanical joints. The build experience itself is considered a highlight by collectors who have completed one." },
       { title: "◈ WHAT YOU GET", body: "PG kits come with everything: chrome parts, rubber tubing, clear parts, full weapon arrays, pilot figures, detailed cockpit interiors, and on some releases, pre-installed LED systems. The box alone is often the size of a shoebox. These are the kits that go in glass display cabinets." },
-      { title: "◈ WHO IS IT FOR?", body: "PG is for <strong>experienced, dedicated builders</strong> who want the best that Gunpla has to offer and are prepared to invest significant time and money. Most PG builders have completed multiple MG or RG kits beforehand. A PG is not a casual weekend project — it's a long-term build that rewards patience and skill." },
-      { title: "◈ TOOLS NEEDED", body: "<strong>The full toolkit</strong> — quality nippers, precision hobby knife, multiple panel liners, tweezers, sprue cutters, and ideally an airbrush setup. LED wiring on applicable kits benefits from basic electronics knowledge. A dedicated workspace is recommended given the scale and part count." },
+      { title: "◈ WHO IS IT FOR?", body: "PG is for <strong>experienced, dedicated builders</strong> who want the best that Gunpla has to offer and are prepared to invest significant time and money. Most PG builders have completed multiple MG or RG kits beforehand. A PG is not a casual weekend build. It rewards patience and skill." },
+      { title: "◈ TOOLS NEEDED", body: "<strong>The full toolkit.</strong> Quality nippers, precision hobby knife, multiple panel liners, tweezers, sprue cutters, and ideally an airbrush setup. LED wiring on applicable kits benefits from basic electronics knowledge. A dedicated workspace is recommended given the scale and part count." },
     ],
     stats: [{ val:"1/60", lbl:"SCALE" }, { val:"20–40+ HRS", lbl:"BUILD TIME" }, { val:"FULL TOOLKIT", lbl:"TOOLS NEEDED" }, { val:"★★★★★", lbl:"DIFFICULTY" }],
   },
@@ -2715,7 +2731,7 @@ const GRADE_DATA = {
       { title: "◈ BUILD EXPERIENCE", body: "SD kits are among the <strong>fastest to build</strong> in the Gunpla lineup. Most can be completed in 1–3 hours. The part count is low, the steps are simple, and the result is immediately fun and displayable. The SD EX-Standard and Cross Silhouette sub-lines have modernised the grade with better articulation." },
       { title: "◈ WHAT YOU GET", body: "SD kits come with weapons and accessories appropriate to the mobile suit, though the emphasis is on the character design rather than mechanical detail. Cross Silhouette kits include an inner frame for improved articulation and can even accept 1/144 HG legs for a more proportional 'SD Kai' look." },
       { title: "◈ WHO IS IT FOR?", body: "SD kits are <strong>great for all skill levels</strong>. Beginners love them for their speed and accessibility. Collectors love them for their unique aesthetic. Experienced builders enjoy them as quick palette-cleansers between larger builds, or as customisation and diorama subjects." },
-      { title: "◈ TOOLS NEEDED", body: "<strong>Nippers recommended</strong> but not always strictly necessary on newer SD kits. A hobby knife for gate cleanup improves the finish. Panel lining is very effective on SD kits — the exaggerated details really pop with a wash. Top coating is highly recommended to protect the finish." },
+      { title: "◈ TOOLS NEEDED", body: "<strong>Nippers recommended</strong> but not always strictly necessary on newer SD kits. A hobby knife for gate cleanup improves the finish. Panel lining works great on SD kits too. The exaggerated details really pop with a wash. Top coating is highly recommended to protect the finish." },
     ],
     stats: [{ val:"SD", lbl:"SCALE" }, { val:"1–3 HRS", lbl:"BUILD TIME" }, { val:"NIPPERS", lbl:"TOOLS NEEDED" }, { val:"★☆☆☆☆", lbl:"DIFFICULTY" }],
   },
@@ -2803,7 +2819,49 @@ function GradeDetail({ setGradeFilter }) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// KIT DETAIL — separate component so it can use useParams
+// TOOL NAV: prev/next between tool pages
+// ─────────────────────────────────────────────────────────────
+const TOOL_ORDER = [
+  { route: "/tools/nippers",           label: "Nippers",            color: "#00ffcc" },
+  { route: "/tools/panel-line-markers",label: "Panel Line Markers", color: "#00aaff" },
+  { route: "/tools/scribers",          label: "Scribers & Chisels", color: "#ff6600" },
+  { route: "/tools/sanding",           label: "Sanding Sticks",     color: "#ffcc00" },
+  { route: "/tools/paints",            label: "Paints & Primers",   color: "#ff2244" },
+  { route: "/tools/airbrushes",        label: "Airbrushes",         color: "#aa88ff" },
+  { route: "/tools/top-coats",         label: "Top Coats",          color: "#00ffcc" },
+  { route: "/tools/hobby-knives",      label: "Hobby Knives",       color: "#ff9900" },
+];
+
+function ToolNavRow() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const currentIdx = TOOL_ORDER.findIndex(t => t.route === location.pathname);
+  if (currentIdx === -1) return null;
+  const prevTool = TOOL_ORDER[(currentIdx - 1 + TOOL_ORDER.length) % TOOL_ORDER.length];
+  const nextTool = TOOL_ORDER[(currentIdx + 1) % TOOL_ORDER.length];
+  return (
+    <div className="grade-nav-row">
+      <button className="grade-nav-btn prev" onClick={() => navigate(prevTool.route)}>
+        <span>←</span>
+        <span>
+          <span style={{display:"block",fontSize:"0.55rem",opacity:0.6,marginBottom:"2px"}}>PREVIOUS</span>
+          <span className="grade-nav-label" style={{color: prevTool.color}}>{prevTool.label}</span>
+        </span>
+      </button>
+      <span className="grade-nav-center">TOOL {currentIdx + 1} OF {TOOL_ORDER.length}</span>
+      <button className="grade-nav-btn next" onClick={() => navigate(nextTool.route)}>
+        <span>
+          <span style={{display:"block",fontSize:"0.55rem",opacity:0.6,marginBottom:"2px",textAlign:"right"}}>NEXT</span>
+          <span className="grade-nav-label" style={{color: nextTool.color}}>{nextTool.label}</span>
+        </span>
+        <span>→</span>
+      </button>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// KIT DETAIL: separate component so it can use useParams
 // ─────────────────────────────────────────────────────────────
 function KitDetail({ gc, isSignedIn, favourites, buildProgress, pageProgress, toggleFavourite, setBuildStatus, setManualPage, openManualId, toggleManual, setOpenManualId, goHome }) {
   const { slug } = useParams();
@@ -2830,7 +2888,7 @@ function KitDetail({ gc, isSignedIn, favourites, buildProgress, pageProgress, to
       const count = pdf.numPages;
       localStorage.setItem(cacheKey, String(count));
       setRealPages(prev => ({ ...prev, [manual.id]: count }));
-    } catch (_) { /* silently ignore — falls back to manual.pages */ }
+    } catch (_) { /* silently ignore, falls back to manual.pages */ }
   };
 
   // Auto-fetch real page counts for all manuals with a URL as soon as kit loads
@@ -3292,14 +3350,14 @@ export default function KitVault() {
                 <div className="nav-dropdown">
                   <div className="nav-dropdown-header">◈ HOBBY TOOLS</div>
                   {[
-                    {icon:"✂️", label:"Nippers", sub:"Side cutters for clean gate removal — the most essential Gunpla tool", route:"/tools/nippers"},
-                    {icon:"🔧", label:"Panel Line Markers", sub:"Gundam markers & enamel washes for detail lines", route:null},
-                    {icon:"📐", label:"Scribers & Chisels", sub:"For adding custom panel lines and surface detail", route:null},
-                    {icon:"🪵", label:"Sanding Sticks", sub:"400→1000→2000 grit for seamline removal & gate cleanup", route:null},
-                    {icon:"🎨", label:"Paints & Primers", sub:"Mr. Color, Citadel, Vallejo — airbrushing & hand painting", route:null},
-                    {icon:"💨", label:"Airbrushes", sub:"Iwata, Badger, GSI Creos — recommended starter setups", route:null},
-                    {icon:"🧴", label:"Top Coats", sub:"Gloss, semi-gloss, matte — protecting & unifying your finish", route:null},
-                    {icon:"🪚", label:"Hobby Knives", sub:"Olfa & X-Acto knives for cleanup and minor modifications", route:null},
+                    {icon:"✂️", label:"Nippers", sub:"Side cutters for clean gate removal. The most essential tool in your kit.", route:"/tools/nippers"},
+                    {icon:"🔧", label:"Panel Line Markers", sub:"Gundam markers & enamel washes for detail lines", route:"/tools/panel-line-markers"},
+                    {icon:"📐", label:"Scribers & Chisels", sub:"For adding custom panel lines and surface detail", route:"/tools/scribers"},
+                    {icon:"🪵", label:"Sanding Sticks", sub:"400→1000→2000 grit for seamline removal & gate cleanup", route:"/tools/sanding"},
+                    {icon:"🎨", label:"Paints & Primers", sub:"Mr. Color, Citadel, Vallejo and more. Airbrushing and hand painting.", route:"/tools/paints"},
+                    {icon:"💨", label:"Airbrushes", sub:"Iwata, Badger, GSI Creos. Starter to pro setups covered.", route:"/tools/airbrushes"},
+                    {icon:"🧴", label:"Top Coats", sub:"Gloss, semi-gloss, matte. Lock in your finish and protect your work.", route:"/tools/top-coats"},
+                    {icon:"🪚", label:"Hobby Knives", sub:"Olfa & X-Acto knives for cleanup and minor modifications", route:"/tools/hobby-knives"},
                   ].map(item => (
                     <div key={item.label} className="nav-dd-item" onClick={() => { closeNav(); if(item.route) navigate(item.route); }}>
                       <span className="nav-dd-icon">{item.icon}</span>
@@ -3612,7 +3670,7 @@ export default function KitVault() {
                   <div className="resources-section-title">◈ COMMUNITY</div>
                   <div className="resources-grid">
                     {[
-                      { icon:"📖", label:"Gunpla Wiki", sub:"The definitive beginner resource — grades explained, tool guides, technique breakdowns, and FAQs. The best place to start if you're new to the hobby.", tag:"WIKI", href:"https://www.reddit.com/r/Gunpla/wiki/", color:"#00aaff" },
+                      { icon:"📖", label:"Gunpla Wiki", sub:"The definitive beginner resource. Grades explained, tool guides, technique breakdowns, FAQs. Best place to start if you're new.", tag:"WIKI", href:"https://www.reddit.com/r/Gunpla/wiki/", color:"#00aaff" },
                       { icon:"💬", label:"r/Gunpla", sub:"The largest Gunpla community on the internet. Share your builds, ask questions, browse WIPs, and get feedback from thousands of builders worldwide.", tag:"REDDIT", href:"https://www.reddit.com/r/Gunpla/", color:"#ff6600" },
                       { icon:"🌐", label:"Gundam Base Online", sub:"Bandai's official Gunpla storefront and news hub. Best place to track new kit announcements, P-Bandai exclusives, and limited releases straight from the source.", tag:"OFFICIAL", href:"https://p-bandai.com/", color:"#00ffcc" },
                     ].map(r => (
@@ -3682,7 +3740,7 @@ export default function KitVault() {
               <div className="page">
                 <div className="bandai-badge">
                   <div className="bandai-name">BANDAI NAMCO ENTERTAINMENT</div>
-                  <div className="bandai-sub">© SOTSU · SUNRISE — ALL GUNDAM IP AND TRADEMARKS BELONG TO THEIR RESPECTIVE OWNERS</div>
+                  <div className="bandai-sub">© SOTSU · SUNRISE. ALL GUNDAM IP AND TRADEMARKS BELONG TO THEIR RESPECTIVE OWNERS.</div>
                 </div>
                 <div className="disclaimer-grid">
                   <div className="disclaimer-card" style={{"--dc":"#ffcc00"}}>
@@ -3703,7 +3761,7 @@ export default function KitVault() {
                   <div className="disclaimer-card" style={{"--dc":"#ff6600"}}>
                     <div className="disclaimer-card-icon">💛</div>
                     <div className="disclaimer-card-title">NON-PROFIT</div>
-                    <div className="disclaimer-card-text">Any revenue generated through affiliate links or donations is used solely to cover hosting and maintenance costs. This project is run by a hobbyist for hobbyists — not for profit.</div>
+                    <div className="disclaimer-card-text">Any revenue generated through affiliate links or donations is used solely to cover hosting and maintenance costs. This project is run by a hobbyist for hobbyists. Not for profit.</div>
                   </div>
                 </div>
                 <div className="disclaimer-block">
@@ -3719,15 +3777,548 @@ export default function KitVault() {
                 <div className="disclaimer-block">
                   <div className="disclaimer-block-title">FAIR USE & INTENT</div>
                   <p>KitVault.io operates under the belief that hosting assembly manuals for kits that hobbyists have legitimately purchased constitutes fair use. We do not sell, redistribute for profit, or claim ownership over any Bandai intellectual property.</p>
-                  <p>Our intent is to make the hobby more accessible — especially for international builders who may have received kits with manuals in a language they cannot read, or who have lost their original instruction sheets.</p>
+                  <p>The goal is to make the hobby more accessible, especially for international builders who got kits with Japanese-only manuals, or anyone who's misplaced their instructions.</p>
                 </div>
               </div>
+            </>
+          } />
+
+          {/* ===== PANEL LINE MARKERS PAGE ===== */}
+          <Route path="/tools/panel-line-markers" element={
+            <>
+              <ToolNavRow />
+              <div className="page-hero">
+                <div className="page-tag">◈ HOBBY TOOLS</div>
+                <div className="page-title">PANEL LINE MARKERS</div>
+                <div className="page-sub">BRING YOUR KIT'S DETAIL TO LIFE IN MINUTES</div>
+              </div>
+              <div className="tools-page">
+                <div className="tools-intro-block">
+                  <div className="tools-intro-text">
+                    Panel lining is the single fastest way to dramatically improve how any Gunpla looks. By running ink into the recessed lines of a kit, you add depth, shadow, and realism that makes the sculpted detail pop. Whether you're a snap-builder who just wants their kit to look sharper, or going for a full weathered finish, panel lining makes a bigger difference than almost anything else.
+                  </div>
+                  <div className="tools-intro-tip">
+                    <span className="tools-tip-label">◈ PRO TIP</span>
+                    Always apply panel lines to assembled, topcoated (or at minimum, bare) parts. On gloss or semi-gloss surfaces the ink flows perfectly into lines. On bare plastic it can bleed. A gloss coat beforehand solves this completely.
+                  </div>
+                </div>
+                <div className="tools-section-title">◈ PANEL LINER RECOMMENDATIONS</div>
+                <div className="tools-grid">
+                  {[
+                    {
+                      price: "~$3–5 each",
+                      name: "Gundam Marker Panel Line Accent Color",
+                      brand: "BANDAI / GSI CREOS",
+                      desc: "The most beginner-friendly panel liner on the market. Flow-type ink bleeds directly into recessed lines with a fine tip, and any mistakes wipe clean with an eraser or cotton swab. Available in black, gray, and brown. Use brown on red/orange parts and gray on white/light areas. An essential first purchase.",
+                      bestFor: "Beginners · HG · EG · SD · All Colors",
+                      asin: "B07D3H3MWH",
+                      badge: "BEST STARTER",
+                    },
+                    {
+                      price: "~$10–20 + thinner",
+                      name: "Tamiya Panel Line Accent Color",
+                      brand: "TAMIYA",
+                      desc: "Enamel-based wash that flows beautifully into deep recesses and creates a richer, more scale-realistic effect than marker-based liners. Applied with a brush, flows by capillary action, and is cleaned up with lighter fluid or enamel thinner and a cotton swab. Available in black, dark brown, dark gray, and more. The intermediate builder's go-to.",
+                      bestFor: "Intermediate · HG · RG · MG · PG",
+                      asin: "B01EZ6MKUE",
+                      badge: "COMMUNITY PICK",
+                    },
+                    {
+                      price: "~$10–15 per bottle",
+                      name: "AK Interactive Panel Line Wash",
+                      brand: "AK INTERACTIVE",
+                      desc: "Professional-grade enamel wash used by military modelers and Gunpla painters alike. Extremely fine pigment, excellent flow, and a wide color range beyond the typical black/brown/gray. The Dark Brown and Buff tones are particularly prized for weathering and subtle detail work on MG and PG builds. Pairs with AK Enamel Thinner for cleanup.",
+                      bestFor: "Advanced · MG · PG · Weathering Builds",
+                      asin: "B00HBMKBA6",
+                      badge: "ADVANCED PICK",
+                    },
+                  ].map(item => (
+                    <div className="tool-card" key={item.name}>
+                      <div className="tool-card-body">
+                        <div className="tool-card-brand">{item.brand}</div>
+                        <div className="tool-card-name">{item.name}</div>
+                        <div className="tool-card-price-tag">{item.price}</div>
+                        <div className="tool-card-desc">{item.desc}</div>
+                        <div className="tool-card-best-for">
+                          <span className="tool-best-label">BEST FOR</span>
+                          <span className="tool-best-val">{item.bestFor}</span>
+                        </div>
+                      </div>
+                      <div className="tool-card-footer">
+                        <span className="tool-badge">★ {item.badge}</span>
+                        <a className="tool-amazon-btn" href={`https://www.amazon.com/dp/${item.asin}?tag=kitvault-20`} target="_blank" rel="noopener noreferrer sponsored">VIEW ON AMAZON →</a>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="tools-affiliate-note">
+                  ★ KitVault.io participates in the Amazon Associates program. Links above are affiliate links. We earn a small commission at no extra cost to you, which helps keep the site free.
+                </div>
+              </div>
+              <ToolNavRow />
+            </>
+          } />
+
+          {/* ===== SCRIBERS & CHISELS PAGE ===== */}
+          <Route path="/tools/scribers" element={
+            <>
+              <ToolNavRow />
+              <div className="page-hero">
+                <div className="page-tag">◈ HOBBY TOOLS</div>
+                <div className="page-title">SCRIBERS & CHISELS</div>
+                <div className="page-sub">CUT CUSTOM PANEL LINES INTO YOUR KIT'S SURFACE</div>
+              </div>
+              <div className="tools-page">
+                <div className="tools-intro-block">
+                  <div className="tools-intro-text">
+                    Scribers and chisels let you cut new panel lines directly into plastic, either adding detail that isn't there or deepening existing lines so they hold washes better. This is where Gunpla building crosses into modelling craft. It takes practice, but the results on a well-scribed MG or PG are stunning.
+                  </div>
+                  <div className="tools-intro-tip">
+                    <span className="tools-tip-label">◈ PRO TIP</span>
+                    Always use masking tape or a metal ruler as a guide when scribing straight lines. Light, repeated passes beat one heavy stroke every time. You'll have way more control and slip a lot less. Practice on sprue scraps before touching your kit.
+                  </div>
+                </div>
+                <div className="tools-section-title">◈ SCRIBING TOOL RECOMMENDATIONS</div>
+                <div className="tools-grid">
+                  {[
+                    {
+                      price: "~$8–12",
+                      name: "DSPIAE ST-A Scribing Template Set",
+                      brand: "DSPIAE",
+                      desc: "An outstanding entry into scribing. DSPIAE's stainless steel templates give you reliable straight and curved guides for consistent panel lines. Pair these with a basic metal-tipped scribing tool and you'll get clean, reproducible results at a very accessible price. Highly recommended as a starting combo by r/Gunpla.",
+                      bestFor: "Beginners · HG · MG · Surface Detail",
+                      asin: "B08CJJLN9N",
+                      badge: "BEST STARTER",
+                    },
+                    {
+                      price: "~$25–40",
+                      name: "Tamiya Scriber II",
+                      brand: "TAMIYA",
+                      desc: "The gold standard intermediate scribing tool. The Tamiya Scriber II uses a replaceable carbide tip that stays sharp far longer than cheaper alternatives. The ergonomic handle gives excellent control, and the blade can be replaced when worn. Consistently recommended across Gunpla and scale modelling communities as the best quality-to-price scribing tool available.",
+                      bestFor: "Intermediate · MG · PG · Clean Line Work",
+                      asin: "B0015YAFMK",
+                      badge: "COMMUNITY FAVOURITE",
+                    },
+                    {
+                      price: "~$50–80",
+                      name: "DSPIAE MSC Micro Saw Chisel Set",
+                      brand: "DSPIAE",
+                      desc: "Professional-grade micro chisels machined to incredibly tight tolerances. The MSC set gives you multiple chisel widths (0.15mm to 1.0mm) for varied line weights, and the handles are perfectly weighted. These are the tools you see in World Championship builds. Overkill for casual builders, but genuinely transformative if you're serious about surface work.",
+                      bestFor: "Advanced · PG · Competition Builds · Fine Detail",
+                      asin: "B08F7WNLR2",
+                      badge: "PRO LEVEL",
+                    },
+                  ].map(item => (
+                    <div className="tool-card" key={item.name}>
+                      <div className="tool-card-body">
+                        <div className="tool-card-brand">{item.brand}</div>
+                        <div className="tool-card-name">{item.name}</div>
+                        <div className="tool-card-price-tag">{item.price}</div>
+                        <div className="tool-card-desc">{item.desc}</div>
+                        <div className="tool-card-best-for">
+                          <span className="tool-best-label">BEST FOR</span>
+                          <span className="tool-best-val">{item.bestFor}</span>
+                        </div>
+                      </div>
+                      <div className="tool-card-footer">
+                        <span className="tool-badge">★ {item.badge}</span>
+                        <a className="tool-amazon-btn" href={`https://www.amazon.com/dp/${item.asin}?tag=kitvault-20`} target="_blank" rel="noopener noreferrer sponsored">VIEW ON AMAZON →</a>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="tools-affiliate-note">
+                  ★ KitVault.io participates in the Amazon Associates program. Links above are affiliate links. We earn a small commission at no extra cost to you, which helps keep the site free.
+                </div>
+              </div>
+              <ToolNavRow />
+            </>
+          } />
+
+          {/* ===== SANDING STICKS PAGE ===== */}
+          <Route path="/tools/sanding" element={
+            <>
+              <ToolNavRow />
+              <div className="page-hero">
+                <div className="page-tag">◈ HOBBY TOOLS</div>
+                <div className="page-title">SANDING STICKS</div>
+                <div className="page-sub">SMOOTH GATES, REMOVE SEAM LINES, POLISH CLEAR PARTS</div>
+              </div>
+              <div className="tools-page">
+                <div className="tools-intro-block">
+                  <div className="tools-intro-text">
+                    Sanding is what separates a tabletop build from a display-quality one. After your nippers remove the gate stub, a progression of sanding grits brings that surface flush and smooth, basically invisible under paint or topcoat. The right sanding tools also let you eliminate seam lines on MG parts, polish clear parts to crystal clarity, and prep surfaces for priming.
+                  </div>
+                  <div className="tools-intro-tip">
+                    <span className="tools-tip-label">◈ PRO TIP</span>
+                    Work through the grits in sequence: 400 to remove material, 600 to refine, 1000 to smooth, 2000+ to polish. Skipping grits leaves scratches that show through paint. Wet sanding from 1000 grit upward gives the cleanest results on plastic.
+                  </div>
+                </div>
+                <div className="tools-section-title">◈ SANDING TOOL RECOMMENDATIONS</div>
+                <div className="tools-grid">
+                  {[
+                    {
+                      price: "~$8–12",
+                      name: "Tamiya Finishing Abrasives (Fine Set)",
+                      brand: "TAMIYA",
+                      desc: "Tamiya's finishing abrasive sheets are an excellent, affordable entry point. Available in Fine (600), Extra Fine (1000), and Ultra Fine (2000) grits. Cut to size and wrap around a flat stick or sanding block for controlled results. The sheets don't clog quickly and last a surprisingly long time for the price. A genuine community staple.",
+                      bestFor: "Beginners · HG · Gate Cleanup · All Grades",
+                      asin: "B0015YAFMA",
+                      badge: "BEST STARTER",
+                    },
+                    {
+                      price: "~$15–25",
+                      name: "Gunprimer Sanding Stick Set",
+                      brand: "GUNPRIMER",
+                      desc: "Purpose-built for Gunpla, the Gunprimer sticks come in a variety of profiles (flat, curved, round) that match the geometry of typical Gunpla parts. Each stick has a firm, consistent backing that prevents the abrasive from flexing where you don't want it to. Multiple grits available. These are one of the best mid-range sanding investments a builder can make.",
+                      bestFor: "Intermediate · HG · MG · Seam Line Removal",
+                      asin: "B09FKQMWVL",
+                      badge: "GUNPLA SPECIFIC",
+                    },
+                    {
+                      price: "~$30–50",
+                      name: "Micro-Mesh Soft Touch Pad Assortment",
+                      brand: "MICRO-MESH",
+                      desc: "The professional choice for finishing and polishing. Micro-Mesh pads go from 1500 all the way to 12000 grit, way beyond conventional sandpaper, and leave plastic with a glass-smooth near-polished finish. Essential for clear parts, canopies, and camera lenses. Used in the automotive and modelling industries; a game-changer for anyone who polishes their kits before topcoating.",
+                      bestFor: "Advanced · Clear Parts · Polishing · MG · PG",
+                      asin: "B0006IZZRM",
+                      badge: "POLISHING MASTER",
+                    },
+                  ].map(item => (
+                    <div className="tool-card" key={item.name}>
+                      <div className="tool-card-body">
+                        <div className="tool-card-brand">{item.brand}</div>
+                        <div className="tool-card-name">{item.name}</div>
+                        <div className="tool-card-price-tag">{item.price}</div>
+                        <div className="tool-card-desc">{item.desc}</div>
+                        <div className="tool-card-best-for">
+                          <span className="tool-best-label">BEST FOR</span>
+                          <span className="tool-best-val">{item.bestFor}</span>
+                        </div>
+                      </div>
+                      <div className="tool-card-footer">
+                        <span className="tool-badge">★ {item.badge}</span>
+                        <a className="tool-amazon-btn" href={`https://www.amazon.com/dp/${item.asin}?tag=kitvault-20`} target="_blank" rel="noopener noreferrer sponsored">VIEW ON AMAZON →</a>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="tools-affiliate-note">
+                  ★ KitVault.io participates in the Amazon Associates program. Links above are affiliate links. We earn a small commission at no extra cost to you, which helps keep the site free.
+                </div>
+              </div>
+              <ToolNavRow />
+            </>
+          } />
+
+          {/* ===== PAINTS & PRIMERS PAGE ===== */}
+          <Route path="/tools/paints" element={
+            <>
+              <ToolNavRow />
+              <div className="page-hero">
+                <div className="page-tag">◈ HOBBY TOOLS</div>
+                <div className="page-title">PAINTS & PRIMERS</div>
+                <div className="page-sub">COLOR YOUR BUILDS. HAND PAINTING TO FULL AIRBRUSH.</div>
+              </div>
+              <div className="tools-page">
+                <div className="tools-intro-block">
+                  <div className="tools-intro-text">
+                    Paint is what transforms a good build into an artwork. Whether you're hand-painting accent colors, touching up nub marks, or airbrushing an entire custom color scheme, choosing the right paint line matters. Gunpla builders primarily work with lacquer, enamel, and acrylic paints. Each has its own properties, strengths, and thinner requirements.
+                  </div>
+                  <div className="tools-intro-tip">
+                    <span className="tools-tip-label">◈ PRO TIP</span>
+                    Always prime before painting. Primer gives paint something to grip, reveals surface imperfections you need to fix, and unifies the color of the plastic so your topcoats look consistent. Mr. Surfacer 1000 is the community standard for Gunpla primer.
+                  </div>
+                </div>
+                <div className="tools-section-title">◈ PAINT RECOMMENDATIONS</div>
+                <div className="tools-grid">
+                  {[
+                    {
+                      price: "~$3–5 per pot",
+                      name: "Citadel Contrast & Base Paints",
+                      brand: "GAMES WORKSHOP",
+                      desc: "Citadel paints are water-based acrylics with a wide color range and excellent brush quality. The Contrast range is great for beginners. One coat over white primer creates shading and highlighting on its own. Easy cleanup with water, no harsh chemicals, and widely available. A great entry point for hand-painting Gunpla details and accent work.",
+                      bestFor: "Beginners · Hand Painting · Accent Colors · HG · SD",
+                      asin: "B09WZJQJ5M",
+                      badge: "BEGINNER FRIENDLY",
+                    },
+                    {
+                      price: "~$3–6 per bottle",
+                      name: "Vallejo Model Color Acrylic",
+                      brand: "VALLEJO",
+                      desc: "The preferred acrylic line for serious modelers who aren't ready to commit to lacquers. Vallejo Model Color comes in over 200 colors, thins reliably with water or Vallejo thinner, and performs exceptionally well through an airbrush. The dropper-bottle format makes consistent mixing easy. Widely praised for coverage quality and color accuracy.",
+                      bestFor: "Intermediate · Airbrushing · Hand Painting · MG",
+                      asin: "B003DQXMBM",
+                      badge: "MODELLER'S CHOICE",
+                    },
+                    {
+                      price: "~$3–5 per bottle",
+                      name: "Mr. Color Lacquer Paint",
+                      brand: "GSI CREOS",
+                      desc: "The gold standard for Gunpla painting in Japan and increasingly worldwide. Mr. Color lacquers dry hard, fast, and smooth with a factory-like finish that holds up really well. The color range is perfectly tuned to Gundam color schemes (Gundam White, MS Gray, Zeon Red, etc.). Requires lacquer thinner and ventilation, but the results are unmatched. What the pros use.",
+                      bestFor: "Advanced · Airbrushing · MG · PG · Custom Schemes",
+                      asin: "B005E5FNHG",
+                      badge: "GOLD STANDARD",
+                    },
+                  ].map(item => (
+                    <div className="tool-card" key={item.name}>
+                      <div className="tool-card-body">
+                        <div className="tool-card-brand">{item.brand}</div>
+                        <div className="tool-card-name">{item.name}</div>
+                        <div className="tool-card-price-tag">{item.price}</div>
+                        <div className="tool-card-desc">{item.desc}</div>
+                        <div className="tool-card-best-for">
+                          <span className="tool-best-label">BEST FOR</span>
+                          <span className="tool-best-val">{item.bestFor}</span>
+                        </div>
+                      </div>
+                      <div className="tool-card-footer">
+                        <span className="tool-badge">★ {item.badge}</span>
+                        <a className="tool-amazon-btn" href={`https://www.amazon.com/dp/${item.asin}?tag=kitvault-20`} target="_blank" rel="noopener noreferrer sponsored">VIEW ON AMAZON →</a>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="tools-affiliate-note">
+                  ★ KitVault.io participates in the Amazon Associates program. Links above are affiliate links. We earn a small commission at no extra cost to you, which helps keep the site free.
+                </div>
+              </div>
+              <ToolNavRow />
+            </>
+          } />
+
+          {/* ===== AIRBRUSHES PAGE ===== */}
+          <Route path="/tools/airbrushes" element={
+            <>
+              <ToolNavRow />
+              <div className="page-hero">
+                <div className="page-tag">◈ HOBBY TOOLS</div>
+                <div className="page-title">AIRBRUSHES</div>
+                <div className="page-sub">SMOOTH, EVEN COATS. THE BUILDER'S BIGGEST UPGRADE.</div>
+              </div>
+              <div className="tools-page">
+                <div className="tools-intro-block">
+                  <div className="tools-intro-text">
+                    An airbrush is the single biggest quality upgrade a Gunpla builder can make. The difference between a brushed and airbrushed finish is night and day: smooth, even coats with zero brush strokes, clean gradients, subtle shading, and the ability to lay down primer and topcoat cleanly. It's a significant investment, but one that pays off on every kit afterward.
+                  </div>
+                  <div className="tools-intro-tip">
+                    <span className="tools-tip-label">◈ PRO TIP</span>
+                    You'll need a compressor as well as the airbrush itself. For Gunpla, a 0.3mm needle is the most versatile. Fine enough for detail work, wide enough to base coat panels without striping. Always thin your paint to a skim-milk consistency before airbrushing. Too thick = tip dry and orange peel texture.
+                  </div>
+                </div>
+                <div className="tools-section-title">◈ AIRBRUSH RECOMMENDATIONS</div>
+                <div className="tools-grid">
+                  {[
+                    {
+                      price: "~$30–50",
+                      name: "Badger Patriot 105",
+                      brand: "BADGER",
+                      desc: "The Patriot 105 is probably the most recommended budget airbrush in the Gunpla community, and it earns it. Reliable, easy to clean, forgiving for beginners, and built to last. The 0.5mm needle is on the wider side, making it better for base coating and primer than fine detail work, but it's an excellent tool to learn the fundamentals on without breaking the bank.",
+                      bestFor: "Beginners · Base Coating · Primer · HG · MG",
+                      asin: "B001CNGZKE",
+                      badge: "BEST STARTER",
+                    },
+                    {
+                      price: "~$80–130",
+                      name: "Iwata Neo CN Gravity Feed",
+                      brand: "IWATA",
+                      desc: "Iwata's Neo line brings professional-grade engineering to an accessible price point. The Neo CN gravity-feed with a 0.35mm needle hits the sweet spot for Gunpla. Smooth enough for fine work, wide enough for even base coverage. Gravity feed means less air pressure needed, which means better control. Iwata's build quality is a noticeable step up from budget options.",
+                      bestFor: "Intermediate · Detailing · Base Coat · MG · PG",
+                      asin: "B001TO578C",
+                      badge: "STEP UP PICK",
+                    },
+                    {
+                      price: "~$180–250",
+                      name: "Iwata HP-CS Eclipse",
+                      brand: "IWATA",
+                      desc: "The HP-CS Eclipse is the airbrush you see in virtually every professional Gunpla build video. The 0.35mm needle, gravity-feed cup, and Iwata's precision engineering deliver flawlessly smooth coats and the finest detail capability in this price range. Virtually zero tip dry, intuitive needle control, and an absolute joy to use once you've learned your technique. Built to last decades.",
+                      bestFor: "Advanced · Competition Builds · MG · PG · Detail Work",
+                      asin: "B000CLLBOY",
+                      badge: "PRO STANDARD",
+                    },
+                  ].map(item => (
+                    <div className="tool-card" key={item.name}>
+                      <div className="tool-card-body">
+                        <div className="tool-card-brand">{item.brand}</div>
+                        <div className="tool-card-name">{item.name}</div>
+                        <div className="tool-card-price-tag">{item.price}</div>
+                        <div className="tool-card-desc">{item.desc}</div>
+                        <div className="tool-card-best-for">
+                          <span className="tool-best-label">BEST FOR</span>
+                          <span className="tool-best-val">{item.bestFor}</span>
+                        </div>
+                      </div>
+                      <div className="tool-card-footer">
+                        <span className="tool-badge">★ {item.badge}</span>
+                        <a className="tool-amazon-btn" href={`https://www.amazon.com/dp/${item.asin}?tag=kitvault-20`} target="_blank" rel="noopener noreferrer sponsored">VIEW ON AMAZON →</a>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="tools-affiliate-note">
+                  ★ KitVault.io participates in the Amazon Associates program. Links above are affiliate links. We earn a small commission at no extra cost to you, which helps keep the site free.
+                </div>
+              </div>
+              <ToolNavRow />
+            </>
+          } />
+
+          {/* ===== TOP COATS PAGE ===== */}
+          <Route path="/tools/top-coats" element={
+            <>
+              <ToolNavRow />
+              <div className="page-hero">
+                <div className="page-tag">◈ HOBBY TOOLS</div>
+                <div className="page-title">TOP COATS</div>
+                <div className="page-sub">PROTECT YOUR BUILD & UNIFY YOUR FINISH</div>
+              </div>
+              <div className="tools-page">
+                <div className="tools-intro-block">
+                  <div className="tools-intro-text">
+                    A topcoat is the final step that pulls everything together. It seals panel lines, locks down waterslide decals, and gives the whole model a consistent sheen. It's the difference between a kit that looks "built" and one that looks "finished." Gloss coats are used mid-build to prep for washes and decals; matte or semi-gloss coats are the typical final seal.
+                  </div>
+                  <div className="tools-intro-tip">
+                    <span className="tools-tip-label">◈ PRO TIP</span>
+                    Never spray topcoat in humid conditions or when temperature is below 15°C. Moisture in the air causes "frosting," a milky and pretty much irreversible whitening of the finish. Spray in thin, even passes from 25–30cm away and let each coat tack dry before applying the next.
+                  </div>
+                </div>
+                <div className="tools-section-title">◈ TOP COAT RECOMMENDATIONS</div>
+                <div className="tools-grid">
+                  {[
+                    {
+                      price: "~$10–15 per can",
+                      name: "Krylon UV-Resistant Clear Matte",
+                      brand: "KRYLON",
+                      desc: "An accessible, widely available rattle-can topcoat that delivers a solid matte finish at a budget price. Not as refined as Japanese lacquer options, but does the job for snap-build kits and practice. Water-based, so it's less likely to react with acrylic paints underneath. Good option while you're learning topcoat technique before investing in premium cans.",
+                      bestFor: "Beginners · Practice Builds · Snap-Fit HG · EG",
+                      asin: "B000BXXYSE",
+                      badge: "BUDGET PICK",
+                    },
+                    {
+                      price: "~$15–20 per can",
+                      name: "Tamiya TS-80 Flat Clear / TS-13 Gloss",
+                      brand: "TAMIYA",
+                      desc: "Tamiya's TS lacquer rattle cans are the most recommended mid-range topcoat in the Gunpla hobby. They spray smoothly, dry fast, and leave a consistent, even finish. TS-80 Flat Clear is the go-to for matte final seals; TS-13 Crystal Clear Gloss is ideal for pre-decal coats and gloss coats before washes. Widely trusted and genuinely great results.",
+                      bestFor: "Intermediate · HG · MG · Pre-Decal & Final Seal",
+                      asin: "B01FV7YMTK",
+                      badge: "COMMUNITY STAPLE",
+                    },
+                    {
+                      price: "~$15–20 per can",
+                      name: "Mr. Super Clear Flat / UV Cut Gloss",
+                      brand: "GSI CREOS",
+                      desc: "The absolute benchmark for Gunpla topcoats. Mr. Super Clear sprays as a fine mist that settles perfectly flat, dries incredibly smooth, and gives an exceptional matte or gloss finish depending on the variant. The UV Cut versions provide added protection from display fading. The flat version produces a convincingly realistic surface scale effect beloved by competition builders worldwide.",
+                      bestFor: "Advanced · MG · PG · Competition · Display Builds",
+                      asin: "B00B98HYCW",
+                      badge: "GOLD STANDARD",
+                    },
+                  ].map(item => (
+                    <div className="tool-card" key={item.name}>
+                      <div className="tool-card-body">
+                        <div className="tool-card-brand">{item.brand}</div>
+                        <div className="tool-card-name">{item.name}</div>
+                        <div className="tool-card-price-tag">{item.price}</div>
+                        <div className="tool-card-desc">{item.desc}</div>
+                        <div className="tool-card-best-for">
+                          <span className="tool-best-label">BEST FOR</span>
+                          <span className="tool-best-val">{item.bestFor}</span>
+                        </div>
+                      </div>
+                      <div className="tool-card-footer">
+                        <span className="tool-badge">★ {item.badge}</span>
+                        <a className="tool-amazon-btn" href={`https://www.amazon.com/dp/${item.asin}?tag=kitvault-20`} target="_blank" rel="noopener noreferrer sponsored">VIEW ON AMAZON →</a>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="tools-affiliate-note">
+                  ★ KitVault.io participates in the Amazon Associates program. Links above are affiliate links. We earn a small commission at no extra cost to you, which helps keep the site free.
+                </div>
+              </div>
+              <ToolNavRow />
+            </>
+          } />
+
+          {/* ===== HOBBY KNIVES PAGE ===== */}
+          <Route path="/tools/hobby-knives" element={
+            <>
+              <ToolNavRow />
+              <div className="page-hero">
+                <div className="page-tag">◈ HOBBY TOOLS</div>
+                <div className="page-title">HOBBY KNIVES</div>
+                <div className="page-sub">PRECISION CLEANUP FOR GATES, SEAMS & MODIFICATIONS</div>
+              </div>
+              <div className="tools-page">
+                <div className="tools-intro-block">
+                  <div className="tools-intro-text">
+                    A hobby knife is your second most-used tool after nippers. Once you've clipped the gate stub close, a sharp blade shaves it flush in a way sandpaper alone just can't replicate. Knives are also essential for removing mold seam lines, trimming sprue flash, cleaning up sink marks, and performing minor modifications to parts. Keep your blades fresh. A dull blade is slower and actually more dangerous than a sharp one.
+                  </div>
+                  <div className="tools-intro-tip">
+                    <span className="tools-tip-label">◈ PRO TIP</span>
+                    Change blades often. Hobby knife blades are cheap. Swap one in every session and you'll notice the difference immediately. For gate cleanup, use a paring motion (push toward yourself at a low angle) rather than a scraping motion. You'll have far more control and get cleaner results.
+                  </div>
+                </div>
+                <div className="tools-section-title">◈ HOBBY KNIFE RECOMMENDATIONS</div>
+                <div className="tools-grid">
+                  {[
+                    {
+                      price: "~$5–10 + blades",
+                      name: "X-Acto X1 Knife Set",
+                      brand: "X-ACTO",
+                      desc: "The classic entry-level hobby knife, and for good reason. The X-Acto X1 with #11 blade is universally available, compatible with a massive range of blade types, and perfectly adequate for gate cleanup and basic seam work. Comes with a pack of blades. The aluminum handle is lightweight but can get slippery. A rubber grip sleeve is a cheap fix worth doing.",
+                      bestFor: "Beginners · Gate Cleanup · HG · EG · Light Modification",
+                      asin: "B00006ICGU",
+                      badge: "BEST STARTER",
+                    },
+                    {
+                      price: "~$15–25 + blades",
+                      name: "Olfa AK-4 Art Knife Pro",
+                      brand: "OLFA",
+                      desc: "Olfa is the preferred knife brand among serious modelers and Gunpla builders alike. The AK-4 Art Knife Pro features a precision-machined aluminum handle with a satisfyingly weighted balance, a secure blade locking collar, and compatibility with Olfa's exceptional blade range. The blades are noticeably sharper and more consistent than generic alternatives. Worth the extra few dollars.",
+                      bestFor: "Intermediate · Gate Cleanup · Seam Lines · MG · Conversion",
+                      asin: "B002RQUMK0",
+                      badge: "BUILDER'S CHOICE",
+                    },
+                    {
+                      price: "~$40–60 + blades",
+                      name: "DSPIAE AT-K Aluminum Alloy Knife",
+                      brand: "DSPIAE",
+                      desc: "DSPIAE's premium hobby knife is machined from aircraft-grade aluminum with a perfectly knurled grip and a precision locking collar. The weight and balance feel like a proper surgical instrument. A real step above anything else at this price. Compatible with standard #11 blades. If you spend long sessions doing detail work and modification, the ergonomics of this knife pay for themselves in reduced hand fatigue.",
+                      bestFor: "Advanced · Fine Detailing · Conversion Work · MG · PG",
+                      asin: "B08BBVJT7G",
+                      badge: "PRECISION GRADE",
+                    },
+                  ].map(item => (
+                    <div className="tool-card" key={item.name}>
+                      <div className="tool-card-body">
+                        <div className="tool-card-brand">{item.brand}</div>
+                        <div className="tool-card-name">{item.name}</div>
+                        <div className="tool-card-price-tag">{item.price}</div>
+                        <div className="tool-card-desc">{item.desc}</div>
+                        <div className="tool-card-best-for">
+                          <span className="tool-best-label">BEST FOR</span>
+                          <span className="tool-best-val">{item.bestFor}</span>
+                        </div>
+                      </div>
+                      <div className="tool-card-footer">
+                        <span className="tool-badge">★ {item.badge}</span>
+                        <a className="tool-amazon-btn" href={`https://www.amazon.com/dp/${item.asin}?tag=kitvault-20`} target="_blank" rel="noopener noreferrer sponsored">VIEW ON AMAZON →</a>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="tools-affiliate-note">
+                  ★ KitVault.io participates in the Amazon Associates program. Links above are affiliate links. We earn a small commission at no extra cost to you, which helps keep the site free.
+                </div>
+              </div>
+              <ToolNavRow />
             </>
           } />
 
           {/* ===== NIPPERS PAGE ===== */}
           <Route path="/tools/nippers" element={
             <>
+              <ToolNavRow />
               <div className="page-hero">
                 <div className="page-tag">◈ HOBBY TOOLS</div>
                 <div className="page-title">NIPPERS</div>
@@ -3739,11 +4330,11 @@ export default function KitVault() {
                 {/* INTRO BLOCK */}
                 <div className="tools-intro-block">
                   <div className="tools-intro-text">
-                    Nippers are the single most important tool a Gunpla builder can own. A good pair cuts cleanly through plastic runners without stressing or whitening the surrounding material — protecting your kit's finish before you've even picked up a panel liner. Cheap nippers crush and crack; quality nippers slice. The difference is immediately visible on your finished build.
+                    Nippers are the single most important tool a Gunpla builder can own. A good pair cuts cleanly through plastic runners without stressing or whitening the surrounding material. Your finish is protected before you've even touched a panel liner. Cheap nippers crush and crack; quality nippers slice. The difference is immediately visible on your finished build.
                   </div>
                   <div className="tools-intro-tip">
                     <span className="tools-tip-label">◈ PRO TIP</span>
-                    Always cut twice — first cut 1–2mm from the part to remove bulk, then a second precise cut flush to the gate. This prevents gate stress marks and white scarring on the plastic.
+                    Always cut twice. First cut 1-2mm from the part to take off the bulk, then a second precise cut flush to the gate. This prevents gate stress marks and white scarring on the plastic.
                   </div>
                 </div>
 
@@ -3755,40 +4346,31 @@ export default function KitVault() {
                   {/* BUDGET */}
                   {[
                     {
-                      tier: "BUDGET",
-                      tierColor: "#00ffcc",
                       price: "~$15–20",
                       name: "RUITOOL 4.7\" Single-Edge Model Nippers",
                       brand: "RUITOOL",
-                      desc: "An outstanding budget nipper that punches well above its price. The ultra-thin single-edge blade delivers clean, stress-free cuts with minimal gate marks — builders consistently compare it to nippers costing three times the price. Comes with a blade cover and hard carrying case. Lifetime guarantee included.",
+                      desc: "An outstanding budget nipper that punches well above its price. The ultra-thin single-edge blade delivers clean, stress-free cuts with minimal gate marks; builders consistently compare it to nippers costing three times the price. Comes with a blade cover and hard carrying case. Lifetime guarantee included.",
                       bestFor: "Beginners · HG · EG · SD",
                       asin: "B0BVH9KCF7",
                       badge: "BEST VALUE",
-                      badgeColor: "#00ffcc",
                     },
                     {
-                      tier: "MID-RANGE",
-                      tierColor: "#00aaff",
-                      price: "~$25–40",
-                      name: "God Hand Single Blade Nipper SPN-120",
-                      brand: "GOD HAND",
-                      desc: "The community favourite mid-range nipper. Single-blade design applies cutting force from one side only, virtually eliminating gate stress marks. A massive upgrade in cut quality over standard nippers — the finish is noticeably cleaner.",
+                      price: "~$25–35",
+                      name: "DSPIAE Ultra-Thin Single Blade Nipper",
+                      brand: "DSPIAE",
+                      desc: "A serious upgrade from budget nippers. DSPIAE's ultra-thin single blade applies cutting force from one side only, leaving gate surfaces noticeably cleaner with minimal white stress marks. Consistently praised by the community for its sharpness straight out of the box; a favourite among intermediate builders looking to step up their finish quality.",
                       bestFor: "Intermediate · HG · RG · MG",
-                      asin: "B00IAPJEXS",
-                      badge: "COMMUNITY PICK",
-                      badgeColor: "#00aaff",
+                      asin: "B07F8Q3C2T",
+                      badge: "STEP UP",
                     },
                     {
-                      tier: "PREMIUM",
-                      tierColor: "#ffcc00",
                       price: "~$60–70",
                       name: "GodHand Ultimate Nipper 5.0",
                       brand: "GODHAND",
-                      desc: "The gold standard of Gunpla nippers. Ultra-thin blade cuts with almost no pressure — leaving gate surfaces so clean they often need no sanding at all. Fragile compared to budget options (don't cut metal or thick sprue with these), but the results speak for themselves.",
+                      desc: "The gold standard of Gunpla nippers. Ultra-thin blade cuts with almost no pressure. Gate surfaces come out so clean they often need no sanding at all. Fragile compared to budget options (don't cut metal or thick sprue with these), but the results speak for themselves.",
                       bestFor: "Advanced · RG · MG · PG",
                       asin: "B01MUGEO9X",
                       badge: "GOLD STANDARD",
-                      badgeColor: "#ffcc00",
                     },
                   ].map(item => (
                     <div className="tool-card" key={item.name} style={{"--tc": item.tierColor}}>
@@ -3825,10 +4407,11 @@ export default function KitVault() {
 
                 {/* AFFILIATE DISCLAIMER */}
                 <div className="tools-affiliate-note">
-                  ★ KitVault.io participates in the Amazon Associates program. Links above are affiliate links — we earn a small commission at no extra cost to you. This helps keep the site free.
+                  ★ KitVault.io participates in the Amazon Associates program. Links above are affiliate links. We earn a small commission at no extra cost to you, which helps keep the site free.
                 </div>
 
               </div>
+              <ToolNavRow />
             </>
           } />
 
@@ -3885,7 +4468,7 @@ export default function KitVault() {
                 <div className="settings-section">
                   <div className="settings-section-label">AFFILIATE PROGRAM</div>
                   <div style={{fontFamily:"'Share Tech Mono',monospace",fontSize:"0.65rem",color:"var(--text-dim)",letterSpacing:"0.5px",lineHeight:2}}>
-                    KitVault.io participates in the Amazon Associates program. Kit pages include affiliate links to Amazon — we earn a small commission on qualifying purchases at no extra cost to you. Thank you for supporting the site.
+                    KitVault.io participates in the Amazon Associates program. Kit pages include affiliate links to Amazon. We earn a small commission on qualifying purchases at no extra cost to you. Thank you for supporting the site.
                   </div>
                 </div>
 
@@ -3919,7 +4502,7 @@ export default function KitVault() {
         {/* FOOTER */}
         <footer className="footer">
           <span className="footer-logo">KITVAULT.IO</span>
-          <span>© GUNDAM IP — BANDAI NAMCO · SOTSU · SUNRISE</span>
+          <span>© GUNDAM IP / BANDAI NAMCO · SOTSU · SUNRISE</span>
           <span style={{fontFamily:"'Share Tech Mono',monospace",fontSize:"0.6rem"}}>v1.0.0</span>
         </footer>
 
