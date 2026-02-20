@@ -246,6 +246,28 @@ const styles = `
     transition: all 0.2s; clip-path: polygon(0 0, 90% 0, 100% 30%, 100% 100%, 10% 100%, 0 70%);
   }
   .grade-kits-link:hover { background: rgba(255,255,255,0.05); box-shadow: 0 0 15px rgba(0,170,255,0.2); }
+  .grade-nav-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 40px 0; gap: 12px;
+  }
+  .grade-nav-btn {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--panel); border: 1px solid var(--border); color: var(--text-dim);
+    font-family: 'Share Tech Mono', monospace; font-size: 0.65rem;
+    padding: 9px 16px; cursor: pointer; letter-spacing: 1px; transition: all 0.2s;
+  }
+  .grade-nav-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(0,170,255,0.06); }
+  .grade-nav-btn .grade-nav-label { font-family: 'Rajdhani', sans-serif; font-size: 0.9rem; font-weight: 600; color: var(--text-bright); display: block; margin-top: 1px; transition: color 0.2s; }
+  .grade-nav-btn:hover .grade-nav-label { color: var(--accent); }
+  .grade-nav-btn.prev { clip-path: polygon(0 0, 100% 0, 100% 100%, 8% 100%, 0 75%); text-align: left; }
+  .grade-nav-btn.next { clip-path: polygon(0 0, 92% 0, 100% 25%, 100% 100%, 0 100%); text-align: right; flex-direction: row-reverse; }
+  .grade-nav-center { font-family: 'Share Tech Mono', monospace; font-size: 0.6rem; color: var(--text-dim); letter-spacing: 2px; }
+  @media (max-width: 640px) {
+    .grade-nav-row { padding: 16px 16px 0; }
+    .grade-nav-btn { clip-path: none; font-size: 0.6rem; padding: 8px 12px; }
+    .grade-nav-btn .grade-nav-label { font-size: 0.8rem; }
+    .grade-nav-center { display: none; }
+  }
   @media (max-width: 640px) {
     .grade-page { padding: 0 16px 40px; }
     .grade-page-hero { padding: 36px 16px 28px; }
@@ -1498,6 +1520,34 @@ function GradeDetail({ setGradeFilter }) {
   const { gradeSlug } = useParams();
   const navigate = useNavigate();
   const g = GRADE_DATA[gradeSlug];
+
+  const GRADE_ORDER = ["eg", "hg", "rg", "mg", "pg", "sd"];
+  const currentIdx = GRADE_ORDER.indexOf(gradeSlug);
+  const prevSlug = GRADE_ORDER[(currentIdx - 1 + GRADE_ORDER.length) % GRADE_ORDER.length];
+  const nextSlug = GRADE_ORDER[(currentIdx + 1) % GRADE_ORDER.length];
+  const prevG = GRADE_DATA[prevSlug];
+  const nextG = GRADE_DATA[nextSlug];
+
+  const GradeNavRow = () => (
+    <div className="grade-nav-row">
+      <button className="grade-nav-btn prev" onClick={() => navigate(`/grade/${prevSlug}`)}>
+        <span>←</span>
+        <span>
+          <span style={{display:"block",fontSize:"0.55rem",opacity:0.6,marginBottom:"2px"}}>PREVIOUS</span>
+          <span className="grade-nav-label" style={{color: prevG.color}}>{prevG.abbr} — {prevG.name}</span>
+        </span>
+      </button>
+      <span className="grade-nav-center">GRADE {currentIdx + 1} OF {GRADE_ORDER.length}</span>
+      <button className="grade-nav-btn next" onClick={() => navigate(`/grade/${nextSlug}`)}>
+        <span>
+          <span style={{display:"block",fontSize:"0.55rem",opacity:0.6,marginBottom:"2px",textAlign:"right"}}>NEXT</span>
+          <span className="grade-nav-label" style={{color: nextG.color}}>{nextG.abbr} — {nextG.name}</span>
+        </span>
+        <span>→</span>
+      </button>
+    </div>
+  );
+
   if (!g) return (
     <div style={{padding:"80px 40px",textAlign:"center",fontFamily:"'Share Tech Mono',monospace",color:"var(--text-dim)"}}>
       <div style={{fontSize:"3rem",marginBottom:"16px",opacity:0.3}}>404</div>
@@ -1507,7 +1557,7 @@ function GradeDetail({ setGradeFilter }) {
   );
   return (
     <>
-      <button className="back-btn" onClick={() => navigate(-1)}>← BACK</button>
+      <GradeNavRow />
       <div style={{"--grade-color": g.color}}>
         <div className="grade-page-hero">
           <div className="grade-page-tag" style={{color:g.color}}>◈ GRADE GUIDE — {g.abbr}</div>
@@ -1540,6 +1590,8 @@ function GradeDetail({ setGradeFilter }) {
             </button>
           </div>
         </div>
+        <GradeNavRow />
+        <div style={{height:"40px"}} />
       </div>
     </>
   );
