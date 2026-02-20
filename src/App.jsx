@@ -118,6 +118,63 @@ const styles = `
 
   @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
 
+  /* NAV DROPDOWNS */
+  .nav-center {
+    display: flex; align-items: center; gap: 4px;
+    position: absolute; left: 50%; transform: translateX(-50%);
+  }
+  .nav-item { position: relative; }
+  .nav-btn {
+    background: none; border: none; color: var(--text-dim);
+    font-family: 'Share Tech Mono', monospace; font-size: 0.68rem;
+    padding: 8px 14px; cursor: pointer; letter-spacing: 1.5px;
+    transition: color 0.2s; display: flex; align-items: center; gap: 6px;
+    white-space: nowrap;
+  }
+  .nav-btn:hover, .nav-item.open .nav-btn { color: var(--accent); }
+  .nav-btn-arrow { font-size: 0.5rem; transition: transform 0.2s; opacity: 0.6; }
+  .nav-item.open .nav-btn-arrow { transform: rotate(180deg); }
+  .nav-dropdown {
+    position: absolute; top: calc(100% + 12px); left: 50%; transform: translateX(-50%);
+    background: var(--bg2); border: 1px solid var(--border-bright);
+    min-width: 280px; z-index: 200;
+    clip-path: polygon(0 0, 97% 0, 100% 3%, 100% 100%, 3% 100%, 0 97%);
+    opacity: 0; pointer-events: none; transform: translateX(-50%) translateY(-8px);
+    transition: opacity 0.18s, transform 0.18s;
+  }
+  .nav-dropdown::before {
+    content: ''; position: absolute; top: -1px; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  }
+  .nav-item.open .nav-dropdown {
+    opacity: 1; pointer-events: all; transform: translateX(-50%) translateY(0);
+  }
+  .nav-dropdown-header {
+    padding: 12px 16px 8px;
+    font-family: 'Share Tech Mono', monospace; font-size: 0.55rem;
+    color: var(--accent); letter-spacing: 3px; border-bottom: 1px solid var(--border);
+  }
+  .nav-dd-item {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 12px 16px; cursor: pointer; transition: background 0.15s;
+    border-bottom: 1px solid rgba(26,47,80,0.5); text-decoration: none;
+  }
+  .nav-dd-item:last-child { border-bottom: none; }
+  .nav-dd-item:hover { background: rgba(0,170,255,0.05); }
+  .nav-dd-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 1px; }
+  .nav-dd-text {}
+  .nav-dd-label {
+    font-family: 'Rajdhani', sans-serif; font-size: 0.9rem; font-weight: 600;
+    color: var(--text-bright); letter-spacing: 0.5px; display: block;
+  }
+  .nav-dd-sub {
+    font-family: 'Share Tech Mono', monospace; font-size: 0.58rem;
+    color: var(--text-dim); letter-spacing: 0.5px; line-height: 1.6;
+    display: block; margin-top: 1px;
+  }
+  .nav-dd-item:hover .nav-dd-label { color: var(--accent); }
+  @media (max-width: 860px) { .nav-center { display: none; } }
+
   /* HERO */
   .hero {
     padding: 80px 40px 60px; text-align: center;
@@ -575,7 +632,7 @@ const styles = `
     font-family: 'Share Tech Mono', monospace; font-size: 0.65rem;
     color: var(--text-dim); letter-spacing: 2px; white-space: nowrap;
   }
-  .build-status-options { display: flex; gap: 8px; flex-wrap: wrap; }
+  .build-status-options { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
   .build-status-btn {
     font-family: 'Share Tech Mono', monospace; font-size: 0.65rem;
     padding: 6px 14px; cursor: pointer; letter-spacing: 1px;
@@ -583,9 +640,88 @@ const styles = `
     transition: all 0.2s;
     clip-path: polygon(0 0, 88% 0, 100% 30%, 100% 100%, 12% 100%, 0 70%);
   }
-  .build-status-btn.active-notstarted { border-color: var(--text-dim); color: var(--text-dim); background: rgba(255,255,255,0.05); }
+  .build-status-btn.active-backlog { border-color: var(--text-dim); color: var(--text-dim); background: rgba(255,255,255,0.05); }
   .build-status-btn.active-inprogress { border-color: var(--gold); color: var(--gold); background: rgba(255,204,0,0.08); box-shadow: 0 0 10px rgba(255,204,0,0.2); }
   .build-status-btn.active-complete { border-color: var(--green); color: var(--green); background: rgba(0,255,136,0.08); box-shadow: 0 0 10px rgba(0,255,136,0.2); }
+  .build-status-fav {
+    background: none; border: 1px solid var(--border); cursor: pointer;
+    font-size: 1rem; padding: 5px 10px; transition: all 0.2s; color: var(--text-dim);
+    clip-path: polygon(0 0, 88% 0, 100% 30%, 100% 100%, 12% 100%, 0 70%);
+  }
+  .build-status-fav:hover { border-color: var(--gold); transform: scale(1.15); }
+  .build-status-fav.on { border-color: var(--gold); background: rgba(255,204,0,0.08); }
+
+  /* PAGE PROGRESS TRACKER */
+  .progress-tracker {
+    margin: 0 40px 24px;
+    background: var(--panel); border: 1px solid var(--border);
+    padding: 16px 20px;
+    clip-path: polygon(0 0, 98% 0, 100% 15%, 100% 100%, 2% 100%, 0 85%);
+  }
+  .progress-tracker-title {
+    font-family: 'Share Tech Mono', monospace; font-size: 0.6rem;
+    color: var(--text-dim); letter-spacing: 3px; margin-bottom: 14px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .progress-tracker-title::after { content:''; flex:1; height:1px; background:var(--border); }
+  .progress-manual {
+    margin-bottom: 14px; padding-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .progress-manual:last-child { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
+  .progress-manual-name {
+    font-family: 'Rajdhani', sans-serif; font-size: 0.9rem; font-weight: 600;
+    color: var(--text-bright); margin-bottom: 8px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .progress-pct {
+    font-family: 'Orbitron', monospace; font-size: 0.75rem; font-weight: 700;
+  }
+  .progress-bar-wrap {
+    height: 6px; background: var(--bg); border: 1px solid var(--border);
+    margin-bottom: 10px; position: relative; overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 100%; transition: width 0.4s ease;
+    background: linear-gradient(90deg, var(--accent), var(--accent3));
+    box-shadow: 0 0 8px rgba(0,170,255,0.5);
+  }
+  .progress-bar-fill.complete { background: linear-gradient(90deg, var(--green), var(--accent3)); }
+  .progress-input-row {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  }
+  .progress-label {
+    font-family: 'Share Tech Mono', monospace; font-size: 0.6rem;
+    color: var(--text-dim); letter-spacing: 1px; white-space: nowrap;
+  }
+  .progress-input {
+    width: 70px; background: var(--bg); border: 1px solid var(--border);
+    color: var(--text-bright); font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem; padding: 5px 10px; outline: none; text-align: center;
+    transition: border-color 0.2s;
+  }
+  .progress-input:focus { border-color: var(--accent); box-shadow: var(--glow); }
+  .progress-total {
+    font-family: 'Share Tech Mono', monospace; font-size: 0.65rem; color: var(--text-dim);
+  }
+
+  /* VAULT PROGRESS BAR */
+  .vault-card-progress { margin-top: 10px; }
+  .vault-progress-bar-wrap {
+    height: 4px; background: var(--bg); border: 1px solid var(--border);
+    margin-bottom: 4px; overflow: hidden;
+  }
+  .vault-progress-bar-fill {
+    height: 100%; transition: width 0.4s ease;
+    background: linear-gradient(90deg, var(--accent), var(--accent3));
+  }
+  .vault-progress-bar-fill.complete { background: linear-gradient(90deg, var(--green), var(--accent3)); }
+  .vault-progress-label {
+    font-family: 'Share Tech Mono', monospace; font-size: 0.6rem;
+    color: var(--text-dim); letter-spacing: 1px;
+    display: flex; justify-content: space-between;
+  }
+  .vault-progress-pct { color: var(--accent); font-weight: 700; }
 
   /* MY VAULT PAGE */
   .vault-grid { padding: 0 40px 60px; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
@@ -809,217 +945,217 @@ const GRADE_COLORS = {
 const KITS = [
   // ── ENTRY GRADE ──────────────────────────────────────────────
   { id:1, grade:"EG", scale:"1/144", name:"RX-78-2 Gundam", series:"Mobile Suit Gundam", imageUrl:null,
-    manuals:[{id:1,name:"Quick Assembly Guide",lang:"EN/JP",pages:12,size:"2.4 MB",url:"eg-144-rx78-2-assembly.pdf"}] },
+    manuals:[{id:1,name:"Quick Assembly Guide",lang:"EN/JP",size:"2.4 MB",url:"eg-144-rx78-2-assembly.pdf"}] },
   { id:2, grade:"EG", scale:"1/144", name:"Strike Gundam", series:"Mobile Suit Gundam SEED", imageUrl:null,
-    manuals:[{id:2,name:"Quick Assembly Guide",lang:"EN/JP",pages:10,size:"2.1 MB",url:"eg-144-strike-assembly.pdf"}] },
+    manuals:[{id:2,name:"Quick Assembly Guide",lang:"EN/JP",size:"2.1 MB",url:"eg-144-strike-assembly.pdf"}] },
 
   // ── HIGH GRADE (HG) ───────────────────────────────────────────
   { id:3, grade:"HG", scale:"1/144", name:"RX-78-2 Gundam (Revive)", series:"Mobile Suit Gundam", imageUrl:null,
-    manuals:[{id:3,name:"Assembly Manual",lang:"EN/JP",pages:24,size:"4.2 MB"},{id:4,name:"Decal Guide",lang:"EN/JP",pages:6,size:"1.1 MB"}] },
+    manuals:[{id:3,name:"Assembly Manual",lang:"EN/JP",size:"4.2 MB"},{id:4,name:"Decal Guide",lang:"EN/JP",size:"1.1 MB"}] },
   { id:4, grade:"HG", scale:"1/144", name:"Zaku II (MS-06F)", series:"Mobile Suit Gundam", imageUrl:null,
-    manuals:[{id:5,name:"Assembly Manual",lang:"EN/JP",pages:20,size:"3.8 MB",url:"hg-144-zakuii-assembly.pdf"}] },
+    manuals:[{id:5,name:"Assembly Manual",lang:"EN/JP",size:"3.8 MB",url:"hg-144-zakuii-assembly.pdf"}] },
   { id:5, grade:"HG", scale:"1/144", name:"Dom", series:"Mobile Suit Gundam", imageUrl:null,
-    manuals:[{id:6,name:"Assembly Manual",lang:"EN/JP",pages:18,size:"3.4 MB"}] },
+    manuals:[{id:6,name:"Assembly Manual",lang:"EN/JP",size:"3.4 MB"}] },
   { id:6, grade:"HG", scale:"1/144", name:"Gouf", series:"Mobile Suit Gundam", imageUrl:null,
-    manuals:[{id:7,name:"Assembly Manual",lang:"EN/JP",pages:18,size:"3.2 MB"}] },
+    manuals:[{id:7,name:"Assembly Manual",lang:"EN/JP",size:"3.2 MB"}] },
   { id:7, grade:"HG", scale:"1/144", name:"Wing Gundam", series:"Mobile Suit Gundam Wing", imageUrl:null,
-    manuals:[{id:8,name:"Assembly Manual",lang:"EN/JP",pages:22,size:"4.0 MB"}] },
+    manuals:[{id:8,name:"Assembly Manual",lang:"EN/JP",size:"4.0 MB"}] },
   { id:8, grade:"HG", scale:"1/144", name:"Deathscythe Hell", series:"Mobile Suit Gundam Wing", imageUrl:null,
-    manuals:[{id:9,name:"Assembly Manual",lang:"EN/JP",pages:22,size:"4.1 MB"}] },
+    manuals:[{id:9,name:"Assembly Manual",lang:"EN/JP",size:"4.1 MB"}] },
   { id:9, grade:"HG", scale:"1/144", name:"Heavyarms Kai", series:"Mobile Suit Gundam Wing", imageUrl:null,
-    manuals:[{id:10,name:"Assembly Manual",lang:"EN/JP",pages:20,size:"3.9 MB"}] },
+    manuals:[{id:10,name:"Assembly Manual",lang:"EN/JP",size:"3.9 MB"}] },
   { id:10, grade:"HG", scale:"1/144", name:"Strike Freedom Gundam", series:"Mobile Suit Gundam SEED Destiny", imageUrl:null,
-    manuals:[{id:11,name:"Assembly Manual",lang:"EN/JP",pages:28,size:"5.4 MB"},{id:12,name:"Wing Binder Guide",lang:"EN/JP",pages:8,size:"1.6 MB"}] },
+    manuals:[{id:11,name:"Assembly Manual",lang:"EN/JP",size:"5.4 MB"},{id:12,name:"Wing Binder Guide",lang:"EN/JP",size:"1.6 MB"}] },
   { id:11, grade:"HG", scale:"1/144", name:"Freedom Gundam (Revive)", series:"Mobile Suit Gundam SEED", imageUrl:null,
-    manuals:[{id:13,name:"Assembly Manual",lang:"EN/JP",pages:26,size:"5.0 MB"}] },
+    manuals:[{id:13,name:"Assembly Manual",lang:"EN/JP",size:"5.0 MB"}] },
   { id:12, grade:"HG", scale:"1/144", name:"Justice Gundam", series:"Mobile Suit Gundam SEED", imageUrl:null,
-    manuals:[{id:14,name:"Assembly Manual",lang:"EN/JP",pages:24,size:"4.6 MB"}] },
+    manuals:[{id:14,name:"Assembly Manual",lang:"EN/JP",size:"4.6 MB"}] },
   { id:13, grade:"HG", scale:"1/144", name:"Unicorn Gundam", series:"Mobile Suit Gundam UC", imageUrl:null,
-    manuals:[{id:15,name:"Assembly Manual",lang:"EN/JP",pages:32,size:"6.2 MB"},{id:16,name:"Transformation Guide",lang:"EN/JP",pages:8,size:"1.5 MB"}] },
+    manuals:[{id:15,name:"Assembly Manual",lang:"EN/JP",size:"6.2 MB"},{id:16,name:"Transformation Guide",lang:"EN/JP",size:"1.5 MB"}] },
   { id:14, grade:"HG", scale:"1/144", name:"Banshee Norn", series:"Mobile Suit Gundam UC", imageUrl:null,
-    manuals:[{id:17,name:"Assembly Manual",lang:"EN/JP",pages:32,size:"6.4 MB"}] },
+    manuals:[{id:17,name:"Assembly Manual",lang:"EN/JP",size:"6.4 MB"}] },
   { id:15, grade:"HG", scale:"1/144", name:"Sinanju", series:"Mobile Suit Gundam UC", imageUrl:null,
-    manuals:[{id:18,name:"Assembly Manual",lang:"EN/JP",pages:30,size:"5.8 MB"}] },
+    manuals:[{id:18,name:"Assembly Manual",lang:"EN/JP",size:"5.8 MB"}] },
   { id:16, grade:"HG", scale:"1/144", name:"00 Gundam", series:"Mobile Suit Gundam 00", imageUrl:null,
-    manuals:[{id:19,name:"Assembly Manual",lang:"EN/JP",pages:26,size:"5.1 MB"}] },
+    manuals:[{id:19,name:"Assembly Manual",lang:"EN/JP",size:"5.1 MB"}] },
   { id:17, grade:"HG", scale:"1/144", name:"00 Raiser", series:"Mobile Suit Gundam 00", imageUrl:null,
-    manuals:[{id:20,name:"Assembly Manual",lang:"EN/JP",pages:30,size:"5.9 MB"},{id:21,name:"0 Raiser Docking Guide",lang:"EN/JP",pages:8,size:"1.4 MB"}] },
+    manuals:[{id:20,name:"Assembly Manual",lang:"EN/JP",size:"5.9 MB"},{id:21,name:"0 Raiser Docking Guide",lang:"EN/JP",size:"1.4 MB"}] },
   { id:18, grade:"HG", scale:"1/144", name:"Exia", series:"Mobile Suit Gundam 00", imageUrl:null,
-    manuals:[{id:22,name:"Assembly Manual",lang:"EN/JP",pages:24,size:"4.7 MB"}] },
+    manuals:[{id:22,name:"Assembly Manual",lang:"EN/JP",size:"4.7 MB"}] },
   { id:19, grade:"HG", scale:"1/144", name:"Barbatos", series:"Iron-Blooded Orphans", imageUrl:null,
-    manuals:[{id:23,name:"Assembly Manual",lang:"EN/JP",pages:28,size:"5.3 MB"}] },
+    manuals:[{id:23,name:"Assembly Manual",lang:"EN/JP",size:"5.3 MB"}] },
   { id:20, grade:"HG", scale:"1/144", name:"Barbatos Lupus", series:"Iron-Blooded Orphans", imageUrl:null,
-    manuals:[{id:24,name:"Assembly Manual",lang:"EN/JP",pages:30,size:"5.7 MB"}] },
+    manuals:[{id:24,name:"Assembly Manual",lang:"EN/JP",size:"5.7 MB"}] },
   { id:21, grade:"HG", scale:"1/144", name:"Barbatos Lupus Rex", series:"Iron-Blooded Orphans", imageUrl:null,
-    manuals:[{id:25,name:"Assembly Manual",lang:"EN/JP",pages:32,size:"6.8 MB"},{id:26,name:"Weapon Configuration Guide",lang:"EN",pages:10,size:"2.1 MB"}] },
+    manuals:[{id:25,name:"Assembly Manual",lang:"EN/JP",size:"6.8 MB"},{id:26,name:"Weapon Configuration Guide",lang:"EN",size:"2.1 MB"}] },
   { id:22, grade:"HG", scale:"1/144", name:"Gusion Rebake Full City", series:"Iron-Blooded Orphans", imageUrl:null,
-    manuals:[{id:27,name:"Assembly Manual",lang:"EN/JP",pages:28,size:"5.4 MB"}] },
+    manuals:[{id:27,name:"Assembly Manual",lang:"EN/JP",size:"5.4 MB"}] },
   { id:23, grade:"HG", scale:"1/144", name:"Kimaris Vidar", series:"Iron-Blooded Orphans", imageUrl:null,
-    manuals:[{id:28,name:"Assembly Manual",lang:"EN/JP",pages:28,size:"5.5 MB"}] },
+    manuals:[{id:28,name:"Assembly Manual",lang:"EN/JP",size:"5.5 MB"}] },
   { id:24, grade:"HG", scale:"1/144", name:"Aerial", series:"The Witch from Mercury", imageUrl:null,
-    manuals:[{id:29,name:"Assembly Manual",lang:"EN/JP",pages:28,size:"5.9 MB"},{id:30,name:"GUND-BIT Effect Guide",lang:"EN/JP",pages:8,size:"1.7 MB"}] },
+    manuals:[{id:29,name:"Assembly Manual",lang:"EN/JP",size:"5.9 MB"},{id:30,name:"GUND-BIT Effect Guide",lang:"EN/JP",size:"1.7 MB"}] },
   { id:25, grade:"HG", scale:"1/144", name:"Aerial Rebuild", series:"The Witch from Mercury", imageUrl:null,
-    manuals:[{id:31,name:"Assembly Manual",lang:"EN/JP",pages:30,size:"6.1 MB"}] },
+    manuals:[{id:31,name:"Assembly Manual",lang:"EN/JP",size:"6.1 MB"}] },
   { id:26, grade:"HG", scale:"1/144", name:"Lfrith", series:"The Witch from Mercury", imageUrl:null,
-    manuals:[{id:32,name:"Assembly Manual",lang:"EN/JP",pages:26,size:"5.2 MB"}] },
+    manuals:[{id:32,name:"Assembly Manual",lang:"EN/JP",size:"5.2 MB"}] },
   { id:27, grade:"HG", scale:"1/144", name:"Zeta Gundam", series:"Mobile Suit Zeta Gundam", imageUrl:null,
-    manuals:[{id:33,name:"Assembly Manual",lang:"EN/JP",pages:26,size:"5.0 MB"}] },
+    manuals:[{id:33,name:"Assembly Manual",lang:"EN/JP",size:"5.0 MB"}] },
   { id:28, grade:"HG", scale:"1/144", name:"Nu Gundam", series:"Char's Counterattack", imageUrl:null,
-    manuals:[{id:34,name:"Assembly Manual",lang:"EN/JP",pages:28,size:"5.4 MB"}] },
+    manuals:[{id:34,name:"Assembly Manual",lang:"EN/JP",size:"5.4 MB"}] },
   { id:29, grade:"HG", scale:"1/144", name:"Sazabi", series:"Char's Counterattack", imageUrl:null,
-    manuals:[{id:35,name:"Assembly Manual",lang:"EN/JP",pages:26,size:"5.1 MB"}] },
+    manuals:[{id:35,name:"Assembly Manual",lang:"EN/JP",size:"5.1 MB"}] },
   { id:30, grade:"HG", scale:"1/144", name:"Gundam Mk-II (AEUG)", series:"Mobile Suit Zeta Gundam", imageUrl:null,
-    manuals:[{id:36,name:"Assembly Manual",lang:"EN/JP",pages:22,size:"4.3 MB"}] },
+    manuals:[{id:36,name:"Assembly Manual",lang:"EN/JP",size:"4.3 MB"}] },
   { id:31, grade:"HG", scale:"1/144", name:"ReZEL", series:"Mobile Suit Gundam UC", imageUrl:null,
-    manuals:[{id:37,name:"Assembly Manual",lang:"EN/JP",pages:24,size:"4.8 MB"}] },
+    manuals:[{id:37,name:"Assembly Manual",lang:"EN/JP",size:"4.8 MB"}] },
   { id:32, grade:"HG", scale:"1/144", name:"Byarlant Custom", series:"Mobile Suit Gundam UC", imageUrl:null,
-    manuals:[{id:38,name:"Assembly Manual",lang:"EN/JP",pages:22,size:"4.4 MB"}] },
+    manuals:[{id:38,name:"Assembly Manual",lang:"EN/JP",size:"4.4 MB"}] },
   { id:33, grade:"HG", scale:"1/144", name:"Dilanza (Standard)", series:"The Witch from Mercury", imageUrl:null,
-    manuals:[{id:39,name:"Assembly Manual",lang:"EN/JP",pages:24,size:"4.7 MB"}] },
+    manuals:[{id:39,name:"Assembly Manual",lang:"EN/JP",size:"4.7 MB"}] },
 
   // ── REAL GRADE (RG) ───────────────────────────────────────────
   { id:34, grade:"RG", scale:"1/144", name:"RX-78-2 Gundam", series:"Mobile Suit Gundam", imageUrl:null,
-    manuals:[{id:40,name:"Assembly Manual",lang:"EN/JP",pages:36,size:"7.2 MB"},{id:41,name:"Marking Guide",lang:"EN/JP",pages:8,size:"1.6 MB"}] },
+    manuals:[{id:40,name:"Assembly Manual",lang:"EN/JP",size:"7.2 MB"},{id:41,name:"Marking Guide",lang:"EN/JP",size:"1.6 MB"}] },
   { id:35, grade:"RG", scale:"1/144", name:"Zaku II", series:"Mobile Suit Gundam", imageUrl:null,
-    manuals:[{id:42,name:"Assembly Manual",lang:"EN/JP",pages:34,size:"6.9 MB"}] },
+    manuals:[{id:42,name:"Assembly Manual",lang:"EN/JP",size:"6.9 MB"}] },
   { id:36, grade:"RG", scale:"1/144", name:"Wing Gundam Zero EW", series:"Endless Waltz", imageUrl:null,
-    manuals:[{id:43,name:"Assembly Manual",lang:"EN/JP",pages:44,size:"9.2 MB"},{id:44,name:"Wing Detail Guide",lang:"EN/JP",pages:10,size:"2.0 MB"}] },
+    manuals:[{id:43,name:"Assembly Manual",lang:"EN/JP",size:"9.2 MB"},{id:44,name:"Wing Detail Guide",lang:"EN/JP",size:"2.0 MB"}] },
   { id:37, grade:"RG", scale:"1/144", name:"Strike Gundam", series:"Mobile Suit Gundam SEED", imageUrl:null,
-    manuals:[{id:45,name:"Assembly Manual",lang:"EN/JP",pages:38,size:"7.8 MB"}] },
+    manuals:[{id:45,name:"Assembly Manual",lang:"EN/JP",size:"7.8 MB"}] },
   { id:38, grade:"RG", scale:"1/144", name:"Freedom Gundam", series:"Mobile Suit Gundam SEED", imageUrl:null,
-    manuals:[{id:46,name:"Assembly Manual",lang:"EN/JP",pages:40,size:"8.3 MB"}] },
+    manuals:[{id:46,name:"Assembly Manual",lang:"EN/JP",size:"8.3 MB"}] },
   { id:39, grade:"RG", scale:"1/144", name:"Destiny Gundam", series:"Mobile Suit Gundam SEED Destiny", imageUrl:null,
-    manuals:[{id:47,name:"Assembly Manual",lang:"EN/JP",pages:40,size:"8.5 MB"}] },
+    manuals:[{id:47,name:"Assembly Manual",lang:"EN/JP",size:"8.5 MB"}] },
   { id:40, grade:"RG", scale:"1/144", name:"Strike Freedom Gundam", series:"Mobile Suit Gundam SEED Destiny", imageUrl:null,
-    manuals:[{id:48,name:"Assembly Manual",lang:"EN/JP",pages:44,size:"9.4 MB"},{id:49,name:"DRAGOON System Guide",lang:"EN/JP",pages:8,size:"1.8 MB"}] },
+    manuals:[{id:48,name:"Assembly Manual",lang:"EN/JP",size:"9.4 MB"},{id:49,name:"DRAGOON System Guide",lang:"EN/JP",size:"1.8 MB"}] },
   { id:41, grade:"RG", scale:"1/144", name:"Unicorn Gundam", series:"Mobile Suit Gundam UC", imageUrl:null,
-    manuals:[{id:50,name:"Assembly Manual",lang:"EN/JP",pages:44,size:"9.1 MB"},{id:51,name:"LED Unit Installation Guide",lang:"EN/JP",pages:12,size:"2.3 MB"},{id:52,name:"Transformation Guide",lang:"EN",pages:6,size:"1.2 MB"}] },
+    manuals:[{id:50,name:"Assembly Manual",lang:"EN/JP",size:"9.1 MB"},{id:51,name:"LED Unit Installation Guide",lang:"EN/JP",size:"2.3 MB"},{id:52,name:"Transformation Guide",lang:"EN",size:"1.2 MB"}] },
   { id:42, grade:"RG", scale:"1/144", name:"Sinanju", series:"Mobile Suit Gundam UC", imageUrl:null,
-    manuals:[{id:53,name:"Assembly Manual",lang:"EN/JP",pages:46,size:"9.8 MB"},{id:54,name:"Marking Decal Guide",lang:"EN/JP",pages:10,size:"2.0 MB"}] },
+    manuals:[{id:53,name:"Assembly Manual",lang:"EN/JP",size:"9.8 MB"},{id:54,name:"Marking Decal Guide",lang:"EN/JP",size:"2.0 MB"}] },
   { id:43, grade:"RG", scale:"1/144", name:"Zeta Gundam", series:"Mobile Suit Zeta Gundam", imageUrl:null,
-    manuals:[{id:55,name:"Assembly Manual",lang:"EN/JP",pages:40,size:"8.7 MB"},{id:56,name:"Wave Rider Transformation Guide",lang:"EN",pages:8,size:"1.9 MB"}] },
+    manuals:[{id:55,name:"Assembly Manual",lang:"EN/JP",size:"8.7 MB"},{id:56,name:"Wave Rider Transformation Guide",lang:"EN",size:"1.9 MB"}] },
   { id:44, grade:"RG", scale:"1/144", name:"Nu Gundam", series:"Char's Counterattack", imageUrl:null,
-    manuals:[{id:57,name:"Assembly Manual",lang:"EN/JP",pages:44,size:"9.3 MB"},{id:58,name:"Fin Funnel Effect Guide",lang:"EN/JP",pages:10,size:"2.1 MB"}] },
+    manuals:[{id:57,name:"Assembly Manual",lang:"EN/JP",size:"9.3 MB"},{id:58,name:"Fin Funnel Effect Guide",lang:"EN/JP",size:"2.1 MB"}] },
   { id:45, grade:"RG", scale:"1/144", name:"00 Gundam Seven Sword/G", series:"Mobile Suit Gundam 00", imageUrl:null,
-    manuals:[{id:59,name:"Assembly Manual",lang:"EN/JP",pages:42,size:"8.9 MB"}] },
+    manuals:[{id:59,name:"Assembly Manual",lang:"EN/JP",size:"8.9 MB"}] },
   { id:46, grade:"RG", scale:"1/144", name:"Evangelion Unit-01", series:"Rebuild of Evangelion", imageUrl:null,
-    manuals:[{id:60,name:"Assembly Manual",lang:"EN/JP",pages:38,size:"7.9 MB"}] },
+    manuals:[{id:60,name:"Assembly Manual",lang:"EN/JP",size:"7.9 MB"}] },
   { id:47, grade:"RG", scale:"1/144", name:"Sazabi", series:"Char's Counterattack", imageUrl:null,
-    manuals:[{id:61,name:"Assembly Manual",lang:"EN/JP",pages:46,size:"10.1 MB"}] },
+    manuals:[{id:61,name:"Assembly Manual",lang:"EN/JP",size:"10.1 MB"}] },
   { id:48, grade:"RG", scale:"1/144", name:"Crossbone Gundam X1", series:"Mobile Suit Crossbone Gundam", imageUrl:null,
-    manuals:[{id:62,name:"Assembly Manual",lang:"EN/JP",pages:40,size:"8.6 MB"}] },
+    manuals:[{id:62,name:"Assembly Manual",lang:"EN/JP",size:"8.6 MB"}] },
 
   // ── MASTER GRADE (MG) ─────────────────────────────────────────
   { id:49, grade:"MG", scale:"1/100", name:"RX-78-2 Gundam Ver. 3.0", series:"Mobile Suit Gundam", imageUrl:null,
-    manuals:[{id:63,name:"Full Assembly Manual",lang:"EN/JP",pages:60,size:"13.2 MB"},{id:64,name:"Marking Guide",lang:"EN/JP",pages:12,size:"2.5 MB"}] },
+    manuals:[{id:63,name:"Full Assembly Manual",lang:"EN/JP",size:"13.2 MB"},{id:64,name:"Marking Guide",lang:"EN/JP",size:"2.5 MB"}] },
   { id:50, grade:"MG", scale:"1/100", name:"Zaku II Ver. 2.0", series:"Mobile Suit Gundam", imageUrl:null,
-    manuals:[{id:65,name:"Full Assembly Manual",lang:"EN/JP",pages:52,size:"11.6 MB"}] },
+    manuals:[{id:65,name:"Full Assembly Manual",lang:"EN/JP",size:"11.6 MB"}] },
   { id:51, grade:"MG", scale:"1/100", name:"Char's Zaku II Ver. 2.0", series:"Mobile Suit Gundam", imageUrl:null,
-    manuals:[{id:66,name:"Full Assembly Manual",lang:"EN/JP",pages:52,size:"11.6 MB"}] },
+    manuals:[{id:66,name:"Full Assembly Manual",lang:"EN/JP",size:"11.6 MB"}] },
   { id:52, grade:"MG", scale:"1/100", name:"Gouf Ver. 2.0", series:"Mobile Suit Gundam", imageUrl:null,
-    manuals:[{id:67,name:"Full Assembly Manual",lang:"EN/JP",pages:48,size:"10.8 MB"}] },
+    manuals:[{id:67,name:"Full Assembly Manual",lang:"EN/JP",size:"10.8 MB"}] },
   { id:53, grade:"MG", scale:"1/100", name:"Wing Gundam Zero EW", series:"Endless Waltz", imageUrl:null,
-    manuals:[{id:68,name:"Full Assembly Manual",lang:"EN/JP",pages:52,size:"11.4 MB"},{id:69,name:"Inner Frame Guide",lang:"JP",pages:18,size:"3.6 MB"}] },
+    manuals:[{id:68,name:"Full Assembly Manual",lang:"EN/JP",size:"11.4 MB"},{id:69,name:"Inner Frame Guide",lang:"JP",size:"3.6 MB"}] },
   { id:101, grade:"MG", scale:"1/100", name:"Wing Gundam Zero EW Ver.Ka", series:"Endless Waltz", imageUrl:null,
-    manuals:[{id:145,name:"Full Assembly Manual",lang:"EN/JP",pages:56,size:"12.2 MB",url:"mg-100-wingzero-vka-assembly.pdf"}] },
+    manuals:[{id:145,name:"Full Assembly Manual",lang:"EN/JP",size:"12.2 MB",url:"mg-100-wingzero-vka-assembly.pdf"}] },
   { id:54, grade:"MG", scale:"1/100", name:"Deathscythe Hell EW", series:"Endless Waltz", imageUrl:null,
-    manuals:[{id:70,name:"Full Assembly Manual",lang:"EN/JP",pages:50,size:"11.0 MB"}] },
+    manuals:[{id:70,name:"Full Assembly Manual",lang:"EN/JP",size:"11.0 MB"}] },
   { id:55, grade:"MG", scale:"1/100", name:"Heavyarms EW", series:"Endless Waltz", imageUrl:null,
-    manuals:[{id:71,name:"Full Assembly Manual",lang:"EN/JP",pages:50,size:"10.9 MB"}] },
+    manuals:[{id:71,name:"Full Assembly Manual",lang:"EN/JP",size:"10.9 MB"}] },
   { id:56, grade:"MG", scale:"1/100", name:"Sandrock EW", series:"Endless Waltz", imageUrl:null,
-    manuals:[{id:72,name:"Full Assembly Manual",lang:"EN/JP",pages:48,size:"10.5 MB"}] },
+    manuals:[{id:72,name:"Full Assembly Manual",lang:"EN/JP",size:"10.5 MB"}] },
   { id:57, grade:"MG", scale:"1/100", name:"Strike Gundam", series:"Mobile Suit Gundam SEED", imageUrl:null,
-    manuals:[{id:73,name:"Full Assembly Manual",lang:"EN/JP",pages:54,size:"12.0 MB"}] },
+    manuals:[{id:73,name:"Full Assembly Manual",lang:"EN/JP",size:"12.0 MB"}] },
   { id:58, grade:"MG", scale:"1/100", name:"Freedom Gundam Ver. 2.0", series:"Mobile Suit Gundam SEED", imageUrl:null,
-    manuals:[{id:74,name:"Full Assembly Manual",lang:"EN/JP",pages:58,size:"12.8 MB"},{id:75,name:"Wing Binder Guide",lang:"EN/JP",pages:10,size:"2.0 MB"}] },
+    manuals:[{id:74,name:"Full Assembly Manual",lang:"EN/JP",size:"12.8 MB"},{id:75,name:"Wing Binder Guide",lang:"EN/JP",size:"2.0 MB"}] },
   { id:59, grade:"MG", scale:"1/100", name:"Destiny Gundam", series:"Mobile Suit Gundam SEED Destiny", imageUrl:null,
-    manuals:[{id:76,name:"Full Assembly Manual",lang:"EN/JP",pages:56,size:"12.8 MB"},{id:77,name:"Wing Effect Parts Guide",lang:"EN",pages:10,size:"2.6 MB"}] },
+    manuals:[{id:76,name:"Full Assembly Manual",lang:"EN/JP",size:"12.8 MB"},{id:77,name:"Wing Effect Parts Guide",lang:"EN",size:"2.6 MB"}] },
   { id:60, grade:"MG", scale:"1/100", name:"Strike Freedom Gundam", series:"Mobile Suit Gundam SEED Destiny", imageUrl:null,
-    manuals:[{id:78,name:"Full Assembly Manual",lang:"EN/JP",pages:60,size:"13.4 MB"},{id:79,name:"DRAGOON System Guide",lang:"EN/JP",pages:12,size:"2.4 MB"}] },
+    manuals:[{id:78,name:"Full Assembly Manual",lang:"EN/JP",size:"13.4 MB"},{id:79,name:"DRAGOON System Guide",lang:"EN/JP",size:"2.4 MB"}] },
   { id:61, grade:"MG", scale:"1/100", name:"Infinite Justice Gundam", series:"Mobile Suit Gundam SEED Destiny", imageUrl:null,
-    manuals:[{id:80,name:"Full Assembly Manual",lang:"EN/JP",pages:56,size:"12.3 MB"}] },
+    manuals:[{id:80,name:"Full Assembly Manual",lang:"EN/JP",size:"12.3 MB"}] },
   { id:62, grade:"MG", scale:"1/100", name:"Unicorn Gundam Ver. Ka", series:"Mobile Suit Gundam UC", imageUrl:null,
-    manuals:[{id:81,name:"Full Assembly Manual",lang:"EN/JP",pages:64,size:"14.6 MB"},{id:82,name:"Transformation Guide",lang:"EN/JP",pages:14,size:"2.8 MB"},{id:83,name:"Waterslide Decal Guide",lang:"EN/JP",pages:8,size:"1.6 MB"}] },
+    manuals:[{id:81,name:"Full Assembly Manual",lang:"EN/JP",size:"14.6 MB"},{id:82,name:"Transformation Guide",lang:"EN/JP",size:"2.8 MB"},{id:83,name:"Waterslide Decal Guide",lang:"EN/JP",size:"1.6 MB"}] },
   { id:63, grade:"MG", scale:"1/100", name:"Banshee Ver. Ka", series:"Mobile Suit Gundam UC", imageUrl:null,
-    manuals:[{id:84,name:"Full Assembly Manual",lang:"EN/JP",pages:64,size:"14.5 MB"}] },
+    manuals:[{id:84,name:"Full Assembly Manual",lang:"EN/JP",size:"14.5 MB"}] },
   { id:64, grade:"MG", scale:"1/100", name:"Sinanju", series:"Mobile Suit Gundam UC", imageUrl:null,
-    manuals:[{id:85,name:"Full Assembly Manual",lang:"EN/JP",pages:68,size:"15.4 MB"},{id:86,name:"Decal Sheet Guide",lang:"EN/JP",pages:10,size:"2.1 MB"}] },
+    manuals:[{id:85,name:"Full Assembly Manual",lang:"EN/JP",size:"15.4 MB"},{id:86,name:"Decal Sheet Guide",lang:"EN/JP",size:"2.1 MB"}] },
   { id:65, grade:"MG", scale:"1/100", name:"Sinanju Stein Ver. Ka", series:"Mobile Suit Gundam NT", imageUrl:null,
-    manuals:[{id:87,name:"Full Assembly Manual",lang:"EN/JP",pages:66,size:"15.0 MB"}] },
+    manuals:[{id:87,name:"Full Assembly Manual",lang:"EN/JP",size:"15.0 MB"}] },
   { id:66, grade:"MG", scale:"1/100", name:"Nu Gundam Ver. Ka", series:"Char's Counterattack", imageUrl:null,
-    manuals:[{id:88,name:"Full Assembly Manual",lang:"EN/JP",pages:68,size:"15.2 MB"},{id:89,name:"Fin Funnel Guide",lang:"EN/JP",pages:12,size:"2.4 MB"}] },
+    manuals:[{id:88,name:"Full Assembly Manual",lang:"EN/JP",size:"15.2 MB"},{id:89,name:"Fin Funnel Guide",lang:"EN/JP",size:"2.4 MB"}] },
   { id:67, grade:"MG", scale:"1/100", name:"Sazabi Ver. Ka", series:"Char's Counterattack", imageUrl:null,
-    manuals:[{id:90,name:"Full Assembly Manual",lang:"EN/JP",pages:72,size:"16.3 MB"},{id:91,name:"Funnel Effect Parts Guide",lang:"EN/JP",pages:14,size:"3.1 MB"},{id:92,name:"Waterslide Decal Sheet",lang:"EN/JP",pages:6,size:"1.5 MB"}] },
+    manuals:[{id:90,name:"Full Assembly Manual",lang:"EN/JP",size:"16.3 MB"},{id:91,name:"Funnel Effect Parts Guide",lang:"EN/JP",size:"3.1 MB"},{id:92,name:"Waterslide Decal Sheet",lang:"EN/JP",size:"1.5 MB"}] },
   { id:68, grade:"MG", scale:"1/100", name:"Zeta Gundam Ver. Ka", series:"Mobile Suit Zeta Gundam", imageUrl:null,
-    manuals:[{id:93,name:"Full Assembly Manual",lang:"EN/JP",pages:60,size:"13.5 MB"},{id:94,name:"Wave Rider Guide",lang:"EN/JP",pages:12,size:"2.3 MB"}] },
+    manuals:[{id:93,name:"Full Assembly Manual",lang:"EN/JP",size:"13.5 MB"},{id:94,name:"Wave Rider Guide",lang:"EN/JP",size:"2.3 MB"}] },
   { id:69, grade:"MG", scale:"1/100", name:"Gundam Mk-II Ver. 2.0 (AEUG)", series:"Mobile Suit Zeta Gundam", imageUrl:null,
-    manuals:[{id:95,name:"Full Assembly Manual",lang:"EN/JP",pages:52,size:"11.7 MB"}] },
+    manuals:[{id:95,name:"Full Assembly Manual",lang:"EN/JP",size:"11.7 MB"}] },
   { id:70, grade:"MG", scale:"1/100", name:"Barbatos", series:"Iron-Blooded Orphans", imageUrl:null,
-    manuals:[{id:96,name:"Full Assembly Manual",lang:"EN/JP",pages:54,size:"12.1 MB",url:"mg-100-barbatos-assembly.pdf"}] },
+    manuals:[{id:96,name:"Full Assembly Manual",lang:"EN/JP",size:"12.1 MB",url:"mg-100-barbatos-assembly.pdf"}] },
   { id:71, grade:"MG", scale:"1/100", name:"Exia", series:"Mobile Suit Gundam 00", imageUrl:null,
-    manuals:[{id:97,name:"Full Assembly Manual",lang:"EN/JP",pages:52,size:"11.8 MB",url:"mg-100-exia-assembly.pdf"}] },
+    manuals:[{id:97,name:"Full Assembly Manual",lang:"EN/JP",size:"11.8 MB",url:"mg-100-exia-assembly.pdf"}] },
   { id:72, grade:"MG", scale:"1/100", name:"00 Gundam Seven Sword/G", series:"Mobile Suit Gundam 00", imageUrl:null,
-    manuals:[{id:98,name:"Full Assembly Manual",lang:"EN/JP",pages:56,size:"12.5 MB"}] },
+    manuals:[{id:98,name:"Full Assembly Manual",lang:"EN/JP",size:"12.5 MB"}] },
   { id:73, grade:"MG", scale:"1/100", name:"Crossbone Gundam X1 Ver. Ka", series:"Mobile Suit Crossbone Gundam", imageUrl:null,
-    manuals:[{id:99,name:"Full Assembly Manual",lang:"EN/JP",pages:58,size:"12.9 MB"}] },
+    manuals:[{id:99,name:"Full Assembly Manual",lang:"EN/JP",size:"12.9 MB"}] },
   { id:74, grade:"MG", scale:"1/100", name:"Tallgeese EW", series:"Endless Waltz", imageUrl:null,
-    manuals:[{id:100,name:"Full Assembly Manual",lang:"EN/JP",pages:50,size:"11.2 MB"}] },
+    manuals:[{id:100,name:"Full Assembly Manual",lang:"EN/JP",size:"11.2 MB"}] },
   { id:75, grade:"MG", scale:"1/100", name:"Epyon EW", series:"Endless Waltz", imageUrl:null,
-    manuals:[{id:101,name:"Full Assembly Manual",lang:"EN/JP",pages:50,size:"11.0 MB"}] },
+    manuals:[{id:101,name:"Full Assembly Manual",lang:"EN/JP",size:"11.0 MB"}] },
   { id:76, grade:"MG", scale:"1/100", name:"V2 Assault Buster Gundam Ver. Ka", series:"V Gundam", imageUrl:null,
-    manuals:[{id:102,name:"Full Assembly Manual",lang:"EN/JP",pages:62,size:"14.0 MB"}] },
+    manuals:[{id:102,name:"Full Assembly Manual",lang:"EN/JP",size:"14.0 MB"}] },
   { id:77, grade:"MG", scale:"1/100", name:"Hyaku-Shiki Ver. 2.0", series:"Mobile Suit Zeta Gundam", imageUrl:null,
-    manuals:[{id:103,name:"Full Assembly Manual",lang:"EN/JP",pages:52,size:"11.9 MB"}] },
+    manuals:[{id:103,name:"Full Assembly Manual",lang:"EN/JP",size:"11.9 MB"}] },
   { id:78, grade:"MG", scale:"1/100", name:"ReZEL", series:"Mobile Suit Gundam UC", imageUrl:null,
-    manuals:[{id:104,name:"Full Assembly Manual",lang:"EN/JP",pages:54,size:"12.2 MB"}] },
+    manuals:[{id:104,name:"Full Assembly Manual",lang:"EN/JP",size:"12.2 MB"}] },
   { id:79, grade:"MG", scale:"1/100", name:"F91 Gundam Ver. 2.0", series:"Mobile Suit Gundam F91", imageUrl:null,
-    manuals:[{id:105,name:"Full Assembly Manual",lang:"EN/JP",pages:54,size:"12.0 MB"}] },
+    manuals:[{id:105,name:"Full Assembly Manual",lang:"EN/JP",size:"12.0 MB"}] },
 
   // ── PERFECT GRADE (PG) ────────────────────────────────────────
   { id:80, grade:"PG", scale:"1/60", name:"RX-78-2 Gundam", series:"Mobile Suit Gundam", imageUrl:null,
-    manuals:[{id:106,name:"Assembly Manual Vol.1",lang:"EN/JP",pages:72,size:"19.8 MB"},{id:107,name:"Assembly Manual Vol.2",lang:"EN/JP",pages:68,size:"18.4 MB"}] },
+    manuals:[{id:106,name:"Assembly Manual Vol.1",lang:"EN/JP",size:"19.8 MB"},{id:107,name:"Assembly Manual Vol.2",lang:"EN/JP",size:"18.4 MB"}] },
   { id:81, grade:"PG", scale:"1/60", name:"Zaku II", series:"Mobile Suit Gundam", imageUrl:null,
-    manuals:[{id:108,name:"Assembly Manual Vol.1",lang:"EN/JP",pages:68,size:"18.2 MB"},{id:109,name:"Assembly Manual Vol.2",lang:"EN/JP",pages:64,size:"17.1 MB"}] },
+    manuals:[{id:108,name:"Assembly Manual Vol.1",lang:"EN/JP",size:"18.2 MB"},{id:109,name:"Assembly Manual Vol.2",lang:"EN/JP",size:"17.1 MB"}] },
   { id:82, grade:"PG", scale:"1/60", name:"Wing Gundam Zero EW", series:"Endless Waltz", imageUrl:null,
-    manuals:[{id:110,name:"Assembly Manual Vol.1",lang:"EN/JP",pages:72,size:"20.2 MB"},{id:111,name:"Assembly Manual Vol.2",lang:"EN/JP",pages:68,size:"18.9 MB"},{id:112,name:"LED Unit Guide",lang:"EN/JP",pages:20,size:"4.4 MB"}] },
+    manuals:[{id:110,name:"Assembly Manual Vol.1",lang:"EN/JP",size:"20.2 MB"},{id:111,name:"Assembly Manual Vol.2",lang:"EN/JP",size:"18.9 MB"},{id:112,name:"LED Unit Guide",lang:"EN/JP",size:"4.4 MB"}] },
   { id:83, grade:"PG", scale:"1/60", name:"Strike Gundam", series:"Mobile Suit Gundam SEED", imageUrl:null,
-    manuals:[{id:113,name:"Assembly Manual Vol.1",lang:"EN/JP",pages:64,size:"18.7 MB"},{id:114,name:"Assembly Manual Vol.2",lang:"EN/JP",pages:60,size:"17.2 MB"},{id:115,name:"Aile Striker Pack Guide",lang:"EN/JP",pages:28,size:"6.4 MB"},{id:116,name:"LED Installation Manual",lang:"EN/JP",pages:16,size:"3.9 MB"}] },
+    manuals:[{id:113,name:"Assembly Manual Vol.1",lang:"EN/JP",size:"18.7 MB"},{id:114,name:"Assembly Manual Vol.2",lang:"EN/JP",size:"17.2 MB"},{id:115,name:"Aile Striker Pack Guide",lang:"EN/JP",size:"6.4 MB"},{id:116,name:"LED Installation Manual",lang:"EN/JP",size:"3.9 MB"}] },
   { id:84, grade:"PG", scale:"1/60", name:"Freedom Gundam", series:"Mobile Suit Gundam SEED", imageUrl:null,
-    manuals:[{id:117,name:"Assembly Manual Vol.1",lang:"EN/JP",pages:72,size:"20.5 MB"},{id:118,name:"Assembly Manual Vol.2",lang:"EN/JP",pages:68,size:"19.1 MB"}] },
+    manuals:[{id:117,name:"Assembly Manual Vol.1",lang:"EN/JP",size:"20.5 MB"},{id:118,name:"Assembly Manual Vol.2",lang:"EN/JP",size:"19.1 MB"}] },
   { id:85, grade:"PG", scale:"1/60", name:"Strike Freedom Gundam", series:"Mobile Suit Gundam SEED Destiny", imageUrl:null,
-    manuals:[{id:119,name:"Assembly Manual Vol.1",lang:"EN/JP",pages:76,size:"21.4 MB"},{id:120,name:"Assembly Manual Vol.2",lang:"EN/JP",pages:72,size:"20.2 MB"},{id:121,name:"LED Unit Installation",lang:"EN/JP",pages:24,size:"5.2 MB"}] },
+    manuals:[{id:119,name:"Assembly Manual Vol.1",lang:"EN/JP",size:"21.4 MB"},{id:120,name:"Assembly Manual Vol.2",lang:"EN/JP",size:"20.2 MB"},{id:121,name:"LED Unit Installation",lang:"EN/JP",size:"5.2 MB"}] },
   { id:86, grade:"PG", scale:"1/60", name:"Unicorn Gundam", series:"Mobile Suit Gundam UC", imageUrl:null,
-    manuals:[{id:122,name:"Assembly Manual Vol.1",lang:"EN/JP",pages:80,size:"22.1 MB"},{id:123,name:"Assembly Manual Vol.2",lang:"EN/JP",pages:76,size:"20.8 MB"},{id:124,name:"LED Unit Installation",lang:"EN/JP",pages:24,size:"5.4 MB"},{id:125,name:"Psycho-frame Effect Guide",lang:"EN/JP",pages:16,size:"3.8 MB"}] },
+    manuals:[{id:122,name:"Assembly Manual Vol.1",lang:"EN/JP",size:"22.1 MB"},{id:123,name:"Assembly Manual Vol.2",lang:"EN/JP",size:"20.8 MB"},{id:124,name:"LED Unit Installation",lang:"EN/JP",size:"5.4 MB"},{id:125,name:"Psycho-frame Effect Guide",lang:"EN/JP",size:"3.8 MB"}] },
   { id:87, grade:"PG", scale:"1/60", name:"Banshee Norn", series:"Mobile Suit Gundam UC", imageUrl:null,
-    manuals:[{id:126,name:"Assembly Manual Vol.1",lang:"EN/JP",pages:80,size:"22.3 MB"},{id:127,name:"Assembly Manual Vol.2",lang:"EN/JP",pages:76,size:"21.0 MB"},{id:128,name:"LED Unit Installation",lang:"EN/JP",pages:24,size:"5.5 MB"}] },
+    manuals:[{id:126,name:"Assembly Manual Vol.1",lang:"EN/JP",size:"22.3 MB"},{id:127,name:"Assembly Manual Vol.2",lang:"EN/JP",size:"21.0 MB"},{id:128,name:"LED Unit Installation",lang:"EN/JP",size:"5.5 MB"}] },
   { id:88, grade:"PG", scale:"1/60", name:"00 Raiser", series:"Mobile Suit Gundam 00", imageUrl:null,
-    manuals:[{id:129,name:"Assembly Manual Vol.1",lang:"EN/JP",pages:74,size:"20.8 MB"},{id:130,name:"Assembly Manual Vol.2",lang:"EN/JP",pages:70,size:"19.6 MB"},{id:131,name:"GN Drive Guide",lang:"EN/JP",pages:18,size:"4.0 MB"}] },
+    manuals:[{id:129,name:"Assembly Manual Vol.1",lang:"EN/JP",size:"20.8 MB"},{id:130,name:"Assembly Manual Vol.2",lang:"EN/JP",size:"19.6 MB"},{id:131,name:"GN Drive Guide",lang:"EN/JP",size:"4.0 MB"}] },
   { id:89, grade:"PG", scale:"1/60", name:"Exia (Repair II)", series:"Mobile Suit Gundam 00", imageUrl:null,
-    manuals:[{id:132,name:"Assembly Manual Vol.1",lang:"EN/JP",pages:72,size:"20.2 MB"},{id:133,name:"Assembly Manual Vol.2",lang:"EN/JP",pages:68,size:"19.0 MB"}] },
+    manuals:[{id:132,name:"Assembly Manual Vol.1",lang:"EN/JP",size:"20.2 MB"},{id:133,name:"Assembly Manual Vol.2",lang:"EN/JP",size:"19.0 MB"}] },
 
   // ── SD GUNDAM ─────────────────────────────────────────────────
   { id:90, grade:"SD", scale:"SD", name:"RX-78-2 Gundam", series:"SD Gundam EX-Standard", imageUrl:null,
-    manuals:[{id:134,name:"Assembly Manual",lang:"EN/JP",pages:14,size:"2.8 MB"}] },
+    manuals:[{id:134,name:"Assembly Manual",lang:"EN/JP",size:"2.8 MB"}] },
   { id:91, grade:"SD", scale:"SD", name:"Nu Gundam", series:"SD Gundam EX-Standard", imageUrl:null,
-    manuals:[{id:135,name:"Assembly Manual",lang:"EN/JP",pages:16,size:"3.2 MB"}] },
+    manuals:[{id:135,name:"Assembly Manual",lang:"EN/JP",size:"3.2 MB"}] },
   { id:92, grade:"SD", scale:"SD", name:"Wing Gundam Zero EW", series:"SD Gundam EX-Standard", imageUrl:null,
-    manuals:[{id:136,name:"Assembly Manual",lang:"EN/JP",pages:16,size:"3.1 MB"}] },
+    manuals:[{id:136,name:"Assembly Manual",lang:"EN/JP",size:"3.1 MB"}] },
   { id:93, grade:"SD", scale:"SD", name:"Unicorn Gundam", series:"SD Gundam EX-Standard", imageUrl:null,
-    manuals:[{id:137,name:"Assembly Manual",lang:"EN/JP",pages:16,size:"3.3 MB"}] },
+    manuals:[{id:137,name:"Assembly Manual",lang:"EN/JP",size:"3.3 MB"}] },
   { id:94, grade:"SD", scale:"SD", name:"Sazabi", series:"SD Gundam EX-Standard", imageUrl:null,
-    manuals:[{id:138,name:"Assembly Manual",lang:"EN/JP",pages:16,size:"3.2 MB"}] },
+    manuals:[{id:138,name:"Assembly Manual",lang:"EN/JP",size:"3.2 MB"}] },
   { id:95, grade:"SD", scale:"SD", name:"Strike Freedom Gundam", series:"SD Gundam EX-Standard", imageUrl:null,
-    manuals:[{id:139,name:"Assembly Manual",lang:"EN/JP",pages:14,size:"2.9 MB"}] },
+    manuals:[{id:139,name:"Assembly Manual",lang:"EN/JP",size:"2.9 MB"}] },
   { id:96, grade:"SD", scale:"SD", name:"Barbatos", series:"SD Gundam Cross Silhouette", imageUrl:null,
-    manuals:[{id:140,name:"Assembly Manual",lang:"EN/JP",pages:18,size:"3.5 MB"}] },
+    manuals:[{id:140,name:"Assembly Manual",lang:"EN/JP",size:"3.5 MB"}] },
   { id:97, grade:"SD", scale:"SD", name:"Aerial", series:"SD Gundam Cross Silhouette", imageUrl:null,
-    manuals:[{id:141,name:"Assembly Manual",lang:"EN/JP",pages:18,size:"3.6 MB"}] },
+    manuals:[{id:141,name:"Assembly Manual",lang:"EN/JP",size:"3.6 MB"}] },
   { id:98, grade:"SD", scale:"SD", name:"Gundam Mk-II (AEUG)", series:"SD Gundam EX-Standard", imageUrl:null,
-    manuals:[{id:142,name:"Assembly Manual",lang:"EN/JP",pages:14,size:"2.8 MB"}] },
+    manuals:[{id:142,name:"Assembly Manual",lang:"EN/JP",size:"2.8 MB"}] },
   { id:99, grade:"SD", scale:"SD", name:"Zaku II", series:"SD Gundam EX-Standard", imageUrl:null,
-    manuals:[{id:143,name:"Assembly Manual",lang:"EN/JP",pages:14,size:"2.7 MB"}] },
+    manuals:[{id:143,name:"Assembly Manual",lang:"EN/JP",size:"2.7 MB"}] },
   { id:100, grade:"SD", scale:"SD", name:"Exia", series:"SD Gundam Cross Silhouette", imageUrl:null,
-    manuals:[{id:144,name:"Assembly Manual",lang:"EN/JP",pages:18,size:"3.4 MB"}] },
+    manuals:[{id:144,name:"Assembly Manual",lang:"EN/JP",size:"3.4 MB"}] },
 ];
 
 const GRADES = ["ALL", "HG", "MG", "RG", "PG", "SD", "EG"];
@@ -1038,10 +1174,36 @@ const findKitBySlug = (slug) => KITS.find(k => slugify(k) === slug);
 // ─────────────────────────────────────────────────────────────
 // KIT DETAIL — separate component so it can use useParams
 // ─────────────────────────────────────────────────────────────
-function KitDetail({ gc, isSignedIn, favourites, buildProgress, toggleFavourite, setBuildStatus, openManualId, toggleManual, setOpenManualId, goHome }) {
+function KitDetail({ gc, isSignedIn, favourites, buildProgress, pageProgress, toggleFavourite, setBuildStatus, setManualPage, openManualId, toggleManual, setOpenManualId, goHome }) {
   const { slug } = useParams();
   const navigate = useNavigate();
   const kit = findKitBySlug(slug);
+
+  // Real page counts fetched from actual PDF via pdfjs
+  const [realPages, setRealPages] = useState({});
+
+  const fetchRealPages = async (manual) => {
+    if (!manual.url || realPages[manual.id] !== undefined) return;
+    const cacheKey = `kv_pdfpages_${manual.id}`;
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) {
+      setRealPages(prev => ({ ...prev, [manual.id]: parseInt(cached) }));
+      return;
+    }
+    try {
+      const pdfjs = await import("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.3.136/pdf.min.mjs");
+      pdfjs.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.3.136/pdf.worker.min.mjs";
+      const pdf = await pdfjs.getDocument(`${R2}/${manual.url}`).promise;
+      const count = pdf.numPages;
+      localStorage.setItem(cacheKey, String(count));
+      setRealPages(prev => ({ ...prev, [manual.id]: count }));
+    } catch (_) { /* silently ignore — falls back to manual.pages */ }
+  };
+
+  // Auto-fetch real page counts for all manuals with a URL as soon as kit loads
+  useEffect(() => {
+    kit?.manuals.forEach(m => { if (m.url) fetchRealPages(m); });
+  }, [kit?.id]);
 
   if (!kit) return (
     <div style={{padding:"80px 40px",textAlign:"center",fontFamily:"'Share Tech Mono',monospace",color:"var(--text-dim)"}}>
@@ -1050,6 +1212,8 @@ function KitDetail({ gc, isSignedIn, favourites, buildProgress, toggleFavourite,
       <button className="back-btn" style={{margin:"0 auto"}} onClick={goHome}>← BACK TO LIBRARY</button>
     </div>
   );
+
+  const isFav = favourites.includes(kit.id);
 
   return (
     <>
@@ -1061,7 +1225,7 @@ function KitDetail({ gc, isSignedIn, favourites, buildProgress, toggleFavourite,
           {kit.name}
           {isSignedIn && (
             <button className="fav-btn" style={{marginLeft:"12px",fontSize:"1.4rem"}} onClick={e => toggleFavourite(e, kit.id)}>
-              {favourites.includes(kit.id) ? "⭐" : "☆"}
+              {isFav ? "⭐" : "☆"}
             </button>
           )}
         </div>
@@ -1075,8 +1239,16 @@ function KitDetail({ gc, isSignedIn, favourites, buildProgress, toggleFavourite,
         <div className="build-status-wrap">
           <span className="build-status-label">◈ BUILD STATUS</span>
           <div className="build-status-options">
+            <button
+              className={`build-status-fav${isFav?" on":""}`}
+              onClick={e => toggleFavourite(e, kit.id)}
+              title={isFav ? "Remove from My Vault" : "Add to My Vault"}
+            >
+              {isFav ? "⭐" : "☆"}
+            </button>
+            <div style={{width:"1px",height:"20px",background:"var(--border)",flexShrink:0}} />
             {[
-              {id:"notstarted", label:"◻ NOT STARTED"},
+              {id:"backlog", label:"◻ BACKLOG"},
               {id:"inprogress", label:"⚙ IN PROGRESS"},
               {id:"complete",   label:"✓ COMPLETE"},
             ].map(s => (
@@ -1092,13 +1264,59 @@ function KitDetail({ gc, isSignedIn, favourites, buildProgress, toggleFavourite,
         </div>
       )}
 
+      {/* PAGE PROGRESS TRACKER */}
+      {isSignedIn && (
+        <div className="progress-tracker">
+          <div className="progress-tracker-title">◈ PAGE PROGRESS TRACKER</div>
+          {kit.manuals.map(manual => {
+            const key = `${kit.id}-${manual.id}`;
+            const total = realPages[manual.id]; // undefined while loading
+            const current = pageProgress[key]?.current || 0;
+            const pct = total > 0 ? Math.round((Math.min(current, total) / total) * 100) : 0;
+            const isLoading = manual.url && total === undefined;
+            return (
+              <div key={manual.id} className="progress-manual">
+                <div className="progress-manual-name">
+                  <span>{manual.name}</span>
+                  <span className="progress-pct" style={{color: pct===100 ? "var(--green)" : pct>0 ? "var(--gold)" : "var(--text-dim)"}}>
+                    {isLoading ? "..." : `${pct}%`}
+                  </span>
+                </div>
+                <div className="progress-bar-wrap">
+                  <div className={`progress-bar-fill${pct===100?" complete":""}`} style={{width: isLoading ? "0%" : `${pct}%`}} />
+                </div>
+                <div className="progress-input-row">
+                  <span className="progress-label">CURRENT PAGE</span>
+                  <input
+                    className="progress-input"
+                    type="number"
+                    min="0"
+                    max={total || 9999}
+                    value={current || ""}
+                    placeholder="0"
+                    onChange={e => {
+                      const val = Math.max(0, parseInt(e.target.value) || 0);
+                      const clamped = total ? Math.min(val, total) : val;
+                      setManualPage(kit.id, manual.id, clamped, total || clamped);
+                    }}
+                  />
+                  <span className="progress-total">
+                    / {isLoading ? <span style={{opacity:0.4}}>loading...</span> : `${total} PGS`}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       <div className="manual-list">
         <div className="section-header" style={{padding:"0 0 20px"}}>
           <span className="section-title">AVAILABLE MANUALS</span>
           <div className="section-line" />
         </div>
         {kit.manuals.map(manual => (
-          <div key={manual.id} className="manual-item" onClick={() => toggleManual(manual.id)}>
+          <div key={manual.id} className="manual-item" onClick={() => { toggleManual(manual.id); fetchRealPages(manual); }}>
             <div className="manual-item-row">
               <div className="manual-item-left">
                 <div className="manual-icon">PDF</div>
@@ -1106,7 +1324,7 @@ function KitDetail({ gc, isSignedIn, favourites, buildProgress, toggleFavourite,
                   <div className="manual-name">{manual.name}</div>
                   <div className="manual-meta">
                     <span>LANG: {manual.lang}</span>
-                    <span>{manual.pages} PGS</span>
+                    <span>{realPages[manual.id] !== undefined ? realPages[manual.id] : manual.pages} PGS</span>
                     <span>{manual.size}</span>
                   </div>
                 </div>
@@ -1114,7 +1332,7 @@ function KitDetail({ gc, isSignedIn, favourites, buildProgress, toggleFavourite,
               <div className="manual-actions">
                 <button
                   className={`btn btn-view${openManualId === manual.id ? " active" : ""}`}
-                  onClick={e => { e.stopPropagation(); toggleManual(manual.id); }}
+                  onClick={e => { e.stopPropagation(); toggleManual(manual.id); fetchRealPages(manual); }}
                 >
                   {openManualId === manual.id ? "▼ CLOSE" : "▶ VIEW"}
                 </button>
@@ -1192,6 +1410,9 @@ export default function KitVault() {
   const { user, isSignedIn } = useUser();
   const navigate = useNavigate();
   const location = useLocation();
+  const [openNav, setOpenNav] = useState(null);
+  const toggleNav = (name) => setOpenNav(prev => prev === name ? null : name);
+  const closeNav = () => setOpenNav(null);
   const [gradeFilter, setGradeFilter] = useState("ALL");
   const [search, setSearch] = useState("");
   const [openManualId, setOpenManualId] = useState(null);
@@ -1205,6 +1426,41 @@ export default function KitVault() {
   const [buildProgress, setBuildProgress] = useState(() => {
     try { return JSON.parse(localStorage.getItem("kv_progress") || "{}"); } catch { return {}; }
   });
+  const [pageProgress, setPageProgress] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("kv_pages") || "{}"); } catch { return {}; }
+  });
+
+  // ── D1 sync ──────────────────────────────────────────────────
+  // Saves user data to Cloudflare D1 via a Worker API endpoint.
+  // Falls back to localStorage silently if the worker isn't set up yet.
+  const D1_API = "/api/progress"; // Cloudflare Worker endpoint (set up separately)
+
+  const syncToD1 = async (payload) => {
+    if (!isSignedIn || !user) return;
+    try {
+      await fetch(D1_API, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.id, ...payload }),
+      });
+    } catch (_) { /* silent fallback to localStorage */ }
+  };
+
+  const loadFromD1 = async () => {
+    if (!isSignedIn || !user) return;
+    try {
+      const res = await fetch(`${D1_API}?userId=${user.id}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.favourites) { setFavourites(data.favourites); localStorage.setItem("kv_favourites", JSON.stringify(data.favourites)); }
+      if (data.progress)   { setBuildProgress(data.progress);  localStorage.setItem("kv_progress",   JSON.stringify(data.progress)); }
+      if (data.pages)      { setPageProgress(data.pages);       localStorage.setItem("kv_pages",      JSON.stringify(data.pages)); }
+    } catch (_) { /* silent fallback to localStorage */ }
+  };
+
+  useEffect(() => { loadFromD1(); }, [isSignedIn]);
+
+
 
   const toggleFavourite = (e, kitId) => {
     e.stopPropagation();
@@ -1212,6 +1468,7 @@ export default function KitVault() {
     setFavourites(prev => {
       const next = prev.includes(kitId) ? prev.filter(id => id !== kitId) : [...prev, kitId];
       localStorage.setItem("kv_favourites", JSON.stringify(next));
+      syncToD1({ favourites: next });
       return next;
     });
   };
@@ -1221,8 +1478,29 @@ export default function KitVault() {
     setBuildProgress(prev => {
       const next = { ...prev, [kitId]: status };
       localStorage.setItem("kv_progress", JSON.stringify(next));
+      syncToD1({ progress: next });
       return next;
     });
+  };
+
+  const setManualPage = (kitId, manualId, currentPage, totalPages) => {
+    if (!isSignedIn) return;
+    setPageProgress(prev => {
+      const key = `${kitId}-${manualId}`;
+      const next = { ...prev, [key]: { current: currentPage, total: totalPages } };
+      localStorage.setItem("kv_pages", JSON.stringify(next));
+      syncToD1({ pages: next });
+      return next;
+    });
+  };
+
+  // Calculate overall kit progress % across all manuals
+  const getKitProgress = (kit) => {
+    const entries = kit.manuals.map(m => pageProgress[`${kit.id}-${m.id}`]).filter(Boolean);
+    if (entries.length === 0) return null;
+    const total = entries.reduce((sum, e) => sum + e.total, 0);
+    const current = entries.reduce((sum, e) => sum + Math.min(e.current, e.total), 0);
+    return total > 0 ? Math.round((current / total) * 100) : 0;
   };
 
   const filtered = KITS.filter(k => {
@@ -1254,7 +1532,7 @@ export default function KitVault() {
       <div className="app">
 
         {/* HEADER */}
-        <header className="header">
+        <header className="header" style={{position:"relative"}} onClick={e => { if(!e.target.closest('.nav-item')) closeNav(); }}>
           <div className="logo" onClick={goHome} style={{cursor:"pointer"}}>
             <div className="logo-icon">▣</div>
             <div className="logo-text">
@@ -1262,6 +1540,94 @@ export default function KitVault() {
               <span className="logo-sub">KITVAULT.IO</span>
             </div>
           </div>
+
+          {/* ── NAV CENTER ── */}
+          <nav className="nav-center">
+
+            {/* TOOLS */}
+            <div className={`nav-item${openNav==="tools"?" open":""}`}>
+              <button className="nav-btn" onClick={()=>toggleNav("tools")}>
+                TOOLS <span className="nav-btn-arrow">▼</span>
+              </button>
+              <div className="nav-dropdown">
+                <div className="nav-dropdown-header">◈ HOBBY TOOLS</div>
+                {[
+                  {icon:"✂️", label:"Nippers", sub:"Side cutters for clean gate removal — the most essential Gunpla tool"},
+                  {icon:"🔧", label:"Panel Line Markers", sub:"Gundam markers & enamel washes for detail lines"},
+                  {icon:"📐", label:"Scribers & Chisels", sub:"For adding custom panel lines and surface detail"},
+                  {icon:"🪵", label:"Sanding Sticks", sub:"400→1000→2000 grit for seamline removal & gate cleanup"},
+                  {icon:"🎨", label:"Paints & Primers", sub:"Mr. Color, Citadel, Vallejo — airbrushing & hand painting"},
+                  {icon:"💨", label:"Airbrushes", sub:"Iwata, Badger, GSI Creos — recommended starter setups"},
+                  {icon:"🧴", label:"Top Coats", sub:"Gloss, semi-gloss, matte — protecting & unifying your finish"},
+                  {icon:"🪚", label:"Hobby Knives", sub:"Olfa & X-Acto knives for cleanup and minor modifications"},
+                ].map(item => (
+                  <div key={item.label} className="nav-dd-item" onClick={closeNav}>
+                    <span className="nav-dd-icon">{item.icon}</span>
+                    <span className="nav-dd-text">
+                      <span className="nav-dd-label">{item.label}</span>
+                      <span className="nav-dd-sub">{item.sub}</span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* RESOURCES */}
+            <div className={`nav-item${openNav==="resources"?" open":""}`}>
+              <button className="nav-btn" onClick={()=>toggleNav("resources")}>
+                RESOURCES <span className="nav-btn-arrow">▼</span>
+              </button>
+              <div className="nav-dropdown">
+                <div className="nav-dropdown-header">◈ COMMUNITY & GUIDES</div>
+                {[
+                  {icon:"📖", label:"Gunpla Wiki", sub:"r/Gunpla wiki — grades explained, beginner guides", href:"https://www.reddit.com/r/Gunpla/wiki/"},
+                  {icon:"💬", label:"r/Gunpla Community", sub:"The largest Gunpla community — WIPs, reviews & advice", href:"https://www.reddit.com/r/Gunpla/"},
+                  {icon:"▶️", label:"Syd Mead (YouTube)", sub:"One of the best Gunpla build channels — reviews & tutorials", href:"https://www.youtube.com/@SydneysWorkshop"},
+                  {icon:"▶️", label:"CG Customs (YouTube)", sub:"In-depth painting, scribing & modification tutorials", href:"https://www.youtube.com/@CGCustoms"},
+                  {icon:"🛒", label:"Hobbylink Japan", sub:"The go-to import store — widest selection, ships worldwide", href:"https://www.hlj.com"},
+                  {icon:"🛒", label:"Gundam Planet", sub:"US-based Gunpla retailer with fast domestic shipping", href:"https://www.gundamplanet.com"},
+                  {icon:"🎨", label:"Painting & Weathering Guide", sub:"Beginner to advanced — primers, washes, chipping & oils", href:"https://www.reddit.com/r/Gunpla/wiki/painting"},
+                  {icon:"🔗", label:"Dalong.net Kit Reviews", sub:"Comprehensive Japanese kit review database", href:"http://www.dalong.net"},
+                ].map(item => (
+                  <a key={item.label} className="nav-dd-item" href={item.href} target="_blank" rel="noopener noreferrer" onClick={closeNav}>
+                    <span className="nav-dd-icon">{item.icon}</span>
+                    <span className="nav-dd-text">
+                      <span className="nav-dd-label">{item.label}</span>
+                      <span className="nav-dd-sub">{item.sub}</span>
+                    </span>
+                  </a>
+                ))}
+              </div>
+            </div>
+
+            {/* GRADES */}
+            <div className={`nav-item${openNav==="grades"?" open":""}`}>
+              <button className="nav-btn" onClick={()=>toggleNav("grades")}>
+                GRADES <span className="nav-btn-arrow">▼</span>
+              </button>
+              <div className="nav-dropdown">
+                <div className="nav-dropdown-header">◈ KIT GRADE GUIDE</div>
+                {[
+                  {icon:"⚡", label:"EG — Entry Grade", sub:"Snap-fit, no nippers needed. Perfect first kit", color:"#aa88ff"},
+                  {icon:"🔵", label:"HG — High Grade", sub:"1/144 scale. Best variety, great for beginners", color:"#00aaff"},
+                  {icon:"🔴", label:"RG — Real Grade", sub:"1/144 with MG-level detail. Advanced snap-fit", color:"#ff2244"},
+                  {icon:"🟠", label:"MG — Master Grade", sub:"1/100 scale with inner frame. Intermediate", color:"#ff6600"},
+                  {icon:"🟡", label:"PG — Perfect Grade", sub:"1/60 scale. The ultimate Gunpla experience", color:"#ffcc00"},
+                  {icon:"🟢", label:"SD — Super Deformed", sub:"Chibi-style, fun and quick builds for all levels", color:"#00ffcc"},
+                ].map(item => (
+                  <div key={item.label} className="nav-dd-item" onClick={closeNav}>
+                    <span className="nav-dd-icon">{item.icon}</span>
+                    <span className="nav-dd-text">
+                      <span className="nav-dd-label" style={{color:item.color}}>{item.label}</span>
+                      <span className="nav-dd-sub">{item.sub}</span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+          </nav>
+
           <div className="header-right">
             <div className="status-dot" />
             <SignedIn>
@@ -1296,11 +1662,7 @@ export default function KitVault() {
                 <div className="hero-tag">GUNDAM MANUAL ARCHIVE</div>
                 <h1><span className="a1">KIT</span><span className="a2">VAULT</span></h1>
                 <p className="hero-sub">YOUR COMPLETE GUNPLA MANUAL DATABASE</p>
-                <div className="hero-stats">
-                  <div className="stat"><div className="stat-num">{KITS.length}</div><div className="stat-label">KITS INDEXED</div></div>
-                  <div className="stat"><div className="stat-num">{KITS.reduce((a,k)=>a+k.manuals.length,0)}</div><div className="stat-label">MANUALS</div></div>
-                  <div className="stat"><div className="stat-num">{GRADES.length-1}</div><div className="stat-label">GRADES</div></div>
-                </div>
+
               </section>
 
               <div className="controls">
@@ -1372,54 +1734,122 @@ export default function KitVault() {
           } />
 
           {/* ===== KIT DETAIL PAGE ===== */}
-          <Route path="/kit/:slug" element={<KitDetail gc={gc} isSignedIn={isSignedIn} favourites={favourites} buildProgress={buildProgress} toggleFavourite={toggleFavourite} setBuildStatus={setBuildStatus} openManualId={openManualId} toggleManual={toggleManual} setOpenManualId={setOpenManualId} goHome={goHome} />} />
+          <Route path="/kit/:slug" element={<KitDetail gc={gc} isSignedIn={isSignedIn} favourites={favourites} buildProgress={buildProgress} pageProgress={pageProgress} toggleFavourite={toggleFavourite} setBuildStatus={setBuildStatus} setManualPage={setManualPage} openManualId={openManualId} toggleManual={toggleManual} setOpenManualId={setOpenManualId} goHome={goHome} />} />
 
           {/* ===== MY VAULT PAGE ===== */}
           <Route path="/vault" element={
             <>
-              <div className="page-hero">
-                <div className="page-tag">PERSONAL COLLECTION</div>
-                <div className="page-title">MY <span style={{color:"var(--accent)"}}>VAULT</span></div>
-                <div className="page-sub">{favourites.length} SAVED KIT{favourites.length!==1?"S":""}</div>
-              </div>
-              {favourites.length === 0 ? (
-                <div className="vault-empty">
-                  <span className="vault-empty-icon">⭐</span>
-                  NO KITS SAVED YET<br/>
-                  <span style={{fontSize:"0.7rem",opacity:0.5}}>STAR A KIT FROM THE LIBRARY TO ADD IT HERE</span>
-                </div>
-              ) : (
-                <div className="vault-grid">
-                  {KITS.filter(k => favourites.includes(k.id)).map(kit => {
-                    const c = gc(kit.grade);
-                    const progress = buildProgress[kit.id];
-                    return (
-                      <div key={kit.id} className="kit-card"
-                        style={{"--card-accent":c.accent,"--card-accent-bg":c.bg}}
-                        onClick={()=>goKit(kit)}
-                      >
-                        <div className="card-grade-banner" style={{background:c.accent}} />
-                        <div className="card-body">
-                          <div className="card-top">
-                            <span className="grade-badge">{kit.grade}</span>
-                            <div style={{display:"flex",alignItems:"center",gap:"6px"}}>
-                              {progress === "inprogress" && <span className="build-badge inprogress">IN PROGRESS</span>}
-                              {progress === "complete" && <span className="build-badge complete">COMPLETE</span>}
-                              <button className="fav-btn" onClick={e => toggleFavourite(e, kit.id)}>⭐</button>
-                            </div>
-                          </div>
-                          <div className="card-title">{kit.name}</div>
-                          <div className="card-series">{kit.series}</div>
-                          <div className="card-footer">
-                            <span className="card-scale">SCALE {kit.scale}</span>
-                            <span className="card-arrow">→</span>
+              {(() => {
+                // A kit appears in vault if: it's starred OR it has a build status set
+                const vaultKits = KITS.filter(k =>
+                  favourites.includes(k.id) ||
+                  buildProgress[k.id] === "inprogress" ||
+                  buildProgress[k.id] === "complete" ||
+                  buildProgress[k.id] === "backlog"
+                );
+                const inProgress = vaultKits.filter(k => buildProgress[k.id] === "inprogress");
+                const complete   = vaultKits.filter(k => buildProgress[k.id] === "complete");
+                // Backlog = explicitly set to backlog, OR starred with no status
+                const backlog    = vaultKits.filter(k =>
+                  buildProgress[k.id] === "backlog" ||
+                  (!buildProgress[k.id] && favourites.includes(k.id))
+                );
+
+                const renderVaultCard = (kit) => {
+                  const c = gc(kit.grade);
+                  const progress = buildProgress[kit.id];
+                  const isFav = favourites.includes(kit.id);
+                  const pct = getKitProgress(kit);
+                  return (
+                    <div key={kit.id} className="kit-card"
+                      style={{"--card-accent":c.accent,"--card-accent-bg":c.bg}}
+                      onClick={()=>goKit(kit)}
+                    >
+                      <div className="card-grade-banner" style={{background:c.accent}} />
+                      <div className="card-body">
+                        <div className="card-top">
+                          <span className="grade-badge">{kit.grade}</span>
+                          <div style={{display:"flex",alignItems:"center",gap:"6px"}}>
+                            {progress === "inprogress" && <span className="build-badge inprogress">IN PROGRESS</span>}
+                            {progress === "complete" && <span className="build-badge complete">COMPLETE</span>}
+                            {(!progress || progress === "backlog") && <span className="build-badge" style={{background:"rgba(90,122,159,0.15)",border:"1px solid rgba(90,122,159,0.4)",color:"var(--text-dim)",fontFamily:"'Share Tech Mono',monospace",fontSize:"0.55rem",padding:"2px 8px",letterSpacing:"1px"}}>BACKLOG</span>}
+                            <button className="fav-btn" onClick={e => toggleFavourite(e, kit.id)} title={isFav?"Remove from favourites":"Add to favourites"}>
+                              {isFav ? "⭐" : "☆"}
+                            </button>
                           </div>
                         </div>
+                        <div className="card-title">{kit.name}</div>
+                        <div className="card-series">{kit.series}</div>
+                        {pct !== null && (
+                          <div className="vault-card-progress">
+                            <div className="vault-progress-bar-wrap">
+                              <div className={`vault-progress-bar-fill${pct===100?" complete":""}`} style={{width:`${pct}%`}} />
+                            </div>
+                            <div className="vault-progress-label">
+                              <span>BUILD PROGRESS</span>
+                              <span className="vault-progress-pct">{pct}%</span>
+                            </div>
+                          </div>
+                        )}
+                        <div className="card-footer">
+                          <span className="card-scale">SCALE {kit.scale}</span>
+                          <span className="card-arrow">→</span>
+                        </div>
                       </div>
-                    );
-                  })}
-                </div>
-              )}
+                    </div>
+                  );
+                };
+
+                return (
+                  <>
+                    <div className="page-hero">
+                      <div className="page-tag">PERSONAL COLLECTION</div>
+                      <div className="page-title">MY <span style={{color:"var(--accent)"}}>VAULT</span></div>
+                      <div className="page-sub">{vaultKits.length} KIT{vaultKits.length!==1?"S":""} TRACKED</div>
+                    </div>
+                    {vaultKits.length === 0 ? (
+                      <div className="vault-empty">
+                        <span className="vault-empty-icon">⭐</span>
+                        NOTHING IN YOUR VAULT YET<br/>
+                        <span style={{fontSize:"0.7rem",opacity:0.5}}>STAR A KIT OR SET A BUILD STATUS TO ADD IT HERE</span>
+                      </div>
+                    ) : (
+                      <div style={{padding:"0 40px 60px"}}>
+                        {inProgress.length > 0 && (
+                          <>
+                            <div className="section-header" style={{padding:"0 0 20px",marginBottom:"4px"}}>
+                              <span className="section-title" style={{color:"var(--gold)"}}>⚙ IN PROGRESS</span>
+                              <div className="section-line" />
+                              <span className="section-count">{inProgress.length} KIT{inProgress.length!==1?"S":""}</span>
+                            </div>
+                            <div className="vault-grid" style={{padding:"0 0 32px"}}>{inProgress.map(renderVaultCard)}</div>
+                          </>
+                        )}
+                        {complete.length > 0 && (
+                          <>
+                            <div className="section-header" style={{padding:"0 0 20px",marginBottom:"4px"}}>
+                              <span className="section-title" style={{color:"var(--green)"}}>✓ COMPLETED</span>
+                              <div className="section-line" />
+                              <span className="section-count">{complete.length} KIT{complete.length!==1?"S":""}</span>
+                            </div>
+                            <div className="vault-grid" style={{padding:"0 0 32px"}}>{complete.map(renderVaultCard)}</div>
+                          </>
+                        )}
+                        {backlog.length > 0 && (
+                          <>
+                            <div className="section-header" style={{padding:"0 0 20px",marginBottom:"4px"}}>
+                              <span className="section-title" style={{color:"var(--text-dim)"}}>◻ BACKLOG</span>
+                              <div className="section-line" />
+                              <span className="section-count">{backlog.length} KIT{backlog.length!==1?"S":""}</span>
+                            </div>
+                            <div className="vault-grid" style={{padding:"0 0 32px"}}>{backlog.map(renderVaultCard)}</div>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
             </>
           } />
 
