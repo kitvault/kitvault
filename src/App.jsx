@@ -900,11 +900,25 @@ const styles = `
     font-family: 'Share Tech Mono', monospace; font-size: 0.6rem;
     color: var(--text-dim); letter-spacing: 1.5px; flex-shrink: 0;
   }
+  .xp-stepper {
+    display: flex; align-items: center; gap: 0;
+  }
+  .xp-step-btn {
+    width: 30px; height: 34px; background: var(--bg3); border: 1px solid var(--border);
+    color: var(--text-dim); font-family: 'Share Tech Mono', monospace;
+    font-size: 1rem; cursor: pointer; transition: all 0.15s;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    user-select: none;
+  }
+  .xp-step-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(0,170,255,0.08); }
+  .xp-step-btn:active { transform: scale(0.92); }
+  .xp-step-btn.minus { border-right: none; clip-path: polygon(0 0, 100% 0, 100% 100%, 15% 100%, 0 80%); }
+  .xp-step-btn.plus  { border-left: none;  clip-path: polygon(0 0, 100% 0, 100% 80%, 85% 100%, 0 100%); }
   .xp-input {
-    width: 70px; background: var(--bg); border: 1px solid var(--border);
+    width: 60px; background: var(--bg); border: 1px solid var(--border);
     color: var(--text-bright); font-family: 'Share Tech Mono', monospace;
-    font-size: 0.85rem; padding: 5px 10px; outline: none; text-align: center;
-    transition: border-color 0.2s;
+    font-size: 0.85rem; padding: 5px 6px; outline: none; text-align: center;
+    transition: border-color 0.2s; height: 34px;
     -moz-appearance: textfield;
   }
   .xp-input::-webkit-outer-spin-button,
@@ -1669,19 +1683,29 @@ function KitDetail({ gc, isSignedIn, favourites, buildProgress, pageProgress, to
                     <div className="xp-manual-name">{m.name}</div>
                     <div className="xp-input-row">
                       <span className="xp-input-label">CURRENT PAGE</span>
-                      <input
-                        className="xp-input"
-                        type="number"
-                        min="0"
-                        max={total || 9999}
-                        value={current || ""}
-                        placeholder="0"
-                        onChange={e => {
-                          const val = Math.max(0, parseInt(e.target.value) || 0);
-                          const clamped = total ? Math.min(val, total) : val;
-                          setManualPage(kit.id, m.id, clamped, total || clamped);
-                        }}
-                      />
+                      <div className="xp-stepper">
+                        <button className="xp-step-btn minus" onClick={() => {
+                          const next = Math.max(0, current - 1);
+                          setManualPage(kit.id, m.id, next, total || next);
+                        }}>−</button>
+                        <input
+                          className="xp-input"
+                          type="number"
+                          min="0"
+                          max={total || 9999}
+                          value={current || ""}
+                          placeholder="0"
+                          onChange={e => {
+                            const val = Math.max(0, parseInt(e.target.value) || 0);
+                            const clamped = total ? Math.min(val, total) : val;
+                            setManualPage(kit.id, m.id, clamped, total || clamped);
+                          }}
+                        />
+                        <button className="xp-step-btn plus" onClick={() => {
+                          const next = total ? Math.min(current + 1, total) : current + 1;
+                          setManualPage(kit.id, m.id, next, total || next);
+                        }}>+</button>
+                      </div>
                       <span className="xp-total">
                         / {isLoading ? <span style={{opacity:0.4}}>loading...</span> : `${total} PGS`}
                       </span>
