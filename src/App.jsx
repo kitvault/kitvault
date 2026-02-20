@@ -1237,6 +1237,132 @@ const styles = `
     .stat { padding: 8px 12px; }
     .stat-num { font-size: 1.1rem; }
   }
+
+  /* TOOLS PAGE */
+  .tools-page { padding: 0 40px 60px; }
+
+  .tools-intro-block {
+    background: var(--panel); border: 1px solid var(--border);
+    padding: 28px 32px; margin-bottom: 32px;
+    clip-path: polygon(0 0, 99% 0, 100% 3%, 100% 100%, 1% 100%, 0 97%);
+    position: relative;
+  }
+  .tools-intro-block::before {
+    content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+    background: var(--accent); opacity: 0.7;
+  }
+  .tools-intro-text {
+    font-family: 'Rajdhani', sans-serif; font-size: 1.05rem;
+    color: var(--text); line-height: 1.8; margin-bottom: 20px;
+  }
+  .tools-intro-tip {
+    background: rgba(0,170,255,0.05); border: 1px solid rgba(0,170,255,0.2);
+    padding: 16px 20px; display: flex; flex-direction: column; gap: 6px;
+    font-family: 'Rajdhani', sans-serif; font-size: 0.95rem;
+    color: var(--text-dim); line-height: 1.7;
+  }
+  .tools-tip-label {
+    font-family: 'Share Tech Mono', monospace; font-size: 0.6rem;
+    color: var(--accent); letter-spacing: 3px;
+  }
+
+  .tools-section-title {
+    font-family: 'Orbitron', monospace; font-size: 0.8rem; font-weight: 700;
+    color: var(--accent); letter-spacing: 3px; margin-bottom: 20px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .tools-section-title::after { content:''; flex:1; height:1px; background: linear-gradient(90deg, var(--border), transparent); }
+
+  .tools-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px; margin-bottom: 28px;
+  }
+
+  .tool-card {
+    background: var(--panel); border: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    clip-path: polygon(0 0, 96% 0, 100% 4%, 100% 100%, 4% 100%, 0 96%);
+    position: relative; overflow: hidden;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+  .tool-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: var(--tc, var(--accent)); opacity: 0.8;
+  }
+  .tool-card:hover { border-color: var(--tc, var(--accent)); transform: translateY(-3px); box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
+
+  .tool-card-tier-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 20px; border-bottom: 1px solid var(--border);
+    background: rgba(0,0,0,0.2);
+  }
+  .tool-card-tier {
+    font-family: 'Orbitron', monospace; font-size: 0.65rem; font-weight: 700;
+    color: var(--tc, var(--accent)); letter-spacing: 3px;
+  }
+  .tool-card-price {
+    font-family: 'Share Tech Mono', monospace; font-size: 0.75rem;
+    color: var(--text-bright); letter-spacing: 1px;
+  }
+
+  .tool-card-body { padding: 20px; flex: 1; display: flex; flex-direction: column; gap: 10px; }
+  .tool-card-brand {
+    font-family: 'Share Tech Mono', monospace; font-size: 0.6rem;
+    color: var(--tc, var(--accent)); letter-spacing: 3px; opacity: 0.8;
+  }
+  .tool-card-name {
+    font-family: 'Rajdhani', sans-serif; font-size: 1.15rem; font-weight: 700;
+    color: var(--text-bright); line-height: 1.3;
+  }
+  .tool-card-desc {
+    font-family: 'Rajdhani', sans-serif; font-size: 0.95rem;
+    color: var(--text); line-height: 1.7; flex: 1;
+  }
+  .tool-card-best-for {
+    display: flex; align-items: center; gap: 10px; margin-top: 4px;
+    padding-top: 12px; border-top: 1px solid var(--border);
+  }
+  .tool-best-label {
+    font-family: 'Share Tech Mono', monospace; font-size: 0.55rem;
+    color: var(--text-dim); letter-spacing: 2px; white-space: nowrap;
+  }
+  .tool-best-val {
+    font-family: 'Share Tech Mono', monospace; font-size: 0.6rem;
+    color: var(--tc, var(--accent)); letter-spacing: 1px;
+  }
+
+  .tool-card-footer {
+    padding: 14px 20px; border-top: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; flex-wrap: wrap;
+  }
+  .tool-badge {
+    font-family: 'Share Tech Mono', monospace; font-size: 0.55rem;
+    letter-spacing: 1.5px; border: 1px solid; padding: 4px 10px;
+    white-space: nowrap;
+  }
+  .tool-amazon-btn {
+    background: rgba(255,153,0,0.1); border: 1px solid rgba(255,153,0,0.5);
+    color: #ff9900; font-family: 'Share Tech Mono', monospace;
+    font-size: 0.62rem; padding: 8px 14px; cursor: pointer;
+    letter-spacing: 1px; transition: all 0.2s; text-decoration: none;
+    white-space: nowrap;
+    clip-path: polygon(0 0, 90% 0, 100% 30%, 100% 100%, 10% 100%, 0 70%);
+  }
+  .tool-amazon-btn:hover { background: rgba(255,153,0,0.22); box-shadow: 0 0 14px rgba(255,153,0,0.3); }
+
+  .tools-affiliate-note {
+    font-family: 'Share Tech Mono', monospace; font-size: 0.6rem;
+    color: var(--text-dim); letter-spacing: 0.5px; line-height: 1.8;
+    border-top: 1px solid var(--border); padding-top: 20px; opacity: 0.7;
+  }
+
+  @media (max-width: 640px) {
+    .tools-page { padding: 0 16px 40px; }
+    .tools-intro-block { padding: 20px; clip-path: none; }
+    .tools-grid { grid-template-columns: 1fr; }
+    .tool-card { clip-path: none; }
+  }
 `;
 
 // ─────────────────────────────────────────────────────────────
@@ -3166,19 +3292,19 @@ export default function KitVault() {
                 <div className="nav-dropdown">
                   <div className="nav-dropdown-header">◈ HOBBY TOOLS</div>
                   {[
-                    {icon:"✂️", label:"Nippers", sub:"Side cutters for clean gate removal — the most essential Gunpla tool"},
-                    {icon:"🔧", label:"Panel Line Markers", sub:"Gundam markers & enamel washes for detail lines"},
-                    {icon:"📐", label:"Scribers & Chisels", sub:"For adding custom panel lines and surface detail"},
-                    {icon:"🪵", label:"Sanding Sticks", sub:"400→1000→2000 grit for seamline removal & gate cleanup"},
-                    {icon:"🎨", label:"Paints & Primers", sub:"Mr. Color, Citadel, Vallejo — airbrushing & hand painting"},
-                    {icon:"💨", label:"Airbrushes", sub:"Iwata, Badger, GSI Creos — recommended starter setups"},
-                    {icon:"🧴", label:"Top Coats", sub:"Gloss, semi-gloss, matte — protecting & unifying your finish"},
-                    {icon:"🪚", label:"Hobby Knives", sub:"Olfa & X-Acto knives for cleanup and minor modifications"},
+                    {icon:"✂️", label:"Nippers", sub:"Side cutters for clean gate removal — the most essential Gunpla tool", route:"/tools/nippers"},
+                    {icon:"🔧", label:"Panel Line Markers", sub:"Gundam markers & enamel washes for detail lines", route:null},
+                    {icon:"📐", label:"Scribers & Chisels", sub:"For adding custom panel lines and surface detail", route:null},
+                    {icon:"🪵", label:"Sanding Sticks", sub:"400→1000→2000 grit for seamline removal & gate cleanup", route:null},
+                    {icon:"🎨", label:"Paints & Primers", sub:"Mr. Color, Citadel, Vallejo — airbrushing & hand painting", route:null},
+                    {icon:"💨", label:"Airbrushes", sub:"Iwata, Badger, GSI Creos — recommended starter setups", route:null},
+                    {icon:"🧴", label:"Top Coats", sub:"Gloss, semi-gloss, matte — protecting & unifying your finish", route:null},
+                    {icon:"🪚", label:"Hobby Knives", sub:"Olfa & X-Acto knives for cleanup and minor modifications", route:null},
                   ].map(item => (
-                    <div key={item.label} className="nav-dd-item" onClick={closeNav}>
+                    <div key={item.label} className="nav-dd-item" onClick={() => { closeNav(); if(item.route) navigate(item.route); }}>
                       <span className="nav-dd-icon">{item.icon}</span>
                       <span className="nav-dd-text">
-                        <span className="nav-dd-label">{item.label}</span>
+                        <span className="nav-dd-label">{item.label}{!item.route && <span style={{fontFamily:"'Share Tech Mono',monospace",fontSize:"0.5rem",color:"var(--text-dim)",marginLeft:8,letterSpacing:1}}>SOON</span>}</span>
                         <span className="nav-dd-sub">{item.sub}</span>
                       </span>
                     </div>
@@ -3509,8 +3635,6 @@ export default function KitVault() {
                     {[
                       { icon:"🛒", label:"Hobbylink Japan (HLJ)", sub:"The go-to import retailer. Widest selection of kits at Japanese retail prices, ships worldwide. Great for pre-orders and hard-to-find kits.", tag:"IMPORT", href:"https://www.hlj.com", color:"#ff2244" },
                       { icon:"🛒", label:"Gundam Planet", sub:"US-based Gunpla specialist with fast domestic shipping. Good stock on current HG and MG releases, no import wait times.", tag:"US", href:"https://www.gundamplanet.com", color:"#00aaff" },
-                      { icon:"🛒", label:"Nin-Nin Game", sub:"French-based import store with competitive pricing and reliable worldwide shipping. A strong alternative to HLJ, especially for EU builders.", tag:"IMPORT", href:"https://www.nin-nin-game.com", color:"#aa88ff" },
-                      { icon:"🛒", label:"AmiAmi", sub:"Japanese marketplace with new and pre-owned kits at excellent prices. Pre-owned section is fantastic for older or discontinued releases.", tag:"IMPORT", href:"https://www.amiami.com", color:"#00ffcc" },
                     ].map(r => (
                       <a key={r.label} className="resource-card" href={r.href} target="_blank" rel="noopener noreferrer" style={{"--rc-color": r.color}}>
                         <span className="resource-card-icon">{r.icon}</span>
@@ -3597,6 +3721,113 @@ export default function KitVault() {
                   <p>KitVault.io operates under the belief that hosting assembly manuals for kits that hobbyists have legitimately purchased constitutes fair use. We do not sell, redistribute for profit, or claim ownership over any Bandai intellectual property.</p>
                   <p>Our intent is to make the hobby more accessible — especially for international builders who may have received kits with manuals in a language they cannot read, or who have lost their original instruction sheets.</p>
                 </div>
+              </div>
+            </>
+          } />
+
+          {/* ===== NIPPERS PAGE ===== */}
+          <Route path="/tools/nippers" element={
+            <>
+              <div className="page-hero">
+                <div className="page-tag">◈ HOBBY TOOLS</div>
+                <div className="page-title">NIPPERS</div>
+                <div className="page-sub">THE MOST ESSENTIAL TOOL IN YOUR GUNPLA KIT</div>
+              </div>
+
+              <div className="tools-page">
+
+                {/* INTRO BLOCK */}
+                <div className="tools-intro-block">
+                  <div className="tools-intro-text">
+                    Nippers are the single most important tool a Gunpla builder can own. A good pair cuts cleanly through plastic runners without stressing or whitening the surrounding material — protecting your kit's finish before you've even picked up a panel liner. Cheap nippers crush and crack; quality nippers slice. The difference is immediately visible on your finished build.
+                  </div>
+                  <div className="tools-intro-tip">
+                    <span className="tools-tip-label">◈ PRO TIP</span>
+                    Always cut twice — first cut 1–2mm from the part to remove bulk, then a second precise cut flush to the gate. This prevents gate stress marks and white scarring on the plastic.
+                  </div>
+                </div>
+
+                {/* PRICE TIER HEADER */}
+                <div className="tools-section-title">◈ RECOMMENDED NIPPERS BY PRICE</div>
+
+                <div className="tools-grid">
+
+                  {/* BUDGET */}
+                  {[
+                    {
+                      tier: "BUDGET",
+                      tierColor: "#00ffcc",
+                      price: "~$15–20",
+                      name: "RUITOOL 4.7\" Single-Edge Model Nippers",
+                      brand: "RUITOOL",
+                      desc: "An outstanding budget nipper that punches well above its price. The ultra-thin single-edge blade delivers clean, stress-free cuts with minimal gate marks — builders consistently compare it to nippers costing three times the price. Comes with a blade cover and hard carrying case. Lifetime guarantee included.",
+                      bestFor: "Beginners · HG · EG · SD",
+                      asin: "B0BVH9KCF7",
+                      badge: "BEST VALUE",
+                      badgeColor: "#00ffcc",
+                    },
+                    {
+                      tier: "MID-RANGE",
+                      tierColor: "#00aaff",
+                      price: "~$25–40",
+                      name: "God Hand Single Blade Nipper SPN-120",
+                      brand: "GOD HAND",
+                      desc: "The community favourite mid-range nipper. Single-blade design applies cutting force from one side only, virtually eliminating gate stress marks. A massive upgrade in cut quality over standard nippers — the finish is noticeably cleaner.",
+                      bestFor: "Intermediate · HG · RG · MG",
+                      asin: "B00IAPJEXS",
+                      badge: "COMMUNITY PICK",
+                      badgeColor: "#00aaff",
+                    },
+                    {
+                      tier: "PREMIUM",
+                      tierColor: "#ffcc00",
+                      price: "~$60–70",
+                      name: "GodHand Ultimate Nipper 5.0",
+                      brand: "GODHAND",
+                      desc: "The gold standard of Gunpla nippers. Ultra-thin blade cuts with almost no pressure — leaving gate surfaces so clean they often need no sanding at all. Fragile compared to budget options (don't cut metal or thick sprue with these), but the results speak for themselves.",
+                      bestFor: "Advanced · RG · MG · PG",
+                      asin: "B01MUGEO9X",
+                      badge: "GOLD STANDARD",
+                      badgeColor: "#ffcc00",
+                    },
+                  ].map(item => (
+                    <div className="tool-card" key={item.name} style={{"--tc": item.tierColor}}>
+                      <div className="tool-card-tier-bar">
+                        <span className="tool-card-tier">{item.tier}</span>
+                        <span className="tool-card-price">{item.price}</span>
+                      </div>
+                      <div className="tool-card-body">
+                        <div className="tool-card-brand">{item.brand}</div>
+                        <div className="tool-card-name">{item.name}</div>
+                        <div className="tool-card-desc">{item.desc}</div>
+                        <div className="tool-card-best-for">
+                          <span className="tool-best-label">BEST FOR</span>
+                          <span className="tool-best-val">{item.bestFor}</span>
+                        </div>
+                      </div>
+                      <div className="tool-card-footer">
+                        <span className="tool-badge" style={{borderColor: item.badgeColor, color: item.badgeColor}}>
+                          ★ {item.badge}
+                        </span>
+                        <a
+                          className="tool-amazon-btn"
+                          href={`https://www.amazon.com/dp/${item.asin}?tag=kitvault-20`}
+                          target="_blank"
+                          rel="noopener noreferrer sponsored"
+                        >
+                          VIEW ON AMAZON →
+                        </a>
+                      </div>
+                    </div>
+                  ))}
+
+                </div>
+
+                {/* AFFILIATE DISCLAIMER */}
+                <div className="tools-affiliate-note">
+                  ★ KitVault.io participates in the Amazon Associates program. Links above are affiliate links — we earn a small commission at no extra cost to you. This helps keep the site free.
+                </div>
+
               </div>
             </>
           } />
