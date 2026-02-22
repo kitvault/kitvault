@@ -1,0 +1,58 @@
+# ─────────────────────────────────────────────────────────────
+# wrangler.toml — KitVault.io Cloudflare Worker config
+#
+# SETUP STEPS:
+#   1. Replace YOUR_D1_DATABASE_ID with your actual D1 database ID
+#      (find it in Cloudflare dashboard → D1 → your database)
+#   2. Replace YOUR_R2_BUCKET_NAME with your actual R2 bucket name
+#   3. Replace YOUR_ACCOUNT_ID with your Cloudflare account ID
+#   4. Set your ADMIN_KEY secret by running:
+#        npx wrangler secret put ADMIN_KEY
+#      (then type a strong password — this protects your upload endpoint)
+#   5. Deploy with:
+#        npx wrangler deploy
+# ─────────────────────────────────────────────────────────────
+
+name       = "kitvault-worker"
+main       = "index.js"
+account_id = "03a5a44ce98f15340bc87ae3cb572b15"
+compatibility_date = "2024-01-01"
+
+# ── D1 Database binding ───────────────────────────────────────
+# This is the same D1 database used for user progress sync.
+# If you don't have one yet:
+#   npx wrangler d1 create kitvault-db
+# Then paste the database_id from the output below.
+[[d1_databases]]
+binding     = "DB"
+database_name = "kitvault-db"
+database_id = "e460635d-0a16-43f0-8823-b6640eef100b"
+
+# ── R2 Bucket binding ─────────────────────────────────────────
+# This should be the same bucket your PDFs are already hosted in.
+# If you don't have one yet:
+#   npx wrangler r2 bucket create kitvault-pdfs
+[[r2_buckets]]
+binding     = "BUCKET"
+bucket_name = "kitvault-manuals"
+
+# ── R2 Event Notifications → Worker Queue ─────────────────────
+# This makes the Worker fire automatically when a PDF is uploaded
+# directly via the Cloudflare dashboard (not via the upload API).
+#
+# To enable this after deploying:
+#   1. Go to Cloudflare dashboard → R2 → your bucket → Settings
+#   2. Under "Event notifications", add a notification:
+#        Event type: Object Created (put)
+#        Queue:      kitvault-r2-events
+#   3. Then create the queue:
+#        npx wrangler queues create kitvault-r2-events
+[[queues.consumers]]
+queue = "kitvault-r2-events"
+max_batch_size    = 10
+max_batch_timeout = 5
+
+# ── Secrets (do NOT put actual values here) ───────────────────
+# Set via:  npx wrangler secret put ADMIN_KEY
+# [vars]
+# ADMIN_KEY is a secret — set it with wrangler secret, not here
