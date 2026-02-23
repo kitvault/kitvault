@@ -10,7 +10,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { R2, AMAZON_URLS, GRADE_COLORS, loadPdfJs } from "../data/grades.js";
-import { findKitBySlug, xpColors } from "../data/grades.js";
+import { slugify, xpColors } from "../data/grades.js";
 import PdfFullscreenModal from "./PdfFullscreenModal.jsx";
 
 const gc = (g) => GRADE_COLORS[g] || GRADE_COLORS["HG"];
@@ -185,6 +185,7 @@ function PdfViewer({ url, onPageCount }) {
 // KitDetail — main export
 // ─────────────────────────────────────────────────────────────
 export default function KitDetail({
+  allKits,
   isSignedIn,
   favourites,
   buildProgress,
@@ -199,7 +200,7 @@ export default function KitDetail({
 }) {
   const { slug } = useParams();
   const navigate = useNavigate();
-  const kit = findKitBySlug(slug);
+  const kit = allKits.find(k => slugify(k.name) === slug);
 
   const [realPages,        setRealPages]        = useState({});
   const [fullscreenManual, setFullscreenManual] = useState(null);
@@ -216,7 +217,7 @@ export default function KitDetail({
     }
     try {
       const lib = await loadPdfJs();
-      const doc = await lib.getDocument(`${R2}/${manual.url}`).promise;
+      const doc = await lib.getDocument(manual.url.startsWith("http") ? manual.url : `${R2}/${manual.url}`).promise;
       const count = doc.numPages;
       localStorage.setItem(cacheKey, String(count));
       setRealPages(prev => ({ ...prev, [manual.id]: count }));
@@ -437,7 +438,7 @@ export default function KitDetail({
                     // This avoids loading all PDFs on page load.
                     openManualId === manual.id && (
                       <PdfViewer
-                        url={`${R2}/${manual.url}`}
+                        url={manual.url.startsWith("http") ? manual.url : `${R2}/${manual.url}`}
                         onPageCount={count => {
                           const cacheKey = `kv_pdfpages_${manual.id}`;
                           localStorage.setItem(cacheKey, String(count));

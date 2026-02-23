@@ -297,10 +297,10 @@ function PdfViewer({ url, onPageCount }) {
 // ─────────────────────────────────────────────────────────────
 // KIT DETAIL PAGE
 // ─────────────────────────────────────────────────────────────
-function KitDetail({ gc, isSignedIn, favourites, buildProgress, pageProgress, toggleFavourite, setBuildStatus, setManualPage, openManualId, toggleManual, setOpenManualId, goHome }) {
+function KitDetail({ allKits, gc, isSignedIn, favourites, buildProgress, pageProgress, toggleFavourite, setBuildStatus, setManualPage, openManualId, toggleManual, setOpenManualId, goHome }) {
   const { slug } = useParams();
   const navigate = useNavigate();
-  const kit = findKitBySlug(slug);
+  const kit = allKits.find(k => slugify(k.name) === slug);
 
   // Real page counts fetched from actual PDF via pdfjs
   const [realPages, setRealPages] = useState({});
@@ -317,7 +317,7 @@ function KitDetail({ gc, isSignedIn, favourites, buildProgress, pageProgress, to
     }
     try {
       const lib = await loadPdfJs();
-      const pdf = await lib.getDocument({ url: `${R2}/${manual.url}`, withCredentials: false }).promise;
+      const pdf = await lib.getDocument({ url: manual.url.startsWith("http") ? manual.url : `${R2}/${manual.url}`, withCredentials: false }).promise;
       const count = pdf.numPages;
       localStorage.setItem(cacheKey, String(count));
       setRealPages(prev => ({ ...prev, [manual.id]: count }));
@@ -532,7 +532,7 @@ function KitDetail({ gc, isSignedIn, favourites, buildProgress, pageProgress, to
                   {manual.url ? (
                     openManualId === manual.id && (
                       <PdfViewer
-                        url={`${R2}/${manual.url}`}
+                        url={manual.url.startsWith("http") ? manual.url : `${R2}/${manual.url}`}
                         onPageCount={count => {
                           const cacheKey = `kv_pdfpages_${manual.id}`;
                           localStorage.setItem(cacheKey, String(count));
@@ -606,7 +606,7 @@ function KitDetail({ gc, isSignedIn, favourites, buildProgress, pageProgress, to
 // PDF FULLSCREEN MODAL
 // ─────────────────────────────────────────────────────────────
 function PdfFullscreenModal({ manual, onClose }) {
-  const pdfUrl = `${R2}/${manual.url}`;
+  const pdfUrl = manual.url.startsWith("http") ? manual.url : `${R2}/${manual.url}`;
   const [pdf, setPdf] = useState(null);
   const [numPages, setNumPages] = useState(0);
   const [progress, setProgress] = useState(0);
@@ -1060,7 +1060,7 @@ export default function KitVault() {
           } />
 
           {/* ===== KIT DETAIL PAGE ===== */}
-          <Route path="/kit/:slug" element={<KitDetail gc={gc} isSignedIn={isSignedIn} favourites={favourites} buildProgress={buildProgress} pageProgress={pageProgress} toggleFavourite={toggleFavourite} setBuildStatus={setBuildStatus} setManualPage={setManualPage} openManualId={openManualId} toggleManual={toggleManual} setOpenManualId={setOpenManualId} goHome={goHome} />} />
+          <Route path="/kit/:slug" element={<KitDetail allKits={allKits} gc={gc} isSignedIn={isSignedIn} favourites={favourites} buildProgress={buildProgress} pageProgress={pageProgress} toggleFavourite={toggleFavourite} setBuildStatus={setBuildStatus} setManualPage={setManualPage} openManualId={openManualId} toggleManual={toggleManual} setOpenManualId={setOpenManualId} goHome={goHome} />} />
 
           {/* ===== MY VAULT PAGE ===== */}
           <Route path="/vault" element={
