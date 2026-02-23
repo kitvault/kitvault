@@ -15,43 +15,36 @@ export const VERSION = "v1.0.0";
 
 // ─────────────────────────────────────────────────────────────
 // PDF.JS LOADER
-// Loads PDF.js via a <script> tag (NOT ESM dynamic import —
-// Vite blocks cross-origin ESM imports at runtime).
-// Returns the pdfjsLib global. Safe to call multiple times.
+// Uses pdfjs-dist npm package — no CDN, no script injection,
+// works on iOS Safari. Run: npm install pdfjs-dist
+//
+// The worker is pointed at the pre-built worker file that
+// Vite copies into the build output automatically.
 // ─────────────────────────────────────────────────────────────
-const PDFJS_SRC  = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
-const PDFJS_WORKER = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+let _pdfjsLib = null;
 
-let _pdfJsPromise = null;
+export async function loadPdfJs() {
+  if (_pdfjsLib) return _pdfjsLib;
 
-export function loadPdfJs() {
-  if (_pdfJsPromise) return _pdfJsPromise;
-  _pdfJsPromise = new Promise((resolve, reject) => {
-    if (window.pdfjsLib) {
-      window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_WORKER;
-      resolve(window.pdfjsLib);
-      return;
-    }
-    const script = document.createElement("script");
-    script.src = PDFJS_SRC;
-    script.onload = () => {
-      window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_WORKER;
-      resolve(window.pdfjsLib);
-    };
-    script.onerror = () => reject(new Error("Failed to load PDF.js from CDN"));
-    document.head.appendChild(script);
-  });
-  return _pdfJsPromise;
+  // Import from npm package — Vite bundles this properly
+  const pdfjsLib = await import("pdfjs-dist");
+
+  // Point the worker at the pre-built worker bundled with pdfjs-dist
+  // Vite will copy this file to /assets/ during build
+  pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+    "pdfjs-dist/build/pdf.worker.min.mjs",
+    import.meta.url
+  ).href;
+
+  _pdfjsLib = pdfjsLib;
+  return _pdfjsLib;
 }
 
 // ─────────────────────────────────────────────────────────────
 // AMAZON AFFILIATE URLS
-// Paste your URLs here as "kitId": "url" pairs.
 // ─────────────────────────────────────────────────────────────
 export const AMAZON_URLS = {
-  // PASTE YOUR JSON HERE (example format):
   // "1": "https://www.amazon.com/dp/XXXXXXX?tag=yourtag-20",
-  // "2": "https://www.amazon.com/dp/XXXXXXX?tag=yourtag-20",
 };
 
 export const GRADE_COLORS = {
@@ -65,7 +58,6 @@ export const GRADE_COLORS = {
 
 export const GRADES = ["ALL", "HG", "MG", "RG", "PG", "SD", "EG"];
 
-// Convert kit to URL slug: "EG 1/144 RX-78-2 Gundam" → "eg-144-rx78-2-gundam"
 export const slugify = (kit) =>
   `${kit.grade}-${kit.scale}-${kit.name}`
     .toLowerCase()
@@ -76,16 +68,11 @@ export const slugify = (kit) =>
 
 export const findKitBySlug = (slug) => KITS.find(k => slugify(k) === slug);
 
-// ─────────────────────────────────────────────────────────────
-// XP COLORS: maps a progress % to CSS custom properties
-// Used by kit cards, vault cards, and the kit detail XP bar.
-// ─────────────────────────────────────────────────────────────
 export const xpColors = (pct) => {
   if (pct >= 100) return { "--xp-start":"#00cc66", "--xp-end":"#00ffcc", "--xp-glow":"rgba(0,255,136,0.7)", "--xp-color":"#00ff88" };
   if (pct >= 50)  return { "--xp-start":"#cc8800", "--xp-end":"#ffcc00", "--xp-glow":"rgba(255,204,0,0.6)",  "--xp-color":"#ffcc00" };
   return                 { "--xp-start":"#1a4aff", "--xp-end":"#00aaff", "--xp-glow":"rgba(0,170,255,0.6)", "--xp-color":"#00aaff" };
 };
-
 
 export const GRADE_DATA = {
   eg: {
@@ -165,12 +152,12 @@ export const GRADE_DATA = {
 export const GRADE_ORDER = ["eg", "hg", "rg", "mg", "pg", "sd"];
 
 export const TOOL_ORDER = [
-  { route: "/tools/nippers",           label: "Nippers",            color: "#00ffcc" },
-  { route: "/tools/panel-line-markers",label: "Panel Line Markers", color: "#00aaff" },
-  { route: "/tools/scribers",          label: "Scribers & Chisels", color: "#ff6600" },
-  { route: "/tools/sanding",           label: "Sanding Sticks",     color: "#ffcc00" },
-  { route: "/tools/paints",            label: "Paints & Primers",   color: "#ff2244" },
-  { route: "/tools/airbrushes",        label: "Airbrushes",         color: "#aa88ff" },
-  { route: "/tools/top-coats",         label: "Top Coats",          color: "#00ffcc" },
-  { route: "/tools/hobby-knives",      label: "Hobby Knives",       color: "#ff9900" },
+  { route: "/tools/nippers",            label: "Nippers",            color: "#00ffcc" },
+  { route: "/tools/panel-line-markers", label: "Panel Line Markers", color: "#00aaff" },
+  { route: "/tools/scribers",           label: "Scribers & Chisels", color: "#ff6600" },
+  { route: "/tools/sanding",            label: "Sanding Sticks",     color: "#ffcc00" },
+  { route: "/tools/paints",             label: "Paints & Primers",   color: "#ff2244" },
+  { route: "/tools/airbrushes",         label: "Airbrushes",         color: "#aa88ff" },
+  { route: "/tools/top-coats",          label: "Top Coats",          color: "#00ffcc" },
+  { route: "/tools/hobby-knives",       label: "Hobby Knives",       color: "#ff9900" },
 ];

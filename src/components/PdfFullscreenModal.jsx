@@ -1,8 +1,7 @@
 // ─────────────────────────────────────────────────────────────
 // PdfFullscreenModal.jsx
 // Fullscreen PDF viewer — renders all pages via PDF.js canvases.
-// Uses the shared loadPdfJs() loader from grades.js so the
-// script tag is only ever added to the DOM once.
+// Uses the shared loadPdfJs() from grades.js (pdfjs-dist npm pkg).
 // ─────────────────────────────────────────────────────────────
 import { useEffect, useRef, useState } from "react";
 import { R2, loadPdfJs } from "../data/grades.js";
@@ -60,7 +59,7 @@ export default function PdfFullscreenModal({ manual, onClose }) {
   const [pdf,      setPdf]      = useState(null);
   const [numPages, setNumPages] = useState(0);
   const [progress, setProgress] = useState(0);
-  const [status,   setStatus]   = useState("loading"); // loading | ready | error
+  const [status,   setStatus]   = useState("loading");
   const [errMsg,   setErrMsg]   = useState("");
   const containerRef = useRef(null);
   const [width, setWidth] = useState(0);
@@ -99,7 +98,7 @@ export default function PdfFullscreenModal({ manual, onClose }) {
         if (dead) return;
         setErrMsg(e?.message || "Failed to load PDF");
         setStatus("error");
-        console.error("PdfFullscreenModal load error:", e);
+        console.error("PdfFullscreenModal error:", e);
       }
     })();
 
@@ -125,7 +124,7 @@ export default function PdfFullscreenModal({ manual, onClose }) {
       position: "fixed", inset: 0, zIndex: 9999,
       display: "flex", flexDirection: "column", background: "#0a0a0f",
     }}>
-      {/* ── Header ── */}
+      {/* Header */}
       <div
         className="pdf-fullscreen-header"
         style={{ flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "8px" }}
@@ -140,10 +139,7 @@ export default function PdfFullscreenModal({ manual, onClose }) {
         </span>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <a
-            href={pdfUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            download
+            href={pdfUrl} target="_blank" rel="noopener noreferrer" download
             style={{
               fontFamily: "'Share Tech Mono',monospace", fontSize: "0.65rem",
               letterSpacing: "1px", color: "var(--accent,#00aaff)",
@@ -157,19 +153,14 @@ export default function PdfFullscreenModal({ manual, onClose }) {
         </div>
       </div>
 
-      {/* ── Scrollable canvas area ── */}
+      {/* Scrollable canvas area */}
       <div
         ref={containerRef}
         style={{
-          flex: 1,
-          overflowY: "scroll",
-          overflowX: "hidden",
-          WebkitOverflowScrolling: "touch",
-          padding: "12px",
-          boxSizing: "border-box",
+          flex: 1, overflowY: "scroll", overflowX: "hidden",
+          WebkitOverflowScrolling: "touch", padding: "12px", boxSizing: "border-box",
         }}
       >
-        {/* Loading */}
         {status === "loading" && (
           <div style={{
             display: "flex", flexDirection: "column", alignItems: "center",
@@ -184,7 +175,6 @@ export default function PdfFullscreenModal({ manual, onClose }) {
           </div>
         )}
 
-        {/* Error */}
         {status === "error" && (
           <div style={{
             display: "flex", flexDirection: "column", alignItems: "center",
@@ -195,8 +185,7 @@ export default function PdfFullscreenModal({ manual, onClose }) {
             <div style={{ fontSize: "2.5rem" }}>⚠</div>
             <div style={{ fontSize: "0.8rem", letterSpacing: "2px" }}>FAILED TO LOAD PDF</div>
             <div style={{ fontSize: "0.65rem", color: "#555", maxWidth: "300px" }}>{errMsg}</div>
-            <a
-              href={pdfUrl} target="_blank" rel="noopener noreferrer"
+            <a href={pdfUrl} target="_blank" rel="noopener noreferrer"
               style={{
                 color: "var(--accent,#00aaff)", fontSize: "0.75rem", letterSpacing: "1px",
                 border: "1px solid var(--accent,#00aaff)", padding: "10px 24px",
@@ -205,15 +194,9 @@ export default function PdfFullscreenModal({ manual, onClose }) {
             >
               ↗ OPEN IN BROWSER
             </a>
-            <div style={{ fontSize: "0.6rem", color: "#444", maxWidth: "280px" }}>
-              If this keeps failing, CORS may not be enabled on your R2 bucket.
-              Go to Cloudflare → R2 → your bucket → Settings → CORS Policy
-              and allow GET requests from https://kitvault.io
-            </div>
           </div>
         )}
 
-        {/* All pages as canvases */}
         {status === "ready" && pdf && width > 0 &&
           Array.from({ length: numPages }, (_, i) => (
             <PdfPage key={i + 1} pdf={pdf} pageNum={i + 1} width={width} />

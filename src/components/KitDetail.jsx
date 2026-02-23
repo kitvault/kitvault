@@ -3,9 +3,9 @@
 // Full kit detail page including manual viewer, build status,
 // XP progress bar, and Amazon affiliate banner.
 //
-// PDF rendering: uses PDF.js (loaded via <script> tag, not ESM
-// dynamic import) to render every page as a <canvas> element.
-// This works on iOS Safari, Android, and all desktop browsers.
+// PDF rendering: uses PDF.js (via pdfjs-dist npm package) to
+// render every page as a <canvas> element. Works on iOS Safari,
+// Android, and all desktop browsers. Run: npm install pdfjs-dist
 // ─────────────────────────────────────────────────────────────
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
@@ -168,9 +168,6 @@ function PdfViewer({ url, onPageCount }) {
           >
             ↗ OPEN PDF IN BROWSER
           </a>
-          <div style={{ fontSize: "0.58rem", color: "#444", maxWidth: "260px" }}>
-            If this keeps failing, CORS may not be enabled on your R2 bucket.
-          </div>
         </div>
       )}
 
@@ -204,9 +201,9 @@ export default function KitDetail({
   const navigate = useNavigate();
   const kit = findKitBySlug(slug);
 
-  const [realPages,       setRealPages]       = useState({});
-  const [fullscreenManual,setFullscreenManual] = useState(null);
-  const [dlNotifyId,      setDlNotifyId]       = useState(null);
+  const [realPages,        setRealPages]        = useState({});
+  const [fullscreenManual, setFullscreenManual] = useState(null);
+  const [dlNotifyId,       setDlNotifyId]       = useState(null);
 
   // Fetch real page count via PDF.js and cache in localStorage
   const fetchRealPages = async (manual) => {
@@ -436,12 +433,8 @@ export default function KitDetail({
 
                 <div className="pdf-frame-wrap">
                   {manual.url ? (
-                    /*
-                     * PDF.js canvas renderer — replaces the old <iframe>.
-                     * Renders ALL pages. Works on iOS, Android, and desktop.
-                     * Only mounts when the dropdown is actually open so we
-                     * don't load PDFs until the user requests them.
-                     */
+                    // Only mount PdfViewer when this dropdown is actually open.
+                    // This avoids loading all PDFs on page load.
                     openManualId === manual.id && (
                       <PdfViewer
                         url={`${R2}/${manual.url}`}
