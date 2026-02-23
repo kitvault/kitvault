@@ -21,6 +21,8 @@ import {
   TOOL_ORDER, loadPdfJs,
 } from "./data/grades.js";
 
+import AdminUpload from "./components/AdminUpload.jsx";
+
 // ─────────────────────────────────────────────────────────────
 // DEBOUNCE HOOK
 // ─────────────────────────────────────────────────────────────
@@ -741,6 +743,19 @@ export default function KitVault() {
     try { return JSON.parse(localStorage.getItem("kv_pages") || "{}"); } catch { return {}; }
   });
 
+  // ── D1 kits — merged with static list ────────────────────
+  const [d1Kits, setD1Kits] = useState([]);
+  useEffect(() => {
+    fetch("/api/kits")
+      .then(r => r.json())
+      .then(data => { if (Array.isArray(data)) setD1Kits(data); })
+      .catch(() => {}); // silent fallback to static list
+  }, []);
+  const allKits = useMemo(() => {
+    const d1Ids = new Set(d1Kits.map(k => k.id));
+    return [...KITS.filter(k => !d1Ids.has(k.id)), ...d1Kits];
+  }, [d1Kits]);
+
   // ── D1 sync ──────────────────────────────────────────────────
   // Saves user data to Cloudflare D1 via a Worker API endpoint.
   // Falls back to localStorage silently if the worker isn't set up yet.
@@ -822,7 +837,7 @@ export default function KitVault() {
 
 
   // Memoized — only recalculates when filter/sort state changes, not on every render
-  const filtered = useMemo(() => KITS.filter(k => {
+  const filtered = useMemo(() => allKits.filter(k => {
     const hasPdf = k.manuals.some(m => m.url);
     const matchGrade = gradeFilter === "ALL" || k.grade === gradeFilter;
     const matchSearch = k.name.toLowerCase().includes(search.toLowerCase()) || k.series.toLowerCase().includes(search.toLowerCase());
@@ -1052,7 +1067,7 @@ export default function KitVault() {
             <>
               {(() => {
                 // A kit appears in vault if: it's starred OR it has a build status set
-                const vaultKits = KITS.filter(k =>
+                const vaultKits = allKits.filter(k =>
                   favourites.includes(k.id) ||
                   buildProgress[k.id] === "inprogress" ||
                   buildProgress[k.id] === "complete" ||
@@ -1929,6 +1944,9 @@ export default function KitVault() {
             </>
           } />
 
+          {/* ── ADMIN ─────────────────────────────────────── */}
+          <Route path="/admin" element={<AdminUpload />} />
+
         </Routes>
 
         {/* SETTINGS MODAL */}
@@ -1965,11 +1983,11 @@ export default function KitVault() {
                   </div>
                   <div className="settings-info-row">
                     <span className="settings-info-key">KITS INDEXED</span>
-                    <span className="settings-info-val">{KITS.length}</span>
+                    <span className="settings-info-val">{allKits.length}</span>
                   </div>
                   <div className="settings-info-row">
                     <span className="settings-info-key">TOTAL MANUALS</span>
-                    <span className="settings-info-val">{KITS.reduce((a,k)=>a+k.manuals.length,0)}</span>
+                    <span className="settings-info-val">{allKits.reduce((a,k)=>a+k.manuals.length,0)}</span>
                   </div>
                   <div className="settings-info-row">
                     <span className="settings-info-key">DISCLAIMER</span>
