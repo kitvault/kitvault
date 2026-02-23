@@ -3,20 +3,190 @@
 // Full kit detail page including manual viewer, build status,
 // XP progress bar, and Amazon affiliate banner.
 //
-// Mobile PDF fix: replaced the touch-intercept overlay with a
-// proper two-tap pattern using pointer-events toggling so users
-// can scroll the PDF iframe on touch devices without the page
-// stealing the gesture.
+// PDF rendering: uses PDF.js (loaded via <script> tag, not ESM
+// dynamic import) to render every page as a <canvas> element.
+// This works on iOS Safari, Android, and all desktop browsers.
 // ─────────────────────────────────────────────────────────────
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { R2, AMAZON_URLS, GRADE_COLORS } from "../data/grades.js";
+import { R2, AMAZON_URLS, GRADE_COLORS, loadPdfJs } from "../data/grades.js";
 import { findKitBySlug, xpColors } from "../data/grades.js";
 import PdfFullscreenModal from "./PdfFullscreenModal.jsx";
 
-// gc is used locally — no need to pass it as a prop
 const gc = (g) => GRADE_COLORS[g] || GRADE_COLORS["HG"];
 
+// ─────────────────────────────────────────────────────────────
+// PdfPage — renders one page of a loaded PDF onto a canvas
+// ─────────────────────────────────────────────────────────────
+function PdfPage({ pdf, pageNum, width }) {
+  const canvasRef = useRef(null);
+  const taskRef   = useRef(null);
+
+  useEffect(() => {
+    if (!pdf || !width || !canvasRef.current) return;
+    let alive = true;
+
+    (async () => {
+      try {
+        if (taskRef.current) { taskRef.current.cancel(); taskRef.current = null; }
+        const page   = await pdf.getPage(pageNum);
+        if (!alive) return;
+        const baseVp = page.getViewport({ scale: 1 });
+        const vp     = page.getViewport({ scale: width / baseVp.width });
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const dpr    = window.devicePixelRatio || 1;
+        canvas.width  = Math.floor(vp.width  * dpr);
+        canvas.height = Math.floor(vp.height * dpr);
+        canvas.style.width  = `${vp.width}px`;
+        canvas.style.height = `${vp.height}px`;
+        const ctx = canvas.getContext("2d");
+        ctx.scale(dpr, dpr);
+        taskRef.current = page.render({ canvasContext: ctx, viewport: vp });
+        await taskRef.current.promise;
+      } catch (e) {
+        if (e?.name !== "RenderingCancelledException") console.warn("PDF render:", e);
+      }
+    })();
+
+    return () => {
+      alive = false;
+      if (taskRef.current) { taskRef.current.cancel(); taskRef.current = null; }
+    };
+  }, [pdf, pageNum, width]);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      style={{ display: "block", background: "#fff", marginBottom: "4px", maxWidth: "100%" }}
+    />
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// PdfViewer — loads a PDF and renders all pages as canvases
+// ─────────────────────────────────────────────────────────────
+function PdfViewer({ url, onPageCount }) {
+  const [pdf,      setPdf]      = useState(null);
+  const [numPages, setNumPages] = useState(0);
+  const [progress, setProgress] = useState(0);
+  const [status,   setStatus]   = useState("loading"); // loading | ready | error
+  const [errMsg,   setErrMsg]   = useState("");
+  const wrapRef = useRef(null);
+  const [width, setWidth] = useState(0);
+
+  // Measure container so canvases fill available width
+  useEffect(() => {
+    if (!wrapRef.current) return;
+    const measure = () => setWidth(wrapRef.current?.clientWidth || 0);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(wrapRef.current);
+    return () => ro.disconnect();
+  }, []);
+
+  // Load the PDF document
+  useEffect(() => {
+    if (!url) return;
+    let dead = false;
+    setStatus("loading");
+    setProgress(0);
+    setPdf(null);
+    setNumPages(0);
+
+    (async () => {
+      try {
+        const lib  = await loadPdfJs();
+        const task = lib.getDocument({ url, withCredentials: false });
+        task.onProgress = ({ loaded, total }) => {
+          if (total) setProgress(Math.round((loaded / total) * 100));
+        };
+        const doc = await task.promise;
+        if (dead) return;
+        setPdf(doc);
+        setNumPages(doc.numPages);
+        setStatus("ready");
+        onPageCount?.(doc.numPages);
+      } catch (e) {
+        if (dead) return;
+        setErrMsg(e?.message || "Failed to load PDF");
+        setStatus("error");
+        console.error("PdfViewer load error:", e);
+      }
+    })();
+
+    return () => { dead = true; };
+  }, [url]);
+
+  return (
+    <div
+      ref={wrapRef}
+      style={{
+        width: "100%",
+        background: "#111",
+        overflowY: "auto",
+        overflowX: "hidden",
+        WebkitOverflowScrolling: "touch",
+        maxHeight: "75vh",
+        boxSizing: "border-box",
+        padding: "8px",
+      }}
+    >
+      {/* Loading */}
+      {status === "loading" && (
+        <div style={{
+          display: "flex", flexDirection: "column", alignItems: "center",
+          justifyContent: "center", minHeight: "220px", gap: "14px",
+          fontFamily: "'Share Tech Mono',monospace", color: "var(--text-dim,#888)",
+        }}>
+          <style>{`@keyframes kvspin{to{transform:rotate(360deg)}}`}</style>
+          <div style={{ fontSize: "2rem", animation: "kvspin 1.2s linear infinite", color: "var(--accent,#00aaff)" }}>◈</div>
+          <div style={{ fontSize: "0.7rem", letterSpacing: "2px" }}>
+            {progress > 0 ? `LOADING — ${progress}%` : "LOADING MANUAL..."}
+          </div>
+        </div>
+      )}
+
+      {/* Error */}
+      {status === "error" && (
+        <div style={{
+          display: "flex", flexDirection: "column", alignItems: "center",
+          justifyContent: "center", minHeight: "180px", gap: "14px",
+          fontFamily: "'Share Tech Mono',monospace", color: "var(--text-dim,#888)",
+          textAlign: "center", padding: "24px",
+        }}>
+          <div style={{ fontSize: "2rem" }}>⚠</div>
+          <div style={{ fontSize: "0.72rem", letterSpacing: "2px" }}>FAILED TO LOAD MANUAL</div>
+          <div style={{ fontSize: "0.6rem", color: "#555", maxWidth: "280px" }}>{errMsg}</div>
+          <a
+            href={url} target="_blank" rel="noopener noreferrer"
+            style={{
+              color: "var(--accent,#00aaff)", fontSize: "0.7rem", letterSpacing: "1px",
+              border: "1px solid var(--accent,#00aaff)", padding: "8px 20px",
+              textDecoration: "none", background: "rgba(0,170,255,0.08)",
+            }}
+          >
+            ↗ OPEN PDF IN BROWSER
+          </a>
+          <div style={{ fontSize: "0.58rem", color: "#444", maxWidth: "260px" }}>
+            If this keeps failing, CORS may not be enabled on your R2 bucket.
+          </div>
+        </div>
+      )}
+
+      {/* All pages rendered as canvases */}
+      {status === "ready" && pdf && width > 0 &&
+        Array.from({ length: numPages }, (_, i) => (
+          <PdfPage key={i + 1} pdf={pdf} pageNum={i + 1} width={width} />
+        ))
+      }
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// KitDetail — main export
+// ─────────────────────────────────────────────────────────────
 export default function KitDetail({
   isSignedIn,
   favourites,
@@ -34,13 +204,11 @@ export default function KitDetail({
   const navigate = useNavigate();
   const kit = findKitBySlug(slug);
 
-  const [realPages, setRealPages] = useState({});
-  const [fullscreenManual, setFullscreenManual] = useState(null);
-  // activeIframeId: when set, that iframe receives pointer events so the
-  // user can scroll/interact with the PDF. Tap outside to deactivate.
-  const [activeIframeId, setActiveIframeId] = useState(null);
-  const [dlNotifyId, setDlNotifyId] = useState(null);
+  const [realPages,       setRealPages]       = useState({});
+  const [fullscreenManual,setFullscreenManual] = useState(null);
+  const [dlNotifyId,      setDlNotifyId]       = useState(null);
 
+  // Fetch real page count via PDF.js and cache in localStorage
   const fetchRealPages = async (manual) => {
     if (!manual.url || realPages[manual.id] !== undefined) return;
     const cacheKey = `kv_pdfpages_${manual.id}`;
@@ -50,26 +218,17 @@ export default function KitDetail({
       return;
     }
     try {
-      const pdfjs = await import("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.3.136/pdf.min.mjs");
-      pdfjs.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.3.136/pdf.worker.min.mjs";
-      const pdf = await pdfjs.getDocument(`${R2}/${manual.url}`).promise;
-      const count = pdf.numPages;
+      const lib = await loadPdfJs();
+      const doc = await lib.getDocument(`${R2}/${manual.url}`).promise;
+      const count = doc.numPages;
       localStorage.setItem(cacheKey, String(count));
       setRealPages(prev => ({ ...prev, [manual.id]: count }));
-    } catch (_) { /* silently ignore, falls back to manual.pages */ }
+    } catch (_) { /* silently ignore — falls back to manual.pages */ }
   };
 
   useEffect(() => {
     kit?.manuals.forEach(m => { if (m.url) fetchRealPages(m); });
   }, [kit?.id]);
-
-  // Deactivate active iframe when clicking anywhere outside the PDF frame
-  useEffect(() => {
-    if (!activeIframeId) return;
-    const deactivate = () => setActiveIframeId(null);
-    window.addEventListener("click", deactivate);
-    return () => window.removeEventListener("click", deactivate);
-  }, [activeIframeId]);
 
   if (!kit) return (
     <div style={{padding:"80px 40px",textAlign:"center",fontFamily:"'Share Tech Mono',monospace",color:"var(--text-dim)"}}>
@@ -114,7 +273,7 @@ export default function KitDetail({
             </button>
             <div style={{width:"1px",height:"20px",background:"var(--border)",flexShrink:0}} />
             {[
-              {id:"backlog", label:"◻ BACKLOG"},
+              {id:"backlog",    label:"◻ BACKLOG"},
               {id:"inprogress", label:"⚙ IN PROGRESS"},
               {id:"complete",   label:"✓ COMPLETE"},
             ].map(s => (
@@ -135,16 +294,16 @@ export default function KitDetail({
       {/* ── XP PROGRESS BAR ─────────────────────────────────── */}
       {isSignedIn && kit.manuals.some(m => m.url) && (() => {
         const manualRows = kit.manuals.filter(m => m.url).map(m => {
-          const key = `${kit.id}-${m.id}`;
-          const total = realPages[m.id];
+          const key     = `${kit.id}-${m.id}`;
+          const total   = realPages[m.id];
           const current = Math.min(pageProgress[key]?.current || 0, total || 0);
           return { m, key, total, current };
         });
-        const hasAnyTotal = manualRows.some(r => r.total > 0);
-        const overallTotal = manualRows.reduce((s, r) => s + (r.total || 0), 0);
+        const hasAnyTotal    = manualRows.some(r => r.total > 0);
+        const overallTotal   = manualRows.reduce((s, r) => s + (r.total   || 0), 0);
         const overallCurrent = manualRows.reduce((s, r) => s + r.current, 0);
-        const overallPct = overallTotal > 0 ? Math.round((overallCurrent / overallTotal) * 100) : 0;
-        const colors = xpColors(overallPct);
+        const overallPct     = overallTotal > 0 ? Math.round((overallCurrent / overallTotal) * 100) : 0;
+        const colors  = xpColors(overallPct);
         const SEGMENTS = 10;
 
         return (
@@ -161,7 +320,7 @@ export default function KitDetail({
             </div>
             <div className="xp-multi-wrap">
               {manualRows.map(({ m, key, total, current }) => {
-                const pct = total > 0 ? Math.round((current / total) * 100) : 0;
+                const pct       = total > 0 ? Math.round((current / total) * 100) : 0;
                 const isLoading = total === undefined;
                 return (
                   <div key={m.id}>
@@ -181,7 +340,7 @@ export default function KitDetail({
                           value={current || ""}
                           placeholder="0"
                           onChange={e => {
-                            const val = Math.max(0, parseInt(e.target.value) || 0);
+                            const val     = Math.max(0, parseInt(e.target.value) || 0);
                             const clamped = total ? Math.min(val, total) : val;
                             setManualPage(kit.id, m.id, clamped, total || clamped);
                           }}
@@ -214,6 +373,7 @@ export default function KitDetail({
           <span className="section-title">AVAILABLE MANUALS</span>
           <div className="section-line" />
         </div>
+
         {kit.manuals.map(manual => (
           <div key={manual.id} className="manual-item" onClick={() => { toggleManual(manual.id); fetchRealPages(manual); }}>
             <div className="manual-item-row">
@@ -236,10 +396,10 @@ export default function KitDetail({
                   {openManualId === manual.id ? "▼ CLOSE" : "▶ VIEW"}
                 </button>
                 <button className="btn btn-dl" onClick={e => {
-                    e.stopPropagation();
-                    setDlNotifyId(manual.id);
-                    setTimeout(() => setDlNotifyId(null), 2800);
-                  }}>↓ DL</button>
+                  e.stopPropagation();
+                  setDlNotifyId(manual.id);
+                  setTimeout(() => setDlNotifyId(null), 2800);
+                }}>↓ DL</button>
                 {dlNotifyId === manual.id && (
                   <span style={{
                     fontFamily:"'Share Tech Mono',monospace", fontSize:"0.6rem",
@@ -269,7 +429,7 @@ export default function KitDetail({
                     )}
                     <button
                       className="pdf-dropdown-close"
-                      onClick={e => { e.stopPropagation(); setOpenManualId(null); setActiveIframeId(null); }}
+                      onClick={e => { e.stopPropagation(); setOpenManualId(null); }}
                     >✕</button>
                   </div>
                 </div>
@@ -277,54 +437,21 @@ export default function KitDetail({
                 <div className="pdf-frame-wrap">
                   {manual.url ? (
                     /*
-                     * MOBILE SCROLL FIX
-                     * ─────────────────
-                     * On touch devices, an <iframe> inside a scrollable page will
-                     * have its touch events stolen by the parent scroll container,
-                     * causing only the first page of the PDF to ever be reachable.
-                     *
-                     * The fix: wrap the iframe in a relative-positioned div and
-                     * overlay a transparent tap-target on top. On first tap the
-                     * overlay activates the iframe by removing its own pointer
-                     * capture (setting pointer-events: none on the overlay, and
-                     * restoring pointer-events on the iframe). A global click
-                     * listener on window deactivates when the user taps outside.
-                     *
-                     * This gives exactly the same UX as native PDF viewers:
-                     *   • First tap  → activates scroll mode
-                     *   • Tap outside / close → deactivates
+                     * PDF.js canvas renderer — replaces the old <iframe>.
+                     * Renders ALL pages. Works on iOS, Android, and desktop.
+                     * Only mounts when the dropdown is actually open so we
+                     * don't load PDFs until the user requests them.
                      */
-                    <div
-                      className="pdf-iframe-container"
-                      style={{position:"relative"}}
-                      onClick={e => e.stopPropagation()}
-                    >
-                      <iframe
-                        src={`${R2}/${manual.url}`}
-                        title={manual.name}
-                        style={{
-                          // When inactive on touch, the overlay sits on top and
-                          // pointer-events are none on the iframe to avoid the
-                          // browser treating iframe touch as page scroll.
-                          pointerEvents: activeIframeId === manual.id ? "auto" : "none",
+                    openManualId === manual.id && (
+                      <PdfViewer
+                        url={`${R2}/${manual.url}`}
+                        onPageCount={count => {
+                          const cacheKey = `kv_pdfpages_${manual.id}`;
+                          localStorage.setItem(cacheKey, String(count));
+                          setRealPages(prev => ({ ...prev, [manual.id]: count }));
                         }}
                       />
-                      {/* Activation overlay — invisible when iframe is active */}
-                      {activeIframeId !== manual.id && (
-                        <div
-                          className="pdf-touch-overlay"
-                          onClick={e => {
-                            e.stopPropagation();
-                            setActiveIframeId(manual.id);
-                          }}
-                        >
-                          <div className="pdf-touch-overlay-icon">☝️</div>
-                          <div className="pdf-touch-overlay-text">
-                            TAP TO SCROLL PDF<br />TAP OUTSIDE TO SCROLL PAGE
-                          </div>
-                        </div>
-                      )}
-                    </div>
+                    )
                   ) : (
                     <div className="pdf-placeholder">
                       <div className="big">PDF</div>

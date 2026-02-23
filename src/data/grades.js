@@ -14,6 +14,37 @@ export const R2 = "https://pub-633dac494e3b4bdb808035bd3c437f27.r2.dev";
 export const VERSION = "v1.0.0";
 
 // ─────────────────────────────────────────────────────────────
+// PDF.JS LOADER
+// Loads PDF.js via a <script> tag (NOT ESM dynamic import —
+// Vite blocks cross-origin ESM imports at runtime).
+// Returns the pdfjsLib global. Safe to call multiple times.
+// ─────────────────────────────────────────────────────────────
+const PDFJS_SRC  = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+const PDFJS_WORKER = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+let _pdfJsPromise = null;
+
+export function loadPdfJs() {
+  if (_pdfJsPromise) return _pdfJsPromise;
+  _pdfJsPromise = new Promise((resolve, reject) => {
+    if (window.pdfjsLib) {
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_WORKER;
+      resolve(window.pdfjsLib);
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = PDFJS_SRC;
+    script.onload = () => {
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_WORKER;
+      resolve(window.pdfjsLib);
+    };
+    script.onerror = () => reject(new Error("Failed to load PDF.js from CDN"));
+    document.head.appendChild(script);
+  });
+  return _pdfJsPromise;
+}
+
+// ─────────────────────────────────────────────────────────────
 // AMAZON AFFILIATE URLS
 // Paste your URLs here as "kitId": "url" pairs.
 // ─────────────────────────────────────────────────────────────
@@ -34,7 +65,6 @@ export const GRADE_COLORS = {
 
 export const GRADES = ["ALL", "HG", "MG", "RG", "PG", "SD", "EG"];
 
-// Convert kit to URL slug: "EG 1/144 RX-78-2 Gundam" → "eg-144-rx78-2-gundam"
 // Convert kit to URL slug: "EG 1/144 RX-78-2 Gundam" → "eg-144-rx78-2-gundam"
 export const slugify = (kit) =>
   `${kit.grade}-${kit.scale}-${kit.name}`
@@ -144,4 +174,3 @@ export const TOOL_ORDER = [
   { route: "/tools/top-coats",         label: "Top Coats",          color: "#00ffcc" },
   { route: "/tools/hobby-knives",      label: "Hobby Knives",       color: "#ff9900" },
 ];
-
