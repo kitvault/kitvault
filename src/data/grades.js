@@ -15,16 +15,16 @@ export const VERSION = "v1.0.0";
 
 // ─────────────────────────────────────────────────────────────
 // PDF.JS LOADER — singleton
-// Uses pdfjs-dist npm package. The worker file must live in
-// public/pdf.worker.min.mjs (copy it there after npm install):
-//   copy node_modules\pdfjs-dist\build\pdf.worker.min.mjs public\pdf.worker.min.mjs
+// Uses pdfjs-dist@3.11.174 (has built-in OpenJPEG decoder).
+// After npm install, copy the worker to public/:
+//   copy node_modules\pdfjs-dist\build\pdf.worker.min.js public\pdf.worker.min.js
 // ─────────────────────────────────────────────────────────────
 let _pdfjsLib = null;
 
 export async function loadPdfJs() {
   if (_pdfjsLib) return _pdfjsLib;
   const pdfjsLib = await import("pdfjs-dist");
-  pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
+  pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.js";
   _pdfjsLib = pdfjsLib;
   return _pdfjsLib;
 }
