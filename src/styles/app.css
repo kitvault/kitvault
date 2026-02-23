@@ -566,10 +566,6 @@
     opacity: 0;
     width: 100%;
   }
-  .pdf-dropdown.open {
-    max-height: 1200px;
-    opacity: 1;
-  }
   .pdf-dropdown-inner {
     margin-top: 14px;
     border-top: 1px solid var(--border);
@@ -592,12 +588,13 @@
   .pdf-dropdown-close:hover { border-color: var(--red); color: var(--red); }
   .pdf-frame-wrap {
     background: var(--bg); border: 1px solid var(--border);
-    height: 850px; width: 100%; display: flex; align-items: center; justify-content: center;
+    width: 100%; display: flex; align-items: stretch; justify-content: center;
     position: relative; overflow: hidden;
   }
-  /* iframe styles are now on .pdf-iframe-container iframe */
-  @media (max-width: 640px) {
-    .pdf-frame-wrap { height: 70vh; }
+  .pdf-frame-wrap iframe { width: 100%; height: 100%; border: none; display: block; }
+  .pdf-dropdown.open {
+    max-height: 3000px;
+    opacity: 1;
   }
   .pdf-placeholder {
     text-align: center; font-family: 'Share Tech Mono', monospace;
@@ -631,7 +628,7 @@
     display: flex; align-items: center; gap: 6px;
   }
   .pdf-fullscreen-close:hover { border-color: var(--red); color: var(--red); }
-  .pdf-fullscreen-body { flex: 1; overflow: hidden; position: relative; }
+  .pdf-fullscreen-body { flex: 1; overflow: auto; position: relative; -webkit-overflow-scrolling: touch; }
   .pdf-fullscreen-body iframe { width: 100%; height: 100%; border: none; display: block; }
 
   /* FULLSCREEN BUTTON */
@@ -644,48 +641,22 @@
   }
   .btn-fullscreen:hover { background: rgba(0,255,204,0.18); box-shadow: var(--glow-green); }
 
-  /* PDF IFRAME CONTAINER — needed for overlay positioning */
-  .pdf-iframe-container {
-    position: relative;
-    width: 100%;
-    height: 100%;
-  }
-  .pdf-iframe-container iframe {
-    width: 100%;
-    height: 100%;
-    border: none;
-    display: block;
-  }
-
-  /* TAP-TO-INTERACT OVERLAY
-   * Hidden on desktop (mouse users click straight through).
-   * On mobile it sits on top of the iframe, intercepts the first tap
-   * to "activate" scroll mode, then removes itself so the iframe
-   * receives all subsequent touch events directly. */
+  /* MOBILE TAP-TO-INTERACT OVERLAY */
   .pdf-touch-overlay {
     display: none;
   }
-  @media (hover: none), (max-width: 640px) {
+  @media (max-width: 640px) {
     .pdf-touch-overlay {
-      display: flex;
-      position: absolute;
-      inset: 0;
-      align-items: center;
-      justify-content: center;
-      background: rgba(0, 0, 0, 0.55);
-      z-index: 2;
-      cursor: pointer;
-      flex-direction: column;
-      gap: 10px;
+      display: flex; position: absolute; inset: 0;
+      align-items: center; justify-content: center;
+      background: rgba(0,0,0,0.55); z-index: 2; cursor: pointer;
+      flex-direction: column; gap: 10px; transition: opacity 0.2s;
     }
+    .pdf-touch-overlay.hidden { display: none; }
     .pdf-touch-overlay-icon { font-size: 2.2rem; }
     .pdf-touch-overlay-text {
-      font-family: 'Share Tech Mono', monospace;
-      font-size: 0.7rem;
-      color: var(--text-bright);
-      letter-spacing: 2px;
-      text-align: center;
-      line-height: 1.9;
+      font-family: 'Share Tech Mono', monospace; font-size: 0.7rem;
+      color: var(--text-bright); letter-spacing: 2px; text-align: center; line-height: 1.9;
     }
   }
 
@@ -1214,8 +1185,7 @@
     }
 
     /* PDF dropdown */
-    .pdf-frame-wrap { height: 500px; }
-    .pdf-dropdown.open { max-height: 650px; }
+    .pdf-dropdown.open { max-height: 3000px; }
 
     /* Settings modal */
     .modal-overlay { padding: 0; align-items: flex-end; }
