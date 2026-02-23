@@ -18,8 +18,15 @@ export const VERSION = "v1.0.0";
 // Uses pdfjs-dist npm package — no CDN, no script injection,
 // works on iOS Safari. Run: npm install pdfjs-dist
 //
-// The worker is pointed at the pre-built worker file that
-// Vite copies into the build output automatically.
+// IMPORTANT: The worker file must be copied to public/ so Vite
+// serves it at a stable URL (Vite's hashed filenames break the
+// new URL() approach in production builds).
+//
+// Run this after every `npm install` or pdfjs-dist update:
+//   cp node_modules/pdfjs-dist/build/pdf.worker.min.mjs public/pdf.worker.min.mjs
+//
+// Or add to package.json scripts:
+//   "postinstall": "cp node_modules/pdfjs-dist/build/pdf.worker.min.mjs public/pdf.worker.min.mjs"
 // ─────────────────────────────────────────────────────────────
 let _pdfjsLib = null;
 
@@ -29,12 +36,8 @@ export async function loadPdfJs() {
   // Import from npm package — Vite bundles this properly
   const pdfjsLib = await import("pdfjs-dist");
 
-  // Point the worker at the pre-built worker bundled with pdfjs-dist
-  // Vite will copy this file to /assets/ during build
-  pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-    "pdfjs-dist/build/pdf.worker.min.mjs",
-    import.meta.url
-  ).href;
+  // Point to the worker in the public/ folder (stable URL, no Vite hashing)
+  pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
 
   _pdfjsLib = pdfjsLib;
   return _pdfjsLib;
