@@ -4,7 +4,7 @@
 // Uses the shared loadPdfJs() from grades.js (pdfjs-dist npm pkg).
 // ─────────────────────────────────────────────────────────────
 import { useEffect, useRef, useState } from "react";
-import { R2, loadPdfJs } from "../data/grades.js";
+import { resolveManualUrl, loadPdfJs } from "../data/grades.js";
 
 // ── One canvas page ──────────────────────────────────────────
 function PdfPage({ pdf, pageNum, width }) {
@@ -54,7 +54,8 @@ function PdfPage({ pdf, pageNum, width }) {
 
 // ── Main modal ───────────────────────────────────────────────
 export default function PdfFullscreenModal({ manual, onClose }) {
-  const pdfUrl = `${R2}/${manual.url}`;
+  // Use resolveManualUrl to handle both D1 (full https) and static (relative) URLs
+  const pdfUrl = resolveManualUrl(manual.url);
 
   const [pdf,      setPdf]      = useState(null);
   const [numPages, setNumPages] = useState(0);

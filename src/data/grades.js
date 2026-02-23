@@ -11,7 +11,7 @@
 import { KITS } from "./kits.js";
 
 export const R2 = "https://pub-633dac494e3b4bdb808035bd3c437f27.r2.dev";
-export const VERSION = "v1.0.0";
+export const VERSION = "v1.0.1";
 
 // ─────────────────────────────────────────────────────────────
 // PDF.JS LOADER — singleton
@@ -50,17 +50,37 @@ export const GRADE_COLORS = {
 
 export const GRADES = ["ALL", "HG", "MG", "RG", "PG", "SD", "EG"];
 
-// Convert kit to URL slug: "EG 1/144 RX-78-2 Gundam" → "eg-144-rx78-2-gundam"
-// Convert kit to URL slug: "EG 1/144 RX-78-2 Gundam" → "eg-144-rx78-2-gundam"
-export const slugify = (kit) =>
-  `${kit.grade}-${kit.scale}-${kit.name}`
+// ─────────────────────────────────────────────────────────────
+// SLUGIFY — converts a kit (object or name string) to a URL slug
+//
+// Accepts EITHER:
+//   slugify(kitObject)  → uses kit.grade, kit.scale, kit.name
+//   slugify("My Kit")   → just slugifies the string as-is
+//
+// This dual behavior prevents the common bug where an object
+// is accidentally passed where a string was expected (or vice versa).
+// ─────────────────────────────────────────────────────────────
+export const slugify = (kitOrName) => {
+  const raw = typeof kitOrName === "string"
+    ? kitOrName
+    : `${kitOrName.grade}-${kitOrName.scale}-${kitOrName.name}`;
+  return raw
     .toLowerCase()
     .replace(/\//g, "-")
     .replace(/[^a-z0-9-]/g, "-")
     .replace(/-+/g, "-")
     .replace(/^-|-$/g, "");
+};
 
 export const findKitBySlug = (slug) => KITS.find(k => slugify(k) === slug);
+
+// ─────────────────────────────────────────────────────────────
+// RESOLVE URL — handles both D1 (full https) and static (relative) URLs
+// D1 kits store full "https://..." URLs; static kits store relative paths.
+// Use this everywhere a manual URL is needed to avoid double-prefixing.
+// ─────────────────────────────────────────────────────────────
+export const resolveManualUrl = (url) =>
+  url.startsWith("http") ? url : `${R2}/${url}`;
 
 // ─────────────────────────────────────────────────────────────
 // XP COLORS: maps a progress % to CSS custom properties
@@ -79,7 +99,7 @@ export const GRADE_DATA = {
     tagline: "THE PERFECT STARTING POINT",
     intro: "Entry Grade kits were introduced by Bandai in 2020 as the most accessible way to experience Gunpla. Designed specifically for first-time builders, EG kits require <strong>no nippers, no tools, and no prior experience</strong>. Parts snap cleanly off the runner by hand without leaving unsightly gate marks.",
     sections: [
-      { title: "◈ BUILD EXPERIENCE", body: "EG kits are engineered for simplicity without sacrificing the iconic look of the mobile suits. The part count is kept low, assembly steps are intuitive, and the instruction manual is easy to follow even for children. A typical EG kit can be completed in <strong>1–2 hours</strong>, making it ideal for an afternoon project." },
+      { title: "◈ BUILD EXPERIENCE", body: "EG kits use Bandai's simplified runner design with pre-cut touch gates. Parts separate with a gentle twist, no nippers required. Assembly is straightforward and intuitive, usually taking <strong>1–2 hours</strong>. The instructions are large-format and easy to follow. It's as close to 'open box and build' as Gunpla gets." },
       { title: "◈ WHAT YOU GET", body: "Despite being entry-level, EG kits deliver impressive articulation and screen-accurate proportions. Most include a small selection of weapons and accessories. The plastic quality is solid too. Same Bandai engineering behind MG and RG kits, just simplified." },
       { title: "◈ WHO IS IT FOR?", body: "EG is perfect for <strong>absolute beginners</strong>, younger builders, or anyone who wants a quick, satisfying build without committing hours to a complex kit. They also make great gifts. Experienced builders often pick up EG kits as palette cleansers between large MG or PG projects." },
       { title: "◈ TOOLS NEEDED", body: "<strong>None required.</strong> Parts are designed to be hand-separated cleanly. That said, a pair of nippers and a hobby knife will give cleaner results if you have them. No glue, cement, or painting needed, though EG kits respond really well to panel lining and a topcoat if you want to push them further." },
@@ -160,4 +180,3 @@ export const TOOL_ORDER = [
   { route: "/tools/top-coats",         label: "Top Coats",          color: "#00ffcc" },
   { route: "/tools/hobby-knives",      label: "Hobby Knives",       color: "#ff9900" },
 ];
-
