@@ -66,12 +66,13 @@ export default function KitVault() {
 
   // ── D1 kits — merged with static list ────────────────────
   const [d1Kits, setD1Kits] = useState([]);
-  useEffect(() => {
+  const fetchD1Kits = useCallback(() => {
     fetch("/api/kits")
       .then(r => r.json())
       .then(data => { if (Array.isArray(data)) setD1Kits(data); })
-      .catch(() => {}); // silent fallback to static list
+      .catch(() => {});
   }, []);
+  useEffect(() => { fetchD1Kits(); }, [fetchD1Kits]);
   const allKits = useMemo(() => {
     const d1Ids = new Set(d1Kits.map(k => k.id));
     return [...KITS.filter(k => !d1Ids.has(k.id)), ...d1Kits];
@@ -387,6 +388,7 @@ export default function KitVault() {
               setBuildStatus={setBuildStatus} setManualPage={setManualPage}
               openManualId={openManualId} toggleManual={toggleManual}
               setOpenManualId={setOpenManualId} goHome={goHome}
+              onKitUpdated={fetchD1Kits}
             />
           } />
 

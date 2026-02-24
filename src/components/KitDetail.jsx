@@ -1,19 +1,22 @@
 // ─────────────────────────────────────────────────────────────
 // KitDetail.jsx
 // Full kit detail page including manual viewer, build status,
-// XP progress bar, and Amazon affiliate banner.
+// XP progress bar, Amazon affiliate banner, and admin edit panel.
 //
-// PDF rendering: uses PDF.js (via pdfjs-dist npm package) to
-// render every page as a <canvas> element. Works on iOS Safari,
-// Android, and all desktop browsers. Run: npm install pdfjs-dist
+// Admin edit: If admin key is in sessionStorage (kv_admin_key),
+// a pencil button appears. Clicking it opens an inline editor
+// for kit fields + manual fields. Saves via PATCH /api/kit/:id.
+// Only works for D1 kits (kits with numeric ids from the DB).
 // ─────────────────────────────────────────────────────────────
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { AMAZON_URLS, GRADE_COLORS, loadPdfJs, resolveManualUrl } from "../data/grades.js";
+import { AMAZON_URLS, GRADE_COLORS, GRADES, loadPdfJs, resolveManualUrl } from "../data/grades.js";
 import { slugify, xpColors } from "../data/grades.js";
 import PdfFullscreenModal from "./PdfFullscreenModal.jsx";
 
 const gc = (g) => GRADE_COLORS[g] || GRADE_COLORS["HG"];
+const ADMIN_KEY_STORAGE = "kv_admin_key";
+const GRADE_OPTIONS = GRADES.filter(g => g !== "ALL");
 
 // ─────────────────────────────────────────────────────────────
 // PdfPage — renders one page of a loaded PDF onto a canvas
@@ -70,12 +73,11 @@ function PdfViewer({ url, onPageCount }) {
   const [pdf,      setPdf]      = useState(null);
   const [numPages, setNumPages] = useState(0);
   const [progress, setProgress] = useState(0);
-  const [status,   setStatus]   = useState("loading"); // loading | ready | error
+  const [status,   setStatus]   = useState("loading");
   const [errMsg,   setErrMsg]   = useState("");
   const wrapRef = useRef(null);
   const [width, setWidth] = useState(0);
 
-  // Measure container so canvases fill available width
   useEffect(() => {
     if (!wrapRef.current) return;
     const measure = () => setWidth(wrapRef.current?.clientWidth || 0);
@@ -85,7 +87,6 @@ function PdfViewer({ url, onPageCount }) {
     return () => ro.disconnect();
   }, []);
 
-  // Load the PDF document
   useEffect(() => {
     if (!url) return;
     let dead = false;
@@ -122,17 +123,10 @@ function PdfViewer({ url, onPageCount }) {
     <div
       ref={wrapRef}
       style={{
-        width: "100%",
-        background: "#111",
-        overflowY: "auto",
-        overflowX: "hidden",
-        WebkitOverflowScrolling: "touch",
-        maxHeight: "75vh",
-        boxSizing: "border-box",
-        padding: "8px",
+        width: "100%", background: "#111", overflowY: "auto", overflowX: "hidden",
+        WebkitOverflowScrolling: "touch", maxHeight: "75vh", boxSizing: "border-box", padding: "8px",
       }}
     >
-      {/* Loading */}
       {status === "loading" && (
         <div style={{
           display: "flex", flexDirection: "column", alignItems: "center",
@@ -146,8 +140,6 @@ function PdfViewer({ url, onPageCount }) {
           </div>
         </div>
       )}
-
-      {/* Error */}
       {status === "error" && (
         <div style={{
           display: "flex", flexDirection: "column", alignItems: "center",
@@ -158,25 +150,132 @@ function PdfViewer({ url, onPageCount }) {
           <div style={{ fontSize: "2rem" }}>⚠</div>
           <div style={{ fontSize: "0.72rem", letterSpacing: "2px" }}>FAILED TO LOAD MANUAL</div>
           <div style={{ fontSize: "0.6rem", color: "#555", maxWidth: "280px" }}>{errMsg}</div>
-          <a
-            href={url} target="_blank" rel="noopener noreferrer"
+          <a href={url} target="_blank" rel="noopener noreferrer"
             style={{
               color: "var(--accent,#00aaff)", fontSize: "0.7rem", letterSpacing: "1px",
               border: "1px solid var(--accent,#00aaff)", padding: "8px 20px",
               textDecoration: "none", background: "rgba(0,170,255,0.08)",
             }}
-          >
-            ↗ OPEN PDF IN BROWSER
-          </a>
+          >↗ OPEN PDF IN BROWSER</a>
         </div>
       )}
-
-      {/* All pages rendered as canvases */}
       {status === "ready" && pdf && width > 0 &&
         Array.from({ length: numPages }, (_, i) => (
           <PdfPage key={i + 1} pdf={pdf} pageNum={i + 1} width={width} />
         ))
       }
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Admin Edit Panel — inline styles
+// ─────────────────────────────────────────────────────────────
+const E = {
+  wrap: { border:"1px solid rgba(0,170,255,0.3)", background:"rgba(0,170,255,0.04)", padding:20, marginBottom:24 },
+  title: { fontSize:"0.65rem", letterSpacing:"3px", color:"#00aaff", marginBottom:16, display:"flex", alignItems:"center", justifyContent:"space-between" },
+  row: { display:"flex", gap:10, marginBottom:10, alignItems:"center", flexWrap:"wrap" },
+  label: { fontSize:"0.6rem", color:"#5a7a9f", letterSpacing:"1px", minWidth:70, flexShrink:0 },
+  input: { flex:1, minWidth:140, padding:"8px 12px", background:"#080c12", border:"1px solid #1a2f50", color:"#c8ddf5", fontFamily:"'Share Tech Mono',monospace", fontSize:"0.7rem", letterSpacing:"1px", outline:"none", boxSizing:"border-box" },
+  select: { padding:"8px 12px", background:"#080c12", border:"1px solid #1a2f50", color:"#c8ddf5", fontFamily:"'Share Tech Mono',monospace", fontSize:"0.7rem", letterSpacing:"1px", outline:"none" },
+  btnSave: { padding:"10px 24px", background:"rgba(0,255,136,0.1)", border:"1px solid rgba(0,255,136,0.4)", color:"#00ff88", fontFamily:"'Share Tech Mono',monospace", fontSize:"0.65rem", letterSpacing:"2px", cursor:"pointer" },
+  btnCancel: { padding:"10px 24px", background:"rgba(90,122,159,0.1)", border:"1px solid #1a2f50", color:"#5a7a9f", fontFamily:"'Share Tech Mono',monospace", fontSize:"0.65rem", letterSpacing:"2px", cursor:"pointer" },
+  btnEdit: { background:"rgba(0,170,255,0.08)", border:"1px solid rgba(0,170,255,0.3)", color:"#00aaff", fontFamily:"'Share Tech Mono',monospace", fontSize:"0.6rem", padding:"6px 14px", cursor:"pointer", letterSpacing:"1px" },
+  manualHeader: { fontSize:"0.6rem", color:"#5a7a9f", letterSpacing:"2px", margin:"16px 0 8px", borderTop:"1px solid #1a2f50", paddingTop:12 },
+  status: { fontSize:"0.6rem", letterSpacing:"1px", padding:"8px 12px", marginTop:10 },
+};
+
+function AdminEditPanel({ kit, onSaved, onCancel }) {
+  const adminKey = sessionStorage.getItem(ADMIN_KEY_STORAGE) || "";
+  const [form, setForm] = useState({
+    name: kit.name,
+    grade: kit.grade,
+    scale: kit.scale,
+    series: kit.series || "",
+    image_url: kit.imageUrl || kit.image_url || "",
+  });
+  const [manualForms, setManualForms] = useState(
+    kit.manuals.map(m => ({ id: m.id, name: m.name, lang: m.lang || "JP", pages: m.pages || 0 }))
+  );
+  const [saving, setSaving] = useState(false);
+  const [status, setStatus] = useState(null);
+
+  const updateField = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
+  const updateManual = (idx, field, value) => setManualForms(prev => prev.map((m, i) => i === idx ? { ...m, [field]: value } : m));
+
+  const handleSave = async () => {
+    setSaving(true);
+    setStatus(null);
+    try {
+      const res = await fetch(`/api/kit/${kit.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", "X-Admin-Key": adminKey },
+        body: JSON.stringify({ kit: form, manuals: manualForms }),
+      });
+      const data = await res.json();
+      if (res.ok && data.ok) {
+        setStatus({ ok: true, message: "Saved" });
+        onSaved?.();
+      } else {
+        setStatus({ ok: false, message: data.error || "Save failed" });
+      }
+    } catch (err) {
+      setStatus({ ok: false, message: err.message });
+    }
+    setSaving(false);
+  };
+
+  return (
+    <div style={E.wrap}>
+      <div style={E.title}>
+        <span>◈ EDIT KIT #{kit.id}</span>
+        <button style={E.btnCancel} onClick={onCancel}>✕ CLOSE</button>
+      </div>
+
+      <div style={E.row}>
+        <span style={E.label}>NAME</span>
+        <input style={E.input} value={form.name} onChange={e => updateField("name", e.target.value)} />
+      </div>
+      <div style={E.row}>
+        <span style={E.label}>GRADE</span>
+        <select style={E.select} value={form.grade} onChange={e => updateField("grade", e.target.value)}>
+          {GRADE_OPTIONS.map(g => <option key={g} value={g}>{g}</option>)}
+        </select>
+        <span style={E.label}>SCALE</span>
+        <input style={{...E.input, maxWidth:120}} value={form.scale} onChange={e => updateField("scale", e.target.value)} placeholder="1/144" />
+      </div>
+      <div style={E.row}>
+        <span style={E.label}>SERIES</span>
+        <input style={E.input} value={form.series} onChange={e => updateField("series", e.target.value)} placeholder="e.g. Mobile Suit Gundam SEED" />
+      </div>
+      <div style={E.row}>
+        <span style={E.label}>IMAGE URL</span>
+        <input style={E.input} value={form.image_url} onChange={e => updateField("image_url", e.target.value)} placeholder="https://..." />
+      </div>
+
+      {manualForms.map((m, idx) => (
+        <div key={m.id}>
+          <div style={E.manualHeader}>MANUAL #{m.id}</div>
+          <div style={E.row}>
+            <span style={E.label}>NAME</span>
+            <input style={E.input} value={m.name} onChange={e => updateManual(idx, "name", e.target.value)} />
+            <span style={E.label}>LANG</span>
+            <input style={{...E.input, maxWidth:60}} value={m.lang} onChange={e => updateManual(idx, "lang", e.target.value)} />
+            <span style={E.label}>PAGES</span>
+            <input style={{...E.input, maxWidth:70}} type="number" value={m.pages} onChange={e => updateManual(idx, "pages", parseInt(e.target.value)||0)} />
+          </div>
+        </div>
+      ))}
+
+      <div style={{display:"flex",gap:10,marginTop:16}}>
+        <button style={E.btnSave} onClick={handleSave} disabled={saving}>{saving ? "SAVING..." : "SAVE CHANGES →"}</button>
+        <button style={E.btnCancel} onClick={onCancel}>CANCEL</button>
+      </div>
+      {status && (
+        <div style={{...E.status, color: status.ok ? "#00ff88" : "#ff2244", border: `1px solid ${status.ok ? "rgba(0,255,136,0.3)" : "rgba(255,34,68,0.3)"}`, background: status.ok ? "rgba(0,255,136,0.05)" : "rgba(255,34,68,0.05)"}}>
+          {status.ok ? "✓" : "✕"} {status.message}
+        </div>
+      )}
     </div>
   );
 }
@@ -197,6 +296,7 @@ export default function KitDetail({
   toggleManual,
   setOpenManualId,
   goHome,
+  onKitUpdated,
 }) {
   const { slug } = useParams();
   const navigate = useNavigate();
@@ -205,6 +305,10 @@ export default function KitDetail({
   const [realPages,        setRealPages]        = useState({});
   const [fullscreenManual, setFullscreenManual] = useState(null);
   const [dlNotifyId,       setDlNotifyId]       = useState(null);
+  const [editing,          setEditing]           = useState(false);
+
+  // Check if admin key exists in session
+  const isAdmin = !!sessionStorage.getItem(ADMIN_KEY_STORAGE);
 
   // Fetch real page count via PDF.js and cache in localStorage
   const fetchRealPages = async (manual) => {
@@ -237,13 +341,20 @@ export default function KitDetail({
   );
 
   const isFav = favourites.includes(kit.id);
+  // D1 kits have numeric IDs; static kits could too but only D1 kits are editable via API
+  const isD1Kit = typeof kit.id === "number";
 
   return (
     <>
       <button className="back-btn" onClick={() => navigate(-1)}>← BACK TO LIBRARY</button>
 
       <div className="kit-detail-header">
-        <div className="detail-grade" style={{color:gc(kit.grade).accent}}>{kit.grade} GRADE — {kit.scale}</div>
+        <div className="detail-grade" style={{color:gc(kit.grade).accent}}>
+          {kit.grade} GRADE — {kit.scale}
+          {isAdmin && isD1Kit && !editing && (
+            <button style={{...E.btnEdit, marginLeft:12}} onClick={() => setEditing(true)}>✎ EDIT</button>
+          )}
+        </div>
         <div className="detail-title">
           {kit.name}
           {isSignedIn && (
@@ -258,6 +369,18 @@ export default function KitDetail({
         </div>
       </div>
 
+      {/* ── ADMIN EDIT PANEL ─────────────────────────────────── */}
+      {editing && isAdmin && isD1Kit && (
+        <AdminEditPanel
+          kit={kit}
+          onSaved={() => {
+            setEditing(false);
+            onKitUpdated?.();
+          }}
+          onCancel={() => setEditing(false)}
+        />
+      )}
+
       {isSignedIn && (
         <div className="build-status-wrap">
           <span className="build-status-label">◈ BUILD STATUS</span>
@@ -271,7 +394,7 @@ export default function KitDetail({
             </button>
             <div style={{width:"1px",height:"20px",background:"var(--border)",flexShrink:0}} />
             {[
-              {id:"backlog",    label:"◻ BACKLOG"},
+              {id:"backlog", label:"◻ BACKLOG"},
               {id:"inprogress", label:"⚙ IN PROGRESS"},
               {id:"complete",   label:"✓ COMPLETE"},
             ].map(s => (
@@ -288,20 +411,18 @@ export default function KitDetail({
       )}
 
       <div style={{height:"16px"}} />
-
-      {/* ── XP PROGRESS BAR ─────────────────────────────────── */}
       {isSignedIn && kit.manuals.some(m => m.url) && (() => {
         const manualRows = kit.manuals.filter(m => m.url).map(m => {
-          const key     = `${kit.id}-${m.id}`;
-          const total   = realPages[m.id];
+          const key = `${kit.id}-${m.id}`;
+          const total = realPages[m.id];
           const current = Math.min(pageProgress[key]?.current || 0, total || 0);
           return { m, key, total, current };
         });
-        const hasAnyTotal    = manualRows.some(r => r.total > 0);
-        const overallTotal   = manualRows.reduce((s, r) => s + (r.total   || 0), 0);
+        const hasAnyTotal = manualRows.some(r => r.total > 0);
+        const overallTotal = manualRows.reduce((s, r) => s + (r.total || 0), 0);
         const overallCurrent = manualRows.reduce((s, r) => s + r.current, 0);
-        const overallPct     = overallTotal > 0 ? Math.round((overallCurrent / overallTotal) * 100) : 0;
-        const colors  = xpColors(overallPct);
+        const overallPct = overallTotal > 0 ? Math.round((overallCurrent / overallTotal) * 100) : 0;
+        const colors = xpColors(overallPct);
         const SEGMENTS = 10;
 
         return (
@@ -318,7 +439,7 @@ export default function KitDetail({
             </div>
             <div className="xp-multi-wrap">
               {manualRows.map(({ m, key, total, current }) => {
-                const pct       = total > 0 ? Math.round((current / total) * 100) : 0;
+                const pct = total > 0 ? Math.round((current / total) * 100) : 0;
                 const isLoading = total === undefined;
                 return (
                   <div key={m.id}>
@@ -434,8 +555,6 @@ export default function KitDetail({
 
                 <div className="pdf-frame-wrap">
                   {manual.url ? (
-                    // Only mount PdfViewer when this dropdown is actually open.
-                    // This avoids loading all PDFs on page load.
                     openManualId === manual.id && (
                       <PdfViewer
                         url={resolveManualUrl(manual.url)}

@@ -20,7 +20,7 @@ export default {
     // ── CORS headers (allow your frontend origin) ──────────
     const cors = {
       "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+      "Access-Control-Allow-Methods": "GET, POST, DELETE, PATCH, OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type, X-Admin-Key",
     };
     if (request.method === "OPTIONS") {
