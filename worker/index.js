@@ -271,7 +271,7 @@ export default {
       const kitId = url.pathname.split("/").pop();
       try {
         const { results } = await env.DB.prepare(
-          `SELECT id, kit_id, user_id, username, avatar_url, body, created_at
+          `SELECT id, kit_id, user_id, username, avatar_url, body, parent_id, created_at
            FROM comments WHERE kit_id = ? ORDER BY created_at DESC LIMIT 200`
         ).bind(Number(kitId)).all();
 
@@ -289,7 +289,7 @@ export default {
     // ── POST /api/comments — Add a comment ──────────────────────
     if (path === "/api/comments" && request.method === "POST") {
       try {
-        const { kit_id, user_id, username, avatar_url, body: commentBody } = await request.json();
+        const { kit_id, user_id, username, avatar_url, body: commentBody, parent_id } = await request.json();
 
         if (!kit_id || !user_id || !commentBody?.trim()) {
           return new Response(JSON.stringify({ ok: false, error: "Missing required fields" }), {
@@ -305,16 +305,30 @@ export default {
           });
         }
 
+        // Rate limit: 10 comments per user per day
+        const dayAgo = Math.floor(Date.now() / 1000) - 86400;
+        const countResult = await env.DB.prepare(
+          "SELECT COUNT(*) as cnt FROM comments WHERE user_id = ? AND created_at > ?"
+        ).bind(user_id, dayAgo).first();
+
+        if (countResult && countResult.cnt >= 10) {
+          return new Response(JSON.stringify({ ok: false, error: "Daily limit reached (10 comments per day)" }), {
+            status: 429,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
         const now = Math.floor(Date.now() / 1000);
         await env.DB.prepare(
-          `INSERT INTO comments (kit_id, user_id, username, avatar_url, body, created_at)
-           VALUES (?, ?, ?, ?, ?, ?)`
+          `INSERT INTO comments (kit_id, user_id, username, avatar_url, body, parent_id, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`
         ).bind(
           Number(kit_id),
           user_id,
           username || "Builder",
           avatar_url || "",
           commentBody.trim(),
+          parent_id ? Number(parent_id) : null,
           now
         ).run();
 

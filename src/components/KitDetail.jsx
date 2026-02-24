@@ -281,28 +281,39 @@ function AdminEditPanel({ kit, onSaved, onCancel }) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// CommentSection — kit-level comment thread
+// CommentSection — kit-level comment thread with replies
 // ─────────────────────────────────────────────────────────────
 const C = {
   wrap: { marginTop: 40, border: "1px solid var(--border, #1a2f50)", background: "var(--panel, #0a1220)", padding: "24px" },
   title: { fontSize: "0.65rem", letterSpacing: "3px", color: "var(--accent, #00aaff)", marginBottom: 20 },
   empty: { fontSize: "0.65rem", color: "var(--text-dim, #5a7a9f)", textAlign: "center", padding: "24px 0", letterSpacing: "1px", opacity: 0.6 },
-  inputWrap: { display: "flex", gap: 10, marginBottom: 20, alignItems: "flex-start" },
+  inputWrap: { display: "flex", gap: 10, marginBottom: 12, alignItems: "flex-start" },
   avatar: { width: 32, height: 32, borderRadius: "50%", flexShrink: 0, border: "1px solid rgba(0,170,255,0.2)" },
+  avatarSm: { width: 24, height: 24, borderRadius: "50%", flexShrink: 0, border: "1px solid rgba(0,170,255,0.15)" },
   avatarPlaceholder: { width: 32, height: 32, borderRadius: "50%", flexShrink: 0, background: "rgba(0,170,255,0.1)", border: "1px solid rgba(0,170,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.7rem", color: "var(--accent, #00aaff)" },
+  avatarPlaceholderSm: { width: 24, height: 24, borderRadius: "50%", flexShrink: 0, background: "rgba(0,170,255,0.1)", border: "1px solid rgba(0,170,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.5rem", color: "var(--accent, #00aaff)" },
   textarea: { flex: 1, background: "#080c12", border: "1px solid #1a2f50", color: "#c8ddf5", fontFamily: "'Share Tech Mono', monospace", fontSize: "0.7rem", padding: "10px 12px", outline: "none", resize: "vertical", minHeight: 60, letterSpacing: "0.5px", lineHeight: 1.6, boxSizing: "border-box" },
+  textareaSm: { flex: 1, background: "#080c12", border: "1px solid #1a2f50", color: "#c8ddf5", fontFamily: "'Share Tech Mono', monospace", fontSize: "0.65rem", padding: "8px 10px", outline: "none", resize: "vertical", minHeight: 40, letterSpacing: "0.5px", lineHeight: 1.5, boxSizing: "border-box" },
   postBtn: { padding: "10px 20px", background: "rgba(0,170,255,0.1)", border: "1px solid rgba(0,170,255,0.3)", color: "#00aaff", fontFamily: "'Share Tech Mono', monospace", fontSize: "0.6rem", letterSpacing: "2px", cursor: "pointer", flexShrink: 0, alignSelf: "flex-end" },
+  postBtnSm: { padding: "8px 14px", background: "rgba(0,170,255,0.1)", border: "1px solid rgba(0,170,255,0.3)", color: "#00aaff", fontFamily: "'Share Tech Mono', monospace", fontSize: "0.55rem", letterSpacing: "1px", cursor: "pointer", flexShrink: 0, alignSelf: "flex-end" },
   postBtnDisabled: { opacity: 0.4, cursor: "not-allowed" },
   comment: { display: "flex", gap: 10, padding: "14px 0", borderTop: "1px solid rgba(26,47,80,0.5)" },
+  reply: { display: "flex", gap: 8, padding: "10px 0 4px", marginLeft: 42 },
   commentBody: { flex: 1, minWidth: 0 },
   commentHeader: { display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" },
   commentUser: { fontSize: "0.7rem", color: "#c8ddf5", fontFamily: "'Rajdhani', sans-serif", fontWeight: 600, letterSpacing: "0.5px" },
+  commentUserSm: { fontSize: "0.63rem", color: "#c8ddf5", fontFamily: "'Rajdhani', sans-serif", fontWeight: 600, letterSpacing: "0.5px" },
   commentTime: { fontSize: "0.55rem", color: "var(--text-dim, #5a7a9f)", letterSpacing: "0.5px" },
   commentText: { fontSize: "0.68rem", color: "#9ab0cc", fontFamily: "'Share Tech Mono', monospace", lineHeight: 1.7, letterSpacing: "0.3px", wordBreak: "break-word" },
+  commentTextSm: { fontSize: "0.63rem", color: "#9ab0cc", fontFamily: "'Share Tech Mono', monospace", lineHeight: 1.6, letterSpacing: "0.3px", wordBreak: "break-word" },
   deleteBtn: { background: "none", border: "none", color: "rgba(255,34,68,0.4)", cursor: "pointer", fontSize: "0.6rem", padding: "0 4px", marginLeft: "auto", flexShrink: 0 },
+  replyBtn: { background: "none", border: "none", color: "rgba(0,170,255,0.5)", cursor: "pointer", fontSize: "0.55rem", padding: "0", fontFamily: "'Share Tech Mono', monospace", letterSpacing: "1px" },
+  replyingTo: { fontSize: "0.55rem", color: "var(--text-dim, #5a7a9f)", letterSpacing: "1px", marginBottom: 6, display: "flex", alignItems: "center", gap: 8 },
+  cancelBtn: { background: "none", border: "none", color: "rgba(255,34,68,0.5)", cursor: "pointer", fontSize: "0.55rem", padding: "0", fontFamily: "'Share Tech Mono', monospace" },
   signInNote: { fontSize: "0.6rem", color: "var(--text-dim, #5a7a9f)", letterSpacing: "1px", textAlign: "center", padding: "16px 0", opacity: 0.7 },
   error: { fontSize: "0.6rem", color: "#ff2244", letterSpacing: "0.5px", marginBottom: 8 },
   loading: { fontSize: "0.6rem", color: "var(--text-dim, #5a7a9f)", textAlign: "center", padding: "16px 0", letterSpacing: "2px" },
+  replyDivider: { borderLeft: "1px solid rgba(0,170,255,0.12)", marginLeft: 16, paddingLeft: 0 },
 };
 
 function timeAgo(ts) {
@@ -321,6 +332,7 @@ function CommentSection({ kitId, isSignedIn, user }) {
   const [body, setBody] = useState("");
   const [posting, setPosting] = useState(false);
   const [error, setError] = useState(null);
+  const [replyTo, setReplyTo] = useState(null); // { id, username }
   const isAdmin = !!sessionStorage.getItem(ADMIN_KEY_STORAGE);
 
   const fetchComments = useCallback(async () => {
@@ -334,7 +346,17 @@ function CommentSection({ kitId, isSignedIn, user }) {
 
   useEffect(() => { fetchComments(); }, [fetchComments]);
 
-  const postComment = async () => {
+  // Build thread tree: top-level + replies grouped by parent_id
+  const topLevel = comments.filter(c => !c.parent_id);
+  const repliesMap = {};
+  comments.filter(c => c.parent_id).forEach(c => {
+    if (!repliesMap[c.parent_id]) repliesMap[c.parent_id] = [];
+    repliesMap[c.parent_id].push(c);
+  });
+  // Sort replies oldest first so conversation reads naturally
+  Object.values(repliesMap).forEach(arr => arr.sort((a, b) => a.created_at - b.created_at));
+
+  const postComment = async (parentId = null) => {
     if (!body.trim() || posting || !user) return;
     setPosting(true);
     setError(null);
@@ -348,11 +370,13 @@ function CommentSection({ kitId, isSignedIn, user }) {
           username: user.fullName || user.firstName || user.username || "Builder",
           avatar_url: user.imageUrl || "",
           body: body.trim(),
+          parent_id: parentId || null,
         }),
       });
       const data = await res.json();
       if (res.ok && data.ok) {
         setBody("");
+        setReplyTo(null);
         fetchComments();
       } else {
         setError(data.error || "Failed to post");
@@ -378,36 +402,72 @@ function CommentSection({ kitId, isSignedIn, user }) {
   };
 
   const handleKeyDown = (e) => {
-    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) postComment();
+    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) postComment(replyTo?.id || null);
   };
+
+  const startReply = (comment) => {
+    setReplyTo({ id: comment.id, username: comment.username });
+    setBody("");
+    setError(null);
+  };
+
+  const renderAvatar = (url, small) => {
+    const s = small ? C.avatarSm : C.avatar;
+    const sp = small ? C.avatarPlaceholderSm : C.avatarPlaceholder;
+    return url ? <img src={url} alt="" style={s} /> : <div style={sp}>◈</div>;
+  };
+
+  const renderSingleComment = (c, isReply = false) => (
+    <div key={c.id} style={isReply ? C.reply : C.comment}>
+      {renderAvatar(c.avatar_url, isReply)}
+      <div style={C.commentBody}>
+        <div style={C.commentHeader}>
+          <span style={isReply ? C.commentUserSm : C.commentUser}>{c.username}</span>
+          <span style={C.commentTime}>{timeAgo(c.created_at)}</span>
+          {isSignedIn && !isReply && (
+            <button style={C.replyBtn} onClick={() => startReply(c)}>REPLY</button>
+          )}
+          {isSignedIn && isReply && (
+            <button style={C.replyBtn} onClick={() => startReply(c)}>REPLY</button>
+          )}
+          {(user?.id === c.user_id || isAdmin) && (
+            <button style={C.deleteBtn} onClick={() => deleteComment(c.id)} title="Delete">🗑</button>
+          )}
+        </div>
+        <div style={isReply ? C.commentTextSm : C.commentText}>{c.body}</div>
+      </div>
+    </div>
+  );
 
   return (
     <div style={C.wrap}>
       <div style={C.title}>◈ COMMENTS ({comments.length})</div>
 
-      {/* Post input */}
+      {/* Post / Reply input */}
       {isSignedIn && user ? (
         <div>
+          {replyTo && (
+            <div style={C.replyingTo}>
+              REPLYING TO <span style={{color:"#c8ddf5"}}>{replyTo.username}</span>
+              <button style={C.cancelBtn} onClick={() => { setReplyTo(null); setBody(""); }}>✕ CANCEL</button>
+            </div>
+          )}
           <div style={C.inputWrap}>
-            {user.imageUrl ? (
-              <img src={user.imageUrl} alt="" style={C.avatar} />
-            ) : (
-              <div style={C.avatarPlaceholder}>◈</div>
-            )}
+            {renderAvatar(user.imageUrl, !!replyTo)}
             <textarea
-              style={C.textarea}
-              placeholder="Share your thoughts on this kit..."
+              style={replyTo ? C.textareaSm : C.textarea}
+              placeholder={replyTo ? `Reply to ${replyTo.username}...` : "Share your thoughts on this kit..."}
               value={body}
               onChange={e => setBody(e.target.value)}
               onKeyDown={handleKeyDown}
               maxLength={1000}
             />
             <button
-              style={{...C.postBtn, ...((!body.trim() || posting) ? C.postBtnDisabled : {})}}
-              onClick={postComment}
+              style={{...(replyTo ? C.postBtnSm : C.postBtn), ...((!body.trim() || posting) ? C.postBtnDisabled : {})}}
+              onClick={() => postComment(replyTo?.id || null)}
               disabled={!body.trim() || posting}
             >
-              {posting ? "..." : "POST →"}
+              {posting ? "..." : replyTo ? "REPLY →" : "POST →"}
             </button>
           </div>
           {error && <div style={C.error}>✕ {error}</div>}
@@ -416,29 +476,20 @@ function CommentSection({ kitId, isSignedIn, user }) {
         <div style={C.signInNote}>SIGN IN TO LEAVE A COMMENT</div>
       )}
 
-      {/* Comment list */}
+      {/* Comment list with threaded replies */}
       {loading ? (
         <div style={C.loading}>LOADING COMMENTS...</div>
       ) : comments.length === 0 ? (
         <div style={C.empty}>NO COMMENTS YET — BE THE FIRST</div>
       ) : (
-        comments.map(c => (
-          <div key={c.id} style={C.comment}>
-            {c.avatar_url ? (
-              <img src={c.avatar_url} alt="" style={C.avatar} />
-            ) : (
-              <div style={C.avatarPlaceholder}>◈</div>
-            )}
-            <div style={C.commentBody}>
-              <div style={C.commentHeader}>
-                <span style={C.commentUser}>{c.username}</span>
-                <span style={C.commentTime}>{timeAgo(c.created_at)}</span>
-                {(user?.id === c.user_id || isAdmin) && (
-                  <button style={C.deleteBtn} onClick={() => deleteComment(c.id)} title="Delete comment">🗑</button>
-                )}
+        topLevel.map(c => (
+          <div key={c.id}>
+            {renderSingleComment(c, false)}
+            {repliesMap[c.id] && (
+              <div style={C.replyDivider}>
+                {repliesMap[c.id].map(r => renderSingleComment(r, true))}
               </div>
-              <div style={C.commentText}>{c.body}</div>
-            </div>
+            )}
           </div>
         ))
       )}
