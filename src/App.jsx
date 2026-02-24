@@ -53,7 +53,14 @@ export default function KitVault() {
   const toggleManual = (id) => setOpenManualId(prev => prev === id ? null : id);
   const [showSettings, setShowSettings] = useState(false);
   const [sortOrder, setSortOrder] = useState("default");
-  const [pdfOnly, setPdfOnly] = useState(true);
+
+  // ── Back to top ──────────────────────────────────────────
+  const [showBackToTop, setShowBackToTop] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setShowBackToTop(window.scrollY > 600);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
   const [favourites, setFavourites] = useState(() => {
     try { return JSON.parse(localStorage.getItem("kv_favourites") || "[]"); } catch { return []; }
   });
@@ -122,9 +129,33 @@ export default function KitVault() {
   const setBuildStatus = (kitId, status) => {
     if (!isSignedIn) return;
     setBuildProgress(prev => {
-      const next = { ...prev, [kitId]: status };
+      const next = { ...prev };
+      if (prev[kitId] === status) {
+        delete next[kitId]; // toggle off
+      } else {
+        next[kitId] = status;
+      }
       localStorage.setItem("kv_progress", JSON.stringify(next));
       syncToD1({ progress: next });
+      return next;
+    });
+  };
+
+  // Remove kit from vault entirely (clear status + unfavourite)
+  const removeFromVault = (e, kitId) => {
+    e.stopPropagation();
+    if (!isSignedIn) return;
+    setBuildProgress(prev => {
+      const next = { ...prev };
+      delete next[kitId];
+      localStorage.setItem("kv_progress", JSON.stringify(next));
+      syncToD1({ progress: next });
+      return next;
+    });
+    setFavourites(prev => {
+      const next = prev.filter(id => id !== kitId);
+      localStorage.setItem("kv_favourites", JSON.stringify(next));
+      syncToD1({ favourites: next });
       return next;
     });
   };
@@ -150,15 +181,14 @@ export default function KitVault() {
 
   // Memoized filtered kit list — includes allKits as dependency
   const filtered = useMemo(() => allKits.filter(k => {
-    const hasPdf = k.manuals.some(m => m.url);
     const matchGrade = gradeFilter === "ALL" || k.grade === gradeFilter;
     const matchSearch = k.name.toLowerCase().includes(search.toLowerCase()) || k.series.toLowerCase().includes(search.toLowerCase());
-    return (!pdfOnly || hasPdf) && matchGrade && matchSearch;
+    return matchGrade && matchSearch;
   }).sort((a, b) => {
     if (sortOrder === "az") return a.name.localeCompare(b.name);
     if (sortOrder === "za") return b.name.localeCompare(a.name);
     return a.id - b.id;
-  }), [allKits, gradeFilter, search, pdfOnly, sortOrder]);
+  }), [allKits, gradeFilter, search, sortOrder]);
 
   const gc = (g) => GRADE_COLORS[g] || GRADE_COLORS["HG"];
   const goHome = () => { setOpenManualId(null); navigate("/"); };
@@ -175,16 +205,19 @@ export default function KitVault() {
   }, [location.pathname]);
 
   // ── Shared kit card renderer (used by home + vault) ────────
-  const renderKitCard = (kit, { showBacklog = false } = {}) => {
+  const renderKitCard = (kit, { showBacklog = false, showRemove = false } = {}) => {
     const c = gc(kit.grade);
     const isFav = favourites.includes(kit.id);
     const progress = buildProgress[kit.id];
     const pct = getKitProgress(kit);
     return (
       <div key={kit.id} className="kit-card"
-        style={{"--card-accent":c.accent,"--card-accent-bg":c.bg}}
+        style={{"--card-accent":c.accent,"--card-accent-bg":c.bg, position:"relative"}}
         onClick={()=>goKit(kit)}
       >
+        {showRemove && (
+          <button className="vault-remove-btn" onClick={e => removeFromVault(e, kit.id)} title="Remove from vault">🗑</button>
+        )}
         <div className="card-grade-banner" style={{background:c.accent}} />
         <div className="card-body">
           <div className="card-top">
@@ -282,6 +315,11 @@ export default function KitVault() {
                 RESOURCES
               </button>
 
+              {/* GALLERY */}
+              <button className="nav-btn" onClick={() => { closeNav(); navigate("/gallery"); }} style={{color: location.pathname==="/gallery" ? "var(--accent)" : ""}}>
+                GALLERY
+              </button>
+
               {/* GRADES */}
               <div className={`nav-item${openNav==="grades"?" open":""}`}>
                 <button className="nav-btn" onClick={()=>toggleNav("grades")}>
@@ -348,18 +386,24 @@ export default function KitVault() {
                 <div className="controls-row">
                   <div className="search-wrap">
                     <span className="search-icon">⌕</span>
-                    <input className="search-input" placeholder="SEARCH KITS OR SERIES..." value={search} onChange={e=>setSearch(e.target.value)} />
-                  </div>
-                  <div className={`pdf-toggle ${pdfOnly?"on":""}`} onClick={()=>setPdfOnly(p=>!p)}>
-                    <div className="pdf-toggle-box">{pdfOnly?"✓":""}</div>
-                    <span className="pdf-toggle-label">PDF AVAILABLE</span>
+                    <input className="search-input" placeholder="Search for Kits" value={search} onChange={e=>setSearch(e.target.value)} />
                   </div>
                 </div>
                 <div className="controls-row">
                   <span className="controls-label">GRADE</span>
-                  {GRADES.map(g => (
-                    <button key={g} className={`filter-btn ${gradeFilter===g?"active":""}`} onClick={()=>setGradeFilter(g)}>{g}</button>
-                  ))}
+                  {GRADES.map(g => {
+                    const c = GRADE_COLORS[g];
+                    const isActive = gradeFilter === g;
+                    const accent = g === "ALL" ? "var(--accent)" : c?.accent || "var(--accent)";
+                    return (
+                      <button
+                        key={g}
+                        className={`filter-btn ${isActive?"active":""}`}
+                        style={isActive ? { borderColor: accent, color: accent, background: `${c?.bg || "rgba(0,170,255,0.08)"}`, boxShadow: `0 0 12px ${accent}33` } : {}}
+                        onClick={()=>setGradeFilter(g)}
+                      >{g}</button>
+                    );
+                  })}
                   <div className="filter-divider" />
                   <span className="controls-label">SORT</span>
                   <button className={`sort-btn ${sortOrder==="az"?"active":""}`} onClick={()=>setSortOrder(s=>s==="az"?"default":"az")}>A→Z</button>
@@ -431,7 +475,7 @@ export default function KitVault() {
                               <div className="section-line" />
                               <span className="section-count">{inProgress.length} KIT{inProgress.length!==1?"S":""}</span>
                             </div>
-                            <div className="vault-grid" style={{padding:"0 0 32px"}}>{inProgress.map(k => renderKitCard(k, { showBacklog: true }))}</div>
+                            <div className="vault-grid" style={{padding:"0 0 32px"}}>{inProgress.map(k => renderKitCard(k, { showBacklog: true, showRemove: true }))}</div>
                           </>
                         )}
                         {complete.length > 0 && (
@@ -441,7 +485,7 @@ export default function KitVault() {
                               <div className="section-line" />
                               <span className="section-count">{complete.length} KIT{complete.length!==1?"S":""}</span>
                             </div>
-                            <div className="vault-grid" style={{padding:"0 0 32px"}}>{complete.map(k => renderKitCard(k, { showBacklog: true }))}</div>
+                            <div className="vault-grid" style={{padding:"0 0 32px"}}>{complete.map(k => renderKitCard(k, { showBacklog: true, showRemove: true }))}</div>
                           </>
                         )}
                         {backlog.length > 0 && (
@@ -451,7 +495,7 @@ export default function KitVault() {
                               <div className="section-line" />
                               <span className="section-count">{backlog.length} KIT{backlog.length!==1?"S":""}</span>
                             </div>
-                            <div className="vault-grid" style={{padding:"0 0 32px"}}>{backlog.map(k => renderKitCard(k, { showBacklog: true }))}</div>
+                            <div className="vault-grid" style={{padding:"0 0 32px"}}>{backlog.map(k => renderKitCard(k, { showBacklog: true, showRemove: true }))}</div>
                           </>
                         )}
                       </div>
@@ -535,6 +579,25 @@ export default function KitVault() {
                   </div>
                 </div>
 
+              </div>
+            </>
+          } />
+
+          {/* ===== GALLERY PAGE (placeholder) ===== */}
+          <Route path="/gallery" element={
+            <>
+              <div className="page-hero">
+                <div className="page-tag">COMMUNITY BUILDS</div>
+                <div className="page-title">GALLERY</div>
+                <div className="page-sub">SHARE YOUR BUILDS WITH THE COMMUNITY</div>
+              </div>
+              <div style={{padding:"40px",textAlign:"center",fontFamily:"'Share Tech Mono',monospace",color:"var(--text-dim)"}}>
+                <div style={{fontSize:"3rem",marginBottom:"16px",opacity:0.2}}>📸</div>
+                <div style={{fontSize:"0.8rem",letterSpacing:"2px",marginBottom:"12px"}}>COMING SOON</div>
+                <div style={{fontSize:"0.65rem",opacity:0.5,lineHeight:2,maxWidth:"400px",margin:"0 auto"}}>
+                  Upload photos of your completed builds for the community to see.<br/>
+                  Sign in to be the first to share when the gallery launches.
+                </div>
               </div>
             </>
           } />
@@ -688,6 +751,13 @@ export default function KitVault() {
           <span>© GUNDAM IP / BANDAI NAMCO · SOTSU · SUNRISE</span>
           <span style={{fontFamily:"'Share Tech Mono',monospace",fontSize:"0.6rem"}}>{VERSION}</span>
         </footer>
+
+        {/* BACK TO TOP */}
+        <button
+          className={`back-to-top${showBackToTop ? " visible" : ""}`}
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          title="Back to top"
+        >↑</button>
 
       </div>
     </>

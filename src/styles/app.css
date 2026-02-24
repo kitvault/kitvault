@@ -173,7 +173,24 @@
     display: block; margin-top: 1px;
   }
   .nav-dd-item:hover .nav-dd-label { color: var(--accent); }
-  @media (max-width: 860px) { .nav-right { display: none; } }
+
+  /* Mobile nav: horizontal scroll instead of hiding */
+  @media (max-width: 860px) {
+    .nav-right {
+      overflow-x: auto; flex-wrap: nowrap;
+      -webkit-overflow-scrolling: touch; scrollbar-width: none;
+      max-width: 50vw;
+    }
+    .nav-right::-webkit-scrollbar { display: none; }
+    .nav-btn { font-size: 0.58rem; padding: 8px 10px; }
+    .nav-dropdown { min-width: 260px; right: auto; left: 0; }
+  }
+  @media (max-width: 640px) {
+    .nav-right { max-width: 40vw; gap: 0; }
+    .nav-btn { font-size: 0.52rem; padding: 6px 6px; letter-spacing: 0.5px; }
+    .nav-btn-arrow { display: none; }
+    .nav-dropdown { position: fixed; top: 60px; left: 8px; right: 8px; min-width: unset; max-height: 70vh; overflow-y: auto; }
+  }
 
   /* GRADE DETAIL PAGE */
   .grade-page { padding: 0 40px 60px; }
@@ -1376,3 +1393,30 @@
     .tools-grid { grid-template-columns: 1fr; }
     .tool-card { clip-path: none; }
   }
+
+  /* ── BACK TO TOP BUTTON ── */
+  .back-to-top {
+    position: fixed; bottom: 28px; right: 28px; z-index: 900;
+    width: 44px; height: 44px;
+    background: var(--panel); border: 1px solid var(--border);
+    color: var(--accent); font-size: 1.1rem;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: all 0.25s; opacity: 0;
+    pointer-events: none;
+    clip-path: polygon(0 0, 88% 0, 100% 12%, 100% 100%, 12% 100%, 0 88%);
+    font-family: 'Share Tech Mono', monospace;
+  }
+  .back-to-top.visible { opacity: 1; pointer-events: all; }
+  .back-to-top:hover { background: rgba(0,170,255,0.12); border-color: var(--accent); box-shadow: var(--glow); }
+
+  /* ── VAULT REMOVE BUTTON ── */
+  .vault-remove-btn {
+    background: none; border: 1px solid rgba(255,34,68,0.2);
+    color: #ff2244; font-size: 0.7rem; padding: 4px 8px;
+    cursor: pointer; opacity: 0.5; transition: all 0.2s;
+    font-family: 'Share Tech Mono', monospace;
+    letter-spacing: 1px;
+    position: absolute; top: 8px; right: 8px; z-index: 2;
+  }
+  .vault-remove-btn:hover { opacity: 1; background: rgba(255,34,68,0.08); border-color: rgba(255,34,68,0.5); }
+

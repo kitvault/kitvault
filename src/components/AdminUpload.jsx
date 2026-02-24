@@ -19,6 +19,7 @@ const NAMING_EXAMPLES = [
   { filename: "pg-60-rx-78-2-gundam-assembly.pdf",       result: "PG · 1/60 · Rx 78 2 Gundam" },
   { filename: "sd-unk-zeromaru-assembly.pdf",            result: "SD · SD · Zeromaru" },
   { filename: "eg-144-strike-gundam-assembly.pdf",       result: "EG · 1/144 · Strike Gundam" },
+  { filename: "mgsd-unk-freedom-gundam-assembly.pdf",    result: "MGSD · SD · Freedom Gundam" },
 ];
 
 const ADMIN_KEY_STORAGE = "kv_admin_key";
@@ -191,7 +192,7 @@ export default function AdminUpload() {
             </div>
           ))}
         </div>
-        <div style={S.note}>Valid grades: <strong>hg · mg · rg · pg · sd · eg</strong> | Scale: <strong>144 · 100 · 60 · unk</strong> | Always end with: <strong>-assembly.pdf</strong></div>
+        <div style={S.note}>Valid grades: <strong>hg · mg · rg · pg · sd · eg · mgsd</strong> | Scale: <strong>144 · 100 · 60 · unk</strong> | Always end with: <strong>-assembly.pdf</strong></div>
       </div>
 
       {/* DROP ZONE */}
