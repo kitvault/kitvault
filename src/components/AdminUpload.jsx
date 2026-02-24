@@ -1,14 +1,17 @@
 // ─────────────────────────────────────────────────────────────
 // AdminUpload.jsx
-// Password-protected admin page for uploading new PDF manuals.
-// On upload the Worker parses the filename, stores the PDF in
-// R2, and creates the kit entry in D1 automatically.
+// Password-protected admin page for uploading new PDF manuals
+// AND managing existing kits/manuals (view, delete).
 //
-// Route: /admin  (add this to App.jsx — see bottom of this file)
+// Route: /admin
+// Worker endpoints used:
+//   POST   /api/upload          — upload a new PDF
+//   GET    /api/kits            — list all kits + manuals
+//   DELETE /api/manual/:id      — delete one manual
+//   DELETE /api/kit/:id         — delete kit + all its manuals
 // ─────────────────────────────────────────────────────────────
-import { useState, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 
-// ── Naming convention reminder shown on the page ─────────────
 const NAMING_EXAMPLES = [
   { filename: "hg-144-rx78-2-gundam-assembly.pdf",      result: "HG · 1/144 · Rx78 2 Gundam" },
   { filename: "mg-100-unicorn-gundam-assembly.pdf",      result: "MG · 1/100 · Unicorn Gundam" },
@@ -21,17 +24,21 @@ const NAMING_EXAMPLES = [
 const ADMIN_KEY_STORAGE = "kv_admin_key";
 
 export default function AdminUpload() {
-  const [adminKey, setAdminKeyState] = useState(
-    () => sessionStorage.getItem(ADMIN_KEY_STORAGE) || ""
-  );
+  const [adminKey, setAdminKeyState] = useState(() => sessionStorage.getItem(ADMIN_KEY_STORAGE) || "");
   const [isAuthed, setIsAuthed] = useState(false);
   const [keyInput, setKeyInput] = useState("");
   const [keyError, setKeyError] = useState("");
 
-  const [files, setFiles] = useState([]);       // queued files
-  const [results, setResults] = useState([]);   // upload results
+  const [files, setFiles] = useState([]);
+  const [results, setResults] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+
+  const [d1Kits, setD1Kits] = useState([]);
+  const [kitsLoading, setKitsLoading] = useState(false);
+  const [kitSearch, setKitSearch] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState(null);
+  const [deleteStatus, setDeleteStatus] = useState(null);
 
   const fileInputRef = useRef(null);
 
@@ -45,6 +52,61 @@ export default function AdminUpload() {
     setKeyError("");
   };
 
+  // ── Fetch D1 kits ─────────────────────────────────────────
+  const fetchKits = useCallback(async () => {
+    setKitsLoading(true);
+    try {
+      const res = await fetch("/api/kits");
+      const data = await res.json();
+      if (Array.isArray(data)) setD1Kits(data);
+    } catch (_) {}
+    setKitsLoading(false);
+  }, []);
+
+  useEffect(() => { if (isAuthed) fetchKits(); }, [isAuthed, fetchKits]);
+
+  // ── Delete manual ─────────────────────────────────────────
+  const deleteManual = async (manualId) => {
+    setDeleteStatus(null);
+    try {
+      const res = await fetch(`/api/manual/${manualId}`, {
+        method: "DELETE",
+        headers: { "X-Admin-Key": adminKey },
+      });
+      const data = await res.json();
+      if (res.ok && data.ok) {
+        setDeleteStatus({ ok: true, message: `Manual #${manualId} deleted` });
+        fetchKits();
+      } else {
+        setDeleteStatus({ ok: false, message: data.error || "Delete failed" });
+      }
+    } catch (err) {
+      setDeleteStatus({ ok: false, message: err.message });
+    }
+    setConfirmDelete(null);
+  };
+
+  // ── Delete kit ────────────────────────────────────────────
+  const deleteKit = async (kitId) => {
+    setDeleteStatus(null);
+    try {
+      const res = await fetch(`/api/kit/${kitId}`, {
+        method: "DELETE",
+        headers: { "X-Admin-Key": adminKey },
+      });
+      const data = await res.json();
+      if (res.ok && data.ok) {
+        setDeleteStatus({ ok: true, message: `Kit #${kitId} and all manuals deleted` });
+        fetchKits();
+      } else {
+        setDeleteStatus({ ok: false, message: data.error || "Delete failed" });
+      }
+    } catch (err) {
+      setDeleteStatus({ ok: false, message: err.message });
+    }
+    setConfirmDelete(null);
+  };
+
   // ── File selection ─────────────────────────────────────────
   const addFiles = useCallback((incoming) => {
     const pdfs = Array.from(incoming).filter(f => f.name.endsWith(".pdf"));
@@ -55,12 +117,7 @@ export default function AdminUpload() {
     });
   }, []);
 
-  const handleDrop = (e) => {
-    e.preventDefault();
-    setDragOver(false);
-    addFiles(e.dataTransfer.files);
-  };
-
+  const handleDrop = (e) => { e.preventDefault(); setDragOver(false); addFiles(e.dataTransfer.files); };
   const removeFile = (name) => setFiles(prev => prev.filter(f => f.name !== name));
 
   // ── Upload ─────────────────────────────────────────────────
@@ -68,345 +125,216 @@ export default function AdminUpload() {
     if (!files.length || uploading) return;
     setUploading(true);
     setResults([]);
-
     const newResults = [];
     for (const file of files) {
       const fd = new FormData();
       fd.append("file", file);
       fd.append("filename", file.name);
-
       try {
-        const res = await fetch("/api/upload", {
-          method: "POST",
-          headers: { "X-Admin-Key": adminKey },
-          body: fd,
-        });
+        const res = await fetch("/api/upload", { method: "POST", headers: { "X-Admin-Key": adminKey }, body: fd });
         const data = await res.json();
-
         if (res.ok && data.ok) {
-          newResults.push({
-            filename: file.name,
-            status: "success",
-            kitCreated: data.kitCreated,
-            kit: data.kit,
-            reason: data.reason,
-          });
+          newResults.push({ filename: file.name, status: "success", kitCreated: data.kitCreated, kit: data.kit, reason: data.reason });
         } else {
-          newResults.push({
-            filename: file.name,
-            status: "error",
-            message: data.error || "Unknown error",
-          });
+          newResults.push({ filename: file.name, status: "error", message: data.error || "Unknown error" });
         }
       } catch (err) {
-        newResults.push({
-          filename: file.name,
-          status: "error",
-          message: err.message,
-        });
+        newResults.push({ filename: file.name, status: "error", message: err.message });
       }
-
       setResults([...newResults]);
     }
-
     setFiles([]);
     setUploading(false);
+    fetchKits();
   };
+
+  const filteredKits = kitSearch
+    ? d1Kits.filter(k => k.name.toLowerCase().includes(kitSearch.toLowerCase()) || k.grade.toLowerCase().includes(kitSearch.toLowerCase()))
+    : d1Kits;
 
   // ── Auth gate ──────────────────────────────────────────────
   if (!isAuthed) {
     return (
-      <div style={styles.authWrap}>
-        <div style={styles.authBox}>
-          <div style={styles.authIcon}>🔒</div>
-          <div style={styles.authTitle}>ADMIN ACCESS</div>
-          <div style={styles.authSub}>KITVAULT.IO — MANUAL UPLOAD</div>
+      <div style={S.authWrap}>
+        <div style={S.authBox}>
+          <div style={{fontSize:"2rem",marginBottom:4}}>🔒</div>
+          <div style={S.authTitle}>ADMIN ACCESS</div>
+          <div style={S.authSub}>KITVAULT.IO — MANUAL UPLOAD</div>
           <form onSubmit={handleAuth} style={{width:"100%"}}>
-            <input
-              type="password"
-              placeholder="ENTER ADMIN KEY"
-              value={keyInput}
-              onChange={e => setKeyInput(e.target.value)}
-              style={styles.keyInput}
-              autoFocus
-            />
-            {keyError && <div style={styles.errorMsg}>{keyError}</div>}
-            <button type="submit" style={styles.authBtn}>UNLOCK →</button>
+            <input type="password" placeholder="ENTER ADMIN KEY" value={keyInput} onChange={e=>setKeyInput(e.target.value)} style={S.input} autoFocus />
+            {keyError && <div style={{fontSize:"0.6rem",color:"#ff2244",letterSpacing:"1px",marginBottom:8}}>{keyError}</div>}
+            <button type="submit" style={S.btnPrimary}>UNLOCK →</button>
           </form>
         </div>
       </div>
     );
   }
 
-  // ── Upload UI ──────────────────────────────────────────────
   return (
-    <div style={styles.page}>
-      <div style={styles.header}>
-        <div style={styles.headerTag}>◈ ADMIN PANEL</div>
-        <div style={styles.headerTitle}>MANUAL UPLOAD</div>
-        <div style={styles.headerSub}>PDF FILES ARE AUTO-PARSED AND ADDED TO THE KIT LIBRARY</div>
+    <div style={S.page}>
+      <div style={{padding:"60px 0 40px",textAlign:"center"}}>
+        <div style={S.tag}>◈ ADMIN PANEL</div>
+        <div style={S.title}>MANUAL UPLOAD</div>
+        <div style={S.sub}>PDF FILES ARE AUTO-PARSED AND ADDED TO THE KIT LIBRARY</div>
       </div>
 
       {/* NAMING CONVENTION */}
-      <div style={styles.section}>
-        <div style={styles.sectionTitle}>◈ FILENAME FORMAT</div>
-        <div style={styles.conventionNote}>
-          Files must follow this pattern: <code style={styles.code}>{"{grade}-{scale}-{kit-name}-assembly.pdf"}</code>
-        </div>
-        <div style={styles.exampleGrid}>
+      <div style={S.section}>
+        <div style={S.sectionTitle}>◈ FILENAME FORMAT</div>
+        <div style={S.note}>Files must follow this pattern: <code style={S.code}>{"{grade}-{scale}-{kit-name}-assembly.pdf"}</code></div>
+        <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
           {NAMING_EXAMPLES.map(ex => (
-            <div key={ex.filename} style={styles.exampleRow}>
-              <code style={styles.exFilename}>{ex.filename}</code>
-              <span style={styles.exArrow}>→</span>
-              <span style={styles.exResult}>{ex.result}</span>
+            <div key={ex.filename} style={{display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
+              <code style={{color:"#c8ddf5",fontSize:"0.65rem",fontFamily:"'Share Tech Mono',monospace"}}>{ex.filename}</code>
+              <span style={{color:"#5a7a9f",fontSize:"0.7rem"}}>→</span>
+              <span style={{color:"#00ffcc",fontSize:"0.65rem",letterSpacing:"1px"}}>{ex.result}</span>
             </div>
           ))}
         </div>
-        <div style={styles.conventionNote}>
-          Valid grades: <strong>hg · mg · rg · pg · sd · eg</strong> &nbsp;|&nbsp;
-          Scale: <strong>144 · 100 · 60 · unk</strong> &nbsp;|&nbsp;
-          Always end with: <strong>-assembly.pdf</strong>
-        </div>
+        <div style={S.note}>Valid grades: <strong>hg · mg · rg · pg · sd · eg</strong> | Scale: <strong>144 · 100 · 60 · unk</strong> | Always end with: <strong>-assembly.pdf</strong></div>
       </div>
 
       {/* DROP ZONE */}
-      <div style={styles.section}>
-        <div style={styles.sectionTitle}>◈ SELECT FILES</div>
+      <div style={S.section}>
+        <div style={S.sectionTitle}>◈ SELECT FILES</div>
         <div
-          style={{...styles.dropZone, ...(dragOver ? styles.dropZoneActive : {})}}
-          onDragOver={e => { e.preventDefault(); setDragOver(true); }}
-          onDragLeave={() => setDragOver(false)}
-          onDrop={handleDrop}
-          onClick={() => fileInputRef.current?.click()}
+          style={{...S.dropZone, ...(dragOver?{borderColor:"#00aaff",background:"rgba(0,170,255,0.08)"}:{})}}
+          onDragOver={e=>{e.preventDefault();setDragOver(true)}} onDragLeave={()=>setDragOver(false)}
+          onDrop={handleDrop} onClick={()=>fileInputRef.current?.click()}
         >
-          <div style={styles.dropIcon}>📂</div>
-          <div style={styles.dropText}>DRAG & DROP PDF FILES HERE</div>
-          <div style={styles.dropSub}>or click to browse</div>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".pdf"
-            multiple
-            style={{display:"none"}}
-            onChange={e => addFiles(e.target.files)}
-          />
+          <div style={{fontSize:"2.4rem",marginBottom:12}}>📂</div>
+          <div style={{fontSize:"0.75rem",letterSpacing:"3px",color:"#c8ddf5",marginBottom:8}}>DRAG & DROP PDF FILES HERE</div>
+          <div style={{fontSize:"0.6rem",color:"#5a7a9f",letterSpacing:"1px"}}>or click to browse</div>
+          <input ref={fileInputRef} type="file" accept=".pdf" multiple style={{display:"none"}} onChange={e=>addFiles(e.target.files)} />
         </div>
-
-        {/* QUEUED FILES */}
         {files.length > 0 && (
-          <div style={styles.queueWrap}>
-            <div style={styles.queueHeader}>
-              {files.length} FILE{files.length !== 1 ? "S" : ""} QUEUED
-            </div>
+          <div style={{marginTop:20}}>
+            <div style={{fontSize:"0.6rem",letterSpacing:"2px",color:"#5a7a9f",marginBottom:10}}>{files.length} FILE{files.length!==1?"S":""} QUEUED</div>
             {files.map(f => (
-              <div key={f.name} style={styles.queueRow}>
-                <span style={styles.queueIcon}>PDF</span>
-                <span style={styles.queueName}>{f.name}</span>
-                <span style={styles.queueSize}>{(f.size / 1024).toFixed(0)} KB</span>
-                <button style={styles.removeBtn} onClick={() => removeFile(f.name)}>✕</button>
+              <div key={f.name} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:"1px solid #1a2f50"}}>
+                <span style={S.pdfBadge}>PDF</span>
+                <span style={{flex:1,fontSize:"0.65rem",color:"#c8ddf5",wordBreak:"break-all"}}>{f.name}</span>
+                <span style={{fontSize:"0.6rem",color:"#5a7a9f"}}>{(f.size/1024).toFixed(0)} KB</span>
+                <button style={{background:"none",border:"none",color:"#5a7a9f",cursor:"pointer",fontSize:"0.75rem"}} onClick={()=>removeFile(f.name)}>✕</button>
               </div>
             ))}
-            <button
-              style={{...styles.uploadBtn, ...(uploading ? styles.uploadBtnDisabled : {})}}
-              onClick={uploadAll}
-              disabled={uploading}
-            >
-              {uploading ? "UPLOADING..." : `UPLOAD ${files.length} FILE${files.length !== 1 ? "S" : ""} →`}
+            <button style={{...S.btnPrimary,marginTop:16,...(uploading?{opacity:0.5,cursor:"not-allowed"}:{})}} onClick={uploadAll} disabled={uploading}>
+              {uploading ? "UPLOADING..." : `UPLOAD ${files.length} FILE${files.length!==1?"S":""} →`}
             </button>
           </div>
         )}
       </div>
 
-      {/* RESULTS */}
+      {/* UPLOAD RESULTS */}
       {results.length > 0 && (
-        <div style={styles.section}>
-          <div style={styles.sectionTitle}>◈ UPLOAD RESULTS</div>
+        <div style={S.section}>
+          <div style={S.sectionTitle}>◈ UPLOAD RESULTS</div>
           {results.map(r => (
-            <div key={r.filename} style={{
-              ...styles.resultRow,
-              borderColor: r.status === "success" ? "rgba(0,255,136,0.3)" : "rgba(255,34,68,0.3)",
-              background:  r.status === "success" ? "rgba(0,255,136,0.05)" : "rgba(255,34,68,0.05)",
-            }}>
-              <div style={styles.resultTop}>
-                <span style={{...styles.resultStatus, color: r.status === "success" ? "var(--green, #00ff88)" : "var(--red, #ff2244)"}}>
-                  {r.status === "success" ? "✓" : "✕"}
-                </span>
-                <code style={styles.resultFilename}>{r.filename}</code>
+            <div key={r.filename} style={{border:"1px solid",borderColor:r.status==="success"?"rgba(0,255,136,0.3)":"rgba(255,34,68,0.3)",background:r.status==="success"?"rgba(0,255,136,0.05)":"rgba(255,34,68,0.05)",padding:16,marginBottom:10}}>
+              <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:6}}>
+                <span style={{fontSize:"1rem",fontWeight:700,color:r.status==="success"?"#00ff88":"#ff2244"}}>{r.status==="success"?"✓":"✕"}</span>
+                <code style={{fontSize:"0.65rem",color:"#c8ddf5"}}>{r.filename}</code>
               </div>
-              {r.status === "success" && r.kitCreated && r.kit && (
-                <div style={styles.resultDetail}>
-                  Kit created: <strong>{r.kit.grade} · {r.kit.scale} · {r.kit.name}</strong>
-                </div>
-              )}
-              {r.status === "success" && !r.kitCreated && (
-                <div style={{...styles.resultDetail, color:"#ffcc00"}}>
-                  ⚠ PDF uploaded but kit not created — {r.reason}
-                </div>
-              )}
-              {r.status === "error" && (
-                <div style={{...styles.resultDetail, color:"#ff2244"}}>
-                  Error: {r.message}
-                </div>
-              )}
+              {r.status==="success"&&r.kitCreated&&r.kit&&<div style={{fontSize:"0.6rem",color:"#5a7a9f",marginLeft:24}}>Kit created: <strong>{r.kit.grade} · {r.kit.scale} · {r.kit.name}</strong></div>}
+              {r.status==="success"&&!r.kitCreated&&<div style={{fontSize:"0.6rem",color:"#ffcc00",marginLeft:24}}>⚠ PDF uploaded but kit not created — {r.reason}</div>}
+              {r.status==="error"&&<div style={{fontSize:"0.6rem",color:"#ff2244",marginLeft:24}}>Error: {r.message}</div>}
             </div>
           ))}
         </div>
       )}
+
+      {/* ═══════════════════════════════════════════════════════
+          KIT MANAGEMENT
+         ═══════════════════════════════════════════════════════ */}
+      <div style={{...S.section, marginTop:60}}>
+        <div style={S.sectionTitle}>◈ MANAGE D1 KITS & MANUALS</div>
+
+        {deleteStatus && (
+          <div style={{padding:"10px 16px",marginBottom:16,border:`1px solid ${deleteStatus.ok?"rgba(0,255,136,0.3)":"rgba(255,34,68,0.3)"}`,background:deleteStatus.ok?"rgba(0,255,136,0.05)":"rgba(255,34,68,0.05)",color:deleteStatus.ok?"#00ff88":"#ff2244",fontSize:"0.65rem",letterSpacing:"1px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <span>{deleteStatus.ok?"✓":"✕"} {deleteStatus.message}</span>
+            <button onClick={()=>setDeleteStatus(null)} style={{background:"none",border:"none",color:"inherit",cursor:"pointer",fontSize:"0.8rem"}}>✕</button>
+          </div>
+        )}
+
+        {/* Confirm delete modal */}
+        {confirmDelete && (
+          <div style={{position:"fixed",inset:0,zIndex:9999,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
+            <div style={{border:"1px solid rgba(255,34,68,0.4)",background:"#0a1220",padding:32,maxWidth:440,width:"100%",textAlign:"center",display:"flex",flexDirection:"column",alignItems:"center",gap:12}}>
+              <div style={{fontSize:"2rem"}}>⚠</div>
+              <div style={{fontFamily:"'Orbitron',monospace",fontSize:"1rem",letterSpacing:"3px",color:"#ff2244"}}>CONFIRM DELETE</div>
+              <div style={{fontSize:"0.7rem",color:"#c8ddf5",letterSpacing:"0.5px",lineHeight:1.6,wordBreak:"break-word"}}>{confirmDelete.label}</div>
+              <div style={{fontSize:"0.6rem",color:"#5a7a9f",lineHeight:1.8,marginTop:4}}>
+                {confirmDelete.type==="kit" ? "This will delete the kit AND all its manuals from D1. PDF files in R2 will remain." : "This will delete this manual entry from D1. The PDF file in R2 will remain."}
+              </div>
+              <div style={{display:"flex",gap:12,marginTop:12,width:"100%"}}>
+                <button style={{flex:1,padding:12,background:"rgba(90,122,159,0.1)",border:"1px solid #1a2f50",color:"#5a7a9f",fontFamily:"'Share Tech Mono',monospace",fontSize:"0.7rem",letterSpacing:"2px",cursor:"pointer"}} onClick={()=>setConfirmDelete(null)}>CANCEL</button>
+                <button style={{flex:1,padding:12,background:"rgba(255,34,68,0.1)",border:"1px solid rgba(255,34,68,0.4)",color:"#ff2244",fontFamily:"'Share Tech Mono',monospace",fontSize:"0.7rem",letterSpacing:"2px",cursor:"pointer"}} onClick={()=>{if(confirmDelete.type==="kit")deleteKit(confirmDelete.id);else deleteManual(confirmDelete.id);}}>DELETE →</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Search + refresh */}
+        <div style={{display:"flex",gap:10,marginBottom:16,alignItems:"center"}}>
+          <input type="text" placeholder="SEARCH KITS..." value={kitSearch} onChange={e=>setKitSearch(e.target.value)} style={{...S.input,marginBottom:0,flex:1}} />
+          <button onClick={fetchKits} style={{...S.btnPrimary,width:"auto",padding:"12px 20px",whiteSpace:"nowrap"}}>{kitsLoading?"...":"↻ REFRESH"}</button>
+        </div>
+        <div style={S.note}>{d1Kits.length} kit{d1Kits.length!==1?"s":""} in D1{kitSearch?` · ${filteredKits.length} matching "${kitSearch}"`:""}</div>
+
+        {filteredKits.length===0&&!kitsLoading&&(
+          <div style={{...S.note,textAlign:"center",padding:"32px 0",opacity:0.5}}>{kitSearch?"NO KITS MATCH YOUR SEARCH":"NO KITS IN D1 YET"}</div>
+        )}
+
+        {filteredKits.map(kit => (
+          <div key={kit.id} style={{border:"1px solid #1a2f50",background:"#080c12",marginBottom:10,padding:"14px 16px"}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,flexWrap:"wrap",marginBottom:6}}>
+              <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                <span style={S.pdfBadge}>{kit.grade}</span>
+                <span style={{fontSize:"0.6rem",color:"#5a7a9f"}}>{kit.scale}</span>
+                <span style={{fontSize:"0.7rem",color:"#c8ddf5"}}>{kit.name}</span>
+                <span style={{fontSize:"0.55rem",color:"#2a4060"}}>#{kit.id}</span>
+              </div>
+              <button style={{background:"rgba(255,34,68,0.08)",border:"1px solid rgba(255,34,68,0.3)",color:"#ff2244",fontFamily:"'Share Tech Mono',monospace",fontSize:"0.55rem",padding:"4px 10px",cursor:"pointer",letterSpacing:"1px"}}
+                onClick={()=>setConfirmDelete({type:"kit",id:kit.id,label:`${kit.grade} · ${kit.scale} · ${kit.name} (kit #${kit.id} + ${kit.manuals.length} manual${kit.manuals.length!==1?"s":""})`})}>
+                ✕ DELETE KIT
+              </button>
+            </div>
+            {kit.manuals.map(m => (
+              <div key={m.id} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0 6px 12px",borderTop:"1px solid #111a2a",flexWrap:"wrap"}}>
+                <span style={{...S.pdfBadge,fontSize:"0.5rem",padding:"1px 4px",border:"1px solid #1a2f50"}}>PDF</span>
+                <span style={{fontSize:"0.65rem",color:"#c8ddf5",minWidth:80}}>{m.name}</span>
+                <span style={{fontSize:"0.55rem",color:"#5a7a9f"}}>{m.lang} · {m.pages||"?"} pgs</span>
+                <span style={{fontSize:"0.5rem",color:"#2a4060",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}} title={m.url}>{m.url?.length>50?"..."+m.url.slice(-47):m.url}</span>
+                <button style={{background:"none",border:"1px solid rgba(255,34,68,0.2)",color:"#ff2244",cursor:"pointer",fontSize:"0.65rem",padding:"2px 8px",opacity:0.6}}
+                  onClick={()=>setConfirmDelete({type:"manual",id:m.id,label:`"${m.name}" from ${kit.grade} ${kit.name} (manual #${m.id})`})}>
+                  ✕
+                </button>
+              </div>
+            ))}
+            {kit.manuals.length===0&&<div style={{...S.note,padding:"8px 0 0 36px",opacity:0.4}}>No manuals — consider deleting this empty kit</div>}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
 
-// ─────────────────────────────────────────────────────────────
-// STYLES (inline — no extra CSS file needed)
-// ─────────────────────────────────────────────────────────────
-const styles = {
-  page: {
-    maxWidth: 860, margin: "0 auto", padding: "0 24px 80px",
-    fontFamily: "'Share Tech Mono', monospace",
-  },
-  header: {
-    padding: "60px 0 40px", textAlign: "center",
-  },
-  headerTag: {
-    fontSize: "0.6rem", letterSpacing: "3px", color: "#00aaff",
-    marginBottom: 10, opacity: 0.8,
-  },
-  headerTitle: {
-    fontSize: "2.4rem", fontFamily: "'Orbitron', monospace",
-    fontWeight: 700, letterSpacing: "4px", color: "#e8f4ff",
-    marginBottom: 10,
-  },
-  headerSub: {
-    fontSize: "0.65rem", letterSpacing: "2px", color: "#5a7a9f",
-  },
-  section: {
-    marginBottom: 40, border: "1px solid #1a2f50",
-    background: "#0a1220", padding: 24,
-  },
-  sectionTitle: {
-    fontSize: "0.65rem", letterSpacing: "3px", color: "#00aaff",
-    marginBottom: 20,
-  },
-  conventionNote: {
-    fontSize: "0.65rem", color: "#5a7a9f", letterSpacing: "0.5px",
-    lineHeight: 2, marginBottom: 12,
-  },
-  code: {
-    color: "#00ffcc", background: "rgba(0,255,204,0.08)",
-    padding: "2px 6px", fontFamily: "'Share Tech Mono', monospace",
-  },
-  exampleGrid: {
-    display: "flex", flexDirection: "column", gap: 8, marginBottom: 16,
-  },
-  exampleRow: {
-    display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap",
-  },
-  exFilename: {
-    color: "#c8ddf5", fontSize: "0.65rem",
-    fontFamily: "'Share Tech Mono', monospace",
-  },
-  exArrow: { color: "#5a7a9f", fontSize: "0.7rem" },
-  exResult: { color: "#00ffcc", fontSize: "0.65rem", letterSpacing: "1px" },
-
-  dropZone: {
-    border: "2px dashed #1a2f50", padding: "48px 24px",
-    textAlign: "center", cursor: "pointer",
-    transition: "all 0.2s", background: "rgba(0,170,255,0.02)",
-  },
-  dropZoneActive: {
-    borderColor: "#00aaff", background: "rgba(0,170,255,0.08)",
-  },
-  dropIcon: { fontSize: "2.4rem", marginBottom: 12 },
-  dropText: {
-    fontSize: "0.75rem", letterSpacing: "3px", color: "#c8ddf5",
-    marginBottom: 8,
-  },
-  dropSub: { fontSize: "0.6rem", color: "#5a7a9f", letterSpacing: "1px" },
-
-  queueWrap: { marginTop: 20 },
-  queueHeader: {
-    fontSize: "0.6rem", letterSpacing: "2px", color: "#5a7a9f",
-    marginBottom: 10,
-  },
-  queueRow: {
-    display: "flex", alignItems: "center", gap: 10,
-    padding: "8px 0", borderBottom: "1px solid #1a2f50",
-  },
-  queueIcon: {
-    fontSize: "0.55rem", color: "#00aaff", border: "1px solid #00aaff",
-    padding: "2px 5px", letterSpacing: "1px", flexShrink: 0,
-  },
-  queueName: {
-    flex: 1, fontSize: "0.65rem", color: "#c8ddf5",
-    fontFamily: "'Share Tech Mono', monospace", wordBreak: "break-all",
-  },
-  queueSize: { fontSize: "0.6rem", color: "#5a7a9f", flexShrink: 0 },
-  removeBtn: {
-    background: "none", border: "none", color: "#5a7a9f",
-    cursor: "pointer", fontSize: "0.75rem", padding: "0 4px",
-    flexShrink: 0,
-  },
-
-  uploadBtn: {
-    marginTop: 16, width: "100%", padding: "14px",
-    background: "rgba(0,170,255,0.1)", border: "1px solid #00aaff",
-    color: "#00aaff", fontFamily: "'Share Tech Mono', monospace",
-    fontSize: "0.75rem", letterSpacing: "2px", cursor: "pointer",
-    transition: "all 0.2s",
-  },
-  uploadBtnDisabled: {
-    opacity: 0.5, cursor: "not-allowed",
-  },
-
-  resultRow: {
-    border: "1px solid", padding: 16, marginBottom: 10,
-  },
-  resultTop: {
-    display: "flex", alignItems: "center", gap: 10, marginBottom: 6,
-  },
-  resultStatus: { fontSize: "1rem", fontWeight: 700 },
-  resultFilename: {
-    fontSize: "0.65rem", color: "#c8ddf5",
-    fontFamily: "'Share Tech Mono', monospace",
-  },
-  resultDetail: {
-    fontSize: "0.6rem", color: "#5a7a9f",
-    letterSpacing: "0.5px", lineHeight: 1.8, marginLeft: 24,
-  },
-
-  // Auth screen
-  authWrap: {
-    minHeight: "80vh", display: "flex",
-    alignItems: "center", justifyContent: "center",
-  },
-  authBox: {
-    border: "1px solid #1a2f50", background: "#0a1220",
-    padding: 40, width: "100%", maxWidth: 380, textAlign: "center",
-    display: "flex", flexDirection: "column", alignItems: "center", gap: 12,
-  },
-  authIcon: { fontSize: "2rem", marginBottom: 4 },
-  authTitle: {
-    fontFamily: "'Orbitron', monospace", fontSize: "1.1rem",
-    letterSpacing: "4px", color: "#e8f4ff",
-  },
-  authSub: {
-    fontSize: "0.6rem", letterSpacing: "2px", color: "#5a7a9f", marginBottom: 8,
-  },
-  keyInput: {
-    width: "100%", padding: "12px 16px",
-    background: "#080c12", border: "1px solid #1a2f50",
-    color: "#c8ddf5", fontFamily: "'Share Tech Mono', monospace",
-    fontSize: "0.75rem", letterSpacing: "2px", outline: "none",
-    marginBottom: 8, boxSizing: "border-box",
-  },
-  authBtn: {
-    width: "100%", padding: "12px",
-    background: "rgba(0,170,255,0.1)", border: "1px solid #00aaff",
-    color: "#00aaff", fontFamily: "'Share Tech Mono', monospace",
-    fontSize: "0.75rem", letterSpacing: "2px", cursor: "pointer",
-  },
-  errorMsg: {
-    fontSize: "0.6rem", color: "#ff2244",
-    letterSpacing: "1px", marginBottom: 8,
-  },
+// ── Shared style tokens ──────────────────────────────────────
+const S = {
+  page: { maxWidth:860, margin:"0 auto", padding:"0 24px 80px", fontFamily:"'Share Tech Mono',monospace" },
+  tag: { fontSize:"0.6rem", letterSpacing:"3px", color:"#00aaff", marginBottom:10, opacity:0.8 },
+  title: { fontSize:"2.4rem", fontFamily:"'Orbitron',monospace", fontWeight:700, letterSpacing:"4px", color:"#e8f4ff", marginBottom:10 },
+  sub: { fontSize:"0.65rem", letterSpacing:"2px", color:"#5a7a9f" },
+  section: { marginBottom:40, border:"1px solid #1a2f50", background:"#0a1220", padding:24 },
+  sectionTitle: { fontSize:"0.65rem", letterSpacing:"3px", color:"#00aaff", marginBottom:20 },
+  note: { fontSize:"0.65rem", color:"#5a7a9f", letterSpacing:"0.5px", lineHeight:2, marginBottom:12 },
+  code: { color:"#00ffcc", background:"rgba(0,255,204,0.08)", padding:"2px 6px", fontFamily:"'Share Tech Mono',monospace" },
+  input: { width:"100%", padding:"12px 16px", background:"#080c12", border:"1px solid #1a2f50", color:"#c8ddf5", fontFamily:"'Share Tech Mono',monospace", fontSize:"0.75rem", letterSpacing:"2px", outline:"none", marginBottom:8, boxSizing:"border-box" },
+  btnPrimary: { width:"100%", padding:12, background:"rgba(0,170,255,0.1)", border:"1px solid #00aaff", color:"#00aaff", fontFamily:"'Share Tech Mono',monospace", fontSize:"0.75rem", letterSpacing:"2px", cursor:"pointer" },
+  pdfBadge: { fontSize:"0.55rem", color:"#00aaff", border:"1px solid #00aaff", padding:"2px 5px", letterSpacing:"1px", flexShrink:0 },
+  dropZone: { border:"2px dashed #1a2f50", padding:"48px 24px", textAlign:"center", cursor:"pointer", transition:"all 0.2s", background:"rgba(0,170,255,0.02)" },
+  authWrap: { minHeight:"80vh", display:"flex", alignItems:"center", justifyContent:"center" },
+  authBox: { border:"1px solid #1a2f50", background:"#0a1220", padding:40, width:"100%", maxWidth:380, textAlign:"center", display:"flex", flexDirection:"column", alignItems:"center", gap:12 },
+  authTitle: { fontFamily:"'Orbitron',monospace", fontSize:"1.1rem", letterSpacing:"4px", color:"#e8f4ff" },
+  authSub: { fontSize:"0.6rem", letterSpacing:"2px", color:"#5a7a9f", marginBottom:8 },
 };
