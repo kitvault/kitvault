@@ -295,6 +295,7 @@ export default function KitVault() {
                     {slug:"mg", label:"MG — Master Grade", sub:"1/100 scale with inner frame. Intermediate", color:"#ff6600"},
                     {slug:"pg", label:"PG — Perfect Grade", sub:"1/60 scale. The ultimate Gunpla experience", color:"#ffcc00"},
                     {slug:"sd", label:"SD — Super Deformed", sub:"Chibi-style, fun and quick builds for all levels", color:"#00ffcc"},
+                    {slug:"mgsd", label:"MGSD — Master Grade SD", sub:"MG inner frame with SD proportions. Best of both", color:"#ff6677"},
                   ].map(item => (
                     <div key={item.slug} className="nav-dd-item" onClick={() => { closeNav(); navigate(`/grade/${item.slug}`); }}>
                       <span className="nav-dd-text">

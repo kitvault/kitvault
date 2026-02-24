@@ -46,9 +46,10 @@ export const GRADE_COLORS = {
   "PG": { accent: "#ffcc00", bg: "rgba(255,204,0,0.1)" },
   "SD": { accent: "#00ffcc", bg: "rgba(0,255,204,0.1)" },
   "EG": { accent: "#aa88ff", bg: "rgba(170,136,255,0.1)" },
+  "MGSD": { accent: "#ff6677", bg: "rgba(255,102,119,0.1)" },
 };
 
-export const GRADES = ["ALL", "HG", "MG", "RG", "PG", "SD", "EG"];
+export const GRADES = ["ALL", "HG", "MG", "RG", "PG", "SD", "EG", "MGSD"];
 
 // ─────────────────────────────────────────────────────────────
 // SLUGIFY — converts a kit (object or name string) to a URL slug
@@ -166,9 +167,21 @@ export const GRADE_DATA = {
     ],
     stats: [{ val:"SD", lbl:"SCALE" }, { val:"1–3 HRS", lbl:"BUILD TIME" }, { val:"NIPPERS", lbl:"TOOLS NEEDED" }, { val:"★☆☆☆☆", lbl:"DIFFICULTY" }],
   },
+  mgsd: {
+    name: "Master Grade SD", abbr: "MGSD", color: "#ff6677", scale: "SD",
+    tagline: "MASTER GRADE ENGINEERING MEETS SD CHARM",
+    intro: "MGSD is Bandai's newest grade, combining the <strong>internal frame engineering of Master Grade</strong> with the iconic <strong>Super Deformed proportions</strong>. The result is a kit that looks adorably chibi on the outside but builds like a serious model on the inside. Launched in 2023, MGSD bridges the gap between collectors who love SD aesthetics and builders who crave MG-level complexity.",
+    sections: [
+      { title: "◈ BUILD EXPERIENCE", body: "MGSD kits feature a <strong>fully articulated inner frame</strong> similar to MG kits, layered with SD-proportioned armor panels. The build experience is surprisingly involved for something this compact — expect <strong>4–8 hours</strong> depending on the kit. The inner frame construction is satisfying and gives you a much deeper understanding of the suit's structure than a standard SD." },
+      { title: "◈ WHAT YOU GET", body: "MGSD kits deliver exceptional detail for their size: color-accurate plastic separation, crisp panel lines, and accessories that rival their MG counterparts. The articulation is leagues beyond standard SD kits thanks to the internal skeleton. Many releases include effect parts and display bases. The finished product is a highly poseable, display-quality SD figure." },
+      { title: "◈ WHO IS IT FOR?", body: "MGSD is perfect for <strong>intermediate builders who love SD aesthetics</strong> but want more substance in the build. It's also great for MG veterans looking for a quicker but still engaging project. If you've ever wished SD kits had more going on under the hood, MGSD is exactly what you've been waiting for." },
+      { title: "◈ TOOLS NEEDED", body: "<strong>Nippers and a hobby knife are recommended.</strong> The parts are small like SD but engineered like MG, so clean gate removal matters. Panel lining these kits is very rewarding given the crisp line detail. A topcoat really elevates the final look." },
+    ],
+    stats: [{ val:"SD", lbl:"SCALE" }, { val:"4–8 HRS", lbl:"BUILD TIME" }, { val:"NIPPERS + KNIFE", lbl:"TOOLS NEEDED" }, { val:"★★★☆☆", lbl:"DIFFICULTY" }],
+  },
 };
 
-export const GRADE_ORDER = ["eg", "hg", "rg", "mg", "pg", "sd"];
+export const GRADE_ORDER = ["eg", "hg", "rg", "mg", "pg", "sd", "mgsd"];
 
 export const TOOL_ORDER = [
   { route: "/tools/nippers",           label: "Nippers",            color: "#00ffcc" },
