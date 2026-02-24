@@ -385,6 +385,234 @@ export default {
       }
     }
 
+    // ══════════════════════════════════════════════════════════
+    // GALLERY ENDPOINTS
+    // ══════════════════════════════════════════════════════════
+
+    // ── GET /api/gallery — List all gallery posts ──────────────
+    if (path === "/api/gallery" && request.method === "GET") {
+      try {
+        const { results } = await env.DB.prepare(`
+          SELECT g.*, 
+            (SELECT COUNT(*) FROM gallery_comments gc WHERE gc.post_id = g.id) as comment_count
+          FROM gallery g ORDER BY g.created_at DESC LIMIT 200
+        `).all();
+
+        const posts = (results || []).map(p => ({
+          ...p,
+          images: p.image_urls ? JSON.parse(p.image_urls) : [],
+        }));
+
+        return new Response(JSON.stringify(posts), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch (err) {
+        return new Response(JSON.stringify({ error: err.message }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
+    // ── POST /api/gallery — Upload a gallery post ──────────────
+    if (path === "/api/gallery" && request.method === "POST") {
+      try {
+        const formData = await request.formData();
+        const kitId = formData.get("kit_id");
+        const kitName = formData.get("kit_name");
+        const kitGrade = formData.get("kit_grade");
+        const kitScale = formData.get("kit_scale") || "";
+        const caption = formData.get("caption") || "";
+        const userId = formData.get("user_id");
+        const username = formData.get("username") || "Builder";
+        const avatarUrl = formData.get("avatar_url") || "";
+        const imageFiles = formData.getAll("images");
+
+        if (!kitId || !userId || imageFiles.length === 0) {
+          return new Response(JSON.stringify({ ok: false, error: "Missing required fields" }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        if (imageFiles.length > 3) {
+          return new Response(JSON.stringify({ ok: false, error: "Max 3 images per post" }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Rate limit: 5 gallery posts per day
+        const dayAgo = Math.floor(Date.now() / 1000) - 86400;
+        const countResult = await env.DB.prepare(
+          "SELECT COUNT(*) as cnt FROM gallery WHERE user_id = ? AND created_at > ?"
+        ).bind(userId, dayAgo).first();
+        if (countResult && countResult.cnt >= 5) {
+          return new Response(JSON.stringify({ ok: false, error: "Daily limit reached (5 posts per day)" }), {
+            status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Upload images to R2
+        const imageUrls = [];
+        for (const file of imageFiles) {
+          if (!file || !file.size) continue;
+          const ext = file.name?.split(".").pop()?.toLowerCase() || "jpg";
+          const ts = Date.now();
+          const rand = Math.random().toString(36).slice(2, 8);
+          const r2Key = `gallery/${userId}/${ts}-${rand}.${ext}`;
+          const buf = await file.arrayBuffer();
+
+          if (buf.byteLength > 5 * 1024 * 1024) continue; // skip >5MB
+
+          await env.BUCKET.put(r2Key, buf, {
+            httpMetadata: { contentType: file.type || "image/jpeg" },
+          });
+          imageUrls.push(`https://pub-633dac494e3b4bdb808035bd3c437f27.r2.dev/${r2Key}`);
+        }
+
+        if (imageUrls.length === 0) {
+          return new Response(JSON.stringify({ ok: false, error: "No valid images uploaded" }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        const now = Math.floor(Date.now() / 1000);
+        await env.DB.prepare(`
+          INSERT INTO gallery (user_id, username, avatar_url, kit_id, kit_name, kit_grade, kit_scale, caption, image_urls, likes, created_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
+        `).bind(userId, username, avatarUrl, Number(kitId), kitName, kitGrade, kitScale, caption, JSON.stringify(imageUrls), now).run();
+
+        return new Response(JSON.stringify({ ok: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch (err) {
+        return new Response(JSON.stringify({ ok: false, error: err.message }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
+    // ── DELETE /api/gallery/:id — Delete a gallery post ────────
+    if (request.method === "DELETE" && url.pathname.match(/^\/api\/gallery\/\d+$/)) {
+      try {
+        const postId = url.pathname.split("/").pop();
+        const { user_id, admin_key } = await request.json();
+        const isAdmin = admin_key && admin_key === env.ADMIN_KEY;
+
+        if (!isAdmin) {
+          const post = await env.DB.prepare("SELECT user_id FROM gallery WHERE id = ?").bind(Number(postId)).first();
+          if (!post) return new Response(JSON.stringify({ ok: false, error: "Not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+          if (post.user_id !== user_id) return new Response(JSON.stringify({ ok: false, error: "Unauthorized" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+
+        await env.DB.prepare("DELETE FROM gallery_comments WHERE post_id = ?").bind(Number(postId)).run();
+        await env.DB.prepare("DELETE FROM gallery_likes WHERE post_id = ?").bind(Number(postId)).run();
+        await env.DB.prepare("DELETE FROM gallery WHERE id = ?").bind(Number(postId)).run();
+
+        return new Response(JSON.stringify({ ok: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      } catch (err) {
+        return new Response(JSON.stringify({ ok: false, error: err.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+    }
+
+    // ── POST /api/gallery/:id/like — Toggle like ───────────────
+    if (request.method === "POST" && url.pathname.match(/^\/api\/gallery\/\d+\/like$/)) {
+      try {
+        const postId = url.pathname.split("/")[3];
+        const { user_id } = await request.json();
+        if (!user_id) return new Response(JSON.stringify({ ok: false }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+        const existing = await env.DB.prepare(
+          "SELECT id FROM gallery_likes WHERE post_id = ? AND user_id = ?"
+        ).bind(Number(postId), user_id).first();
+
+        if (existing) {
+          await env.DB.prepare("DELETE FROM gallery_likes WHERE id = ?").bind(existing.id).run();
+          await env.DB.prepare("UPDATE gallery SET likes = MAX(0, likes - 1) WHERE id = ?").bind(Number(postId)).run();
+        } else {
+          await env.DB.prepare("INSERT INTO gallery_likes (post_id, user_id) VALUES (?, ?)").bind(Number(postId), user_id).run();
+          await env.DB.prepare("UPDATE gallery SET likes = likes + 1 WHERE id = ?").bind(Number(postId)).run();
+        }
+
+        return new Response(JSON.stringify({ ok: true, liked: !existing }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      } catch (err) {
+        return new Response(JSON.stringify({ ok: false, error: err.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+    }
+
+    // ── GET /api/gallery/likes?user_id= — Get user's liked post IDs ──
+    if (path === "/api/gallery/likes" && request.method === "GET") {
+      try {
+        const userId = url.searchParams.get("user_id");
+        if (!userId) return new Response(JSON.stringify([]), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        const { results } = await env.DB.prepare(
+          "SELECT post_id FROM gallery_likes WHERE user_id = ?"
+        ).bind(userId).all();
+        return new Response(JSON.stringify((results || []).map(r => r.post_id)), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      } catch (err) {
+        return new Response(JSON.stringify([]), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+    }
+
+    // ── GET /api/gallery/:id/comments — Get comments for a post ──
+    if (request.method === "GET" && url.pathname.match(/^\/api\/gallery\/\d+\/comments$/)) {
+      try {
+        const postId = url.pathname.split("/")[3];
+        const { results } = await env.DB.prepare(
+          "SELECT * FROM gallery_comments WHERE post_id = ? ORDER BY created_at ASC LIMIT 100"
+        ).bind(Number(postId)).all();
+        return new Response(JSON.stringify(results || []), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      } catch (err) {
+        return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+    }
+
+    // ── POST /api/gallery/:id/comments — Add a comment ─────────
+    if (request.method === "POST" && url.pathname.match(/^\/api\/gallery\/\d+\/comments$/)) {
+      try {
+        const postId = url.pathname.split("/")[3];
+        const { user_id, username, avatar_url, body: commentBody } = await request.json();
+
+        if (!user_id || !commentBody?.trim()) {
+          return new Response(JSON.stringify({ ok: false, error: "Missing fields" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+
+        // Rate limit: 20 gallery comments per day
+        const dayAgo = Math.floor(Date.now() / 1000) - 86400;
+        const cnt = await env.DB.prepare("SELECT COUNT(*) as c FROM gallery_comments WHERE user_id = ? AND created_at > ?").bind(user_id, dayAgo).first();
+        if (cnt && cnt.c >= 20) {
+          return new Response(JSON.stringify({ ok: false, error: "Daily comment limit reached" }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+
+        const now = Math.floor(Date.now() / 1000);
+        await env.DB.prepare(
+          "INSERT INTO gallery_comments (post_id, user_id, username, avatar_url, body, created_at) VALUES (?, ?, ?, ?, ?, ?)"
+        ).bind(Number(postId), user_id, username || "Builder", avatar_url || "", commentBody.trim(), now).run();
+
+        return new Response(JSON.stringify({ ok: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      } catch (err) {
+        return new Response(JSON.stringify({ ok: false, error: err.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+    }
+
+    // ── DELETE /api/gallery/comments/:id — Delete a gallery comment ──
+    if (request.method === "DELETE" && url.pathname.match(/^\/api\/gallery\/comments\/\d+$/)) {
+      try {
+        const commentId = url.pathname.split("/").pop();
+        const { user_id, admin_key } = await request.json();
+        const isAdmin = admin_key && admin_key === env.ADMIN_KEY;
+
+        if (!isAdmin) {
+          const comment = await env.DB.prepare("SELECT user_id FROM gallery_comments WHERE id = ?").bind(Number(commentId)).first();
+          if (!comment) return new Response(JSON.stringify({ ok: false, error: "Not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+          if (comment.user_id !== user_id) return new Response(JSON.stringify({ ok: false, error: "Unauthorized" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+
+        await env.DB.prepare("DELETE FROM gallery_comments WHERE id = ?").bind(Number(commentId)).run();
+        return new Response(JSON.stringify({ ok: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      } catch (err) {
+        return new Response(JSON.stringify({ ok: false, error: err.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+    }
+
     return new Response(JSON.stringify({ error: "Not found" }), {
       status: 404,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

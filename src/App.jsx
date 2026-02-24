@@ -25,6 +25,7 @@ import AdminUpload from "./components/AdminUpload.jsx";
 import GradeDetail from "./components/GradeDetail.jsx";
 import KitDetail from "./components/KitDetail.jsx";
 import ToolPage from "./components/ToolPage.jsx";
+import Gallery from "./components/Gallery.jsx";
 
 // ─────────────────────────────────────────────────────────────
 // DEBOUNCE HOOK
@@ -583,24 +584,8 @@ export default function KitVault() {
             </>
           } />
 
-          {/* ===== GALLERY PAGE (placeholder) ===== */}
-          <Route path="/gallery" element={
-            <>
-              <div className="page-hero">
-                <div className="page-tag">COMMUNITY BUILDS</div>
-                <div className="page-title">GALLERY</div>
-                <div className="page-sub">SHARE YOUR BUILDS WITH THE COMMUNITY</div>
-              </div>
-              <div style={{padding:"40px",textAlign:"center",fontFamily:"'Share Tech Mono',monospace",color:"var(--text-dim)"}}>
-                <div style={{fontSize:"3rem",marginBottom:"16px",opacity:0.2}}>📸</div>
-                <div style={{fontSize:"0.8rem",letterSpacing:"2px",marginBottom:"12px"}}>COMING SOON</div>
-                <div style={{fontSize:"0.65rem",opacity:0.5,lineHeight:2,maxWidth:"400px",margin:"0 auto"}}>
-                  Upload photos of your completed builds for the community to see.<br/>
-                  Sign in to be the first to share when the gallery launches.
-                </div>
-              </div>
-            </>
-          } />
+          {/* ===== GALLERY PAGE ===== */}
+          <Route path="/gallery" element={<Gallery allKits={allKits} />} />
 
           {/* ===== DISCLAIMER PAGE ===== */}
           <Route path="/disclaimer" element={
