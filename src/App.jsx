@@ -426,7 +426,7 @@ export default function KitVault() {
           {/* ===== KIT DETAIL PAGE ===== */}
           <Route path="/kit/:slug" element={
             <KitDetail
-              allKits={allKits} isSignedIn={isSignedIn}
+              allKits={allKits} isSignedIn={isSignedIn} user={user}
               favourites={favourites} buildProgress={buildProgress}
               pageProgress={pageProgress} toggleFavourite={toggleFavourite}
               setBuildStatus={setBuildStatus} setManualPage={setManualPage}

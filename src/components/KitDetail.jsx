@@ -8,7 +8,7 @@
 // for kit fields + manual fields. Saves via PATCH /api/kit/:id.
 // Only works for D1 kits (kits with numeric ids from the DB).
 // ─────────────────────────────────────────────────────────────
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { AMAZON_URLS, GRADE_COLORS, GRADES, loadPdfJs, resolveManualUrl } from "../data/grades.js";
 import { slugify, xpColors } from "../data/grades.js";
@@ -281,11 +281,178 @@ function AdminEditPanel({ kit, onSaved, onCancel }) {
 }
 
 // ─────────────────────────────────────────────────────────────
+// CommentSection — kit-level comment thread
+// ─────────────────────────────────────────────────────────────
+const C = {
+  wrap: { marginTop: 40, border: "1px solid var(--border, #1a2f50)", background: "var(--panel, #0a1220)", padding: "24px" },
+  title: { fontSize: "0.65rem", letterSpacing: "3px", color: "var(--accent, #00aaff)", marginBottom: 20 },
+  empty: { fontSize: "0.65rem", color: "var(--text-dim, #5a7a9f)", textAlign: "center", padding: "24px 0", letterSpacing: "1px", opacity: 0.6 },
+  inputWrap: { display: "flex", gap: 10, marginBottom: 20, alignItems: "flex-start" },
+  avatar: { width: 32, height: 32, borderRadius: "50%", flexShrink: 0, border: "1px solid rgba(0,170,255,0.2)" },
+  avatarPlaceholder: { width: 32, height: 32, borderRadius: "50%", flexShrink: 0, background: "rgba(0,170,255,0.1)", border: "1px solid rgba(0,170,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.7rem", color: "var(--accent, #00aaff)" },
+  textarea: { flex: 1, background: "#080c12", border: "1px solid #1a2f50", color: "#c8ddf5", fontFamily: "'Share Tech Mono', monospace", fontSize: "0.7rem", padding: "10px 12px", outline: "none", resize: "vertical", minHeight: 60, letterSpacing: "0.5px", lineHeight: 1.6, boxSizing: "border-box" },
+  postBtn: { padding: "10px 20px", background: "rgba(0,170,255,0.1)", border: "1px solid rgba(0,170,255,0.3)", color: "#00aaff", fontFamily: "'Share Tech Mono', monospace", fontSize: "0.6rem", letterSpacing: "2px", cursor: "pointer", flexShrink: 0, alignSelf: "flex-end" },
+  postBtnDisabled: { opacity: 0.4, cursor: "not-allowed" },
+  comment: { display: "flex", gap: 10, padding: "14px 0", borderTop: "1px solid rgba(26,47,80,0.5)" },
+  commentBody: { flex: 1, minWidth: 0 },
+  commentHeader: { display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" },
+  commentUser: { fontSize: "0.7rem", color: "#c8ddf5", fontFamily: "'Rajdhani', sans-serif", fontWeight: 600, letterSpacing: "0.5px" },
+  commentTime: { fontSize: "0.55rem", color: "var(--text-dim, #5a7a9f)", letterSpacing: "0.5px" },
+  commentText: { fontSize: "0.68rem", color: "#9ab0cc", fontFamily: "'Share Tech Mono', monospace", lineHeight: 1.7, letterSpacing: "0.3px", wordBreak: "break-word" },
+  deleteBtn: { background: "none", border: "none", color: "rgba(255,34,68,0.4)", cursor: "pointer", fontSize: "0.6rem", padding: "0 4px", marginLeft: "auto", flexShrink: 0 },
+  signInNote: { fontSize: "0.6rem", color: "var(--text-dim, #5a7a9f)", letterSpacing: "1px", textAlign: "center", padding: "16px 0", opacity: 0.7 },
+  error: { fontSize: "0.6rem", color: "#ff2244", letterSpacing: "0.5px", marginBottom: 8 },
+  loading: { fontSize: "0.6rem", color: "var(--text-dim, #5a7a9f)", textAlign: "center", padding: "16px 0", letterSpacing: "2px" },
+};
+
+function timeAgo(ts) {
+  const now = Date.now() / 1000;
+  const diff = now - ts;
+  if (diff < 60) return "JUST NOW";
+  if (diff < 3600) return `${Math.floor(diff / 60)}M AGO`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}H AGO`;
+  if (diff < 604800) return `${Math.floor(diff / 86400)}D AGO`;
+  return new Date(ts * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }).toUpperCase();
+}
+
+function CommentSection({ kitId, isSignedIn, user }) {
+  const [comments, setComments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [body, setBody] = useState("");
+  const [posting, setPosting] = useState(false);
+  const [error, setError] = useState(null);
+  const isAdmin = !!sessionStorage.getItem(ADMIN_KEY_STORAGE);
+
+  const fetchComments = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/comments/${kitId}`);
+      const data = await res.json();
+      if (Array.isArray(data)) setComments(data);
+    } catch (_) {}
+    setLoading(false);
+  }, [kitId]);
+
+  useEffect(() => { fetchComments(); }, [fetchComments]);
+
+  const postComment = async () => {
+    if (!body.trim() || posting || !user) return;
+    setPosting(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/comments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          kit_id: kitId,
+          user_id: user.id,
+          username: user.fullName || user.firstName || user.username || "Builder",
+          avatar_url: user.imageUrl || "",
+          body: body.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.ok) {
+        setBody("");
+        fetchComments();
+      } else {
+        setError(data.error || "Failed to post");
+      }
+    } catch (err) {
+      setError(err.message);
+    }
+    setPosting(false);
+  };
+
+  const deleteComment = async (commentId) => {
+    try {
+      const res = await fetch(`/api/comments/${commentId}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: user?.id,
+          admin_key: isAdmin ? sessionStorage.getItem(ADMIN_KEY_STORAGE) : undefined,
+        }),
+      });
+      if (res.ok) fetchComments();
+    } catch (_) {}
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) postComment();
+  };
+
+  return (
+    <div style={C.wrap}>
+      <div style={C.title}>◈ COMMENTS ({comments.length})</div>
+
+      {/* Post input */}
+      {isSignedIn && user ? (
+        <div>
+          <div style={C.inputWrap}>
+            {user.imageUrl ? (
+              <img src={user.imageUrl} alt="" style={C.avatar} />
+            ) : (
+              <div style={C.avatarPlaceholder}>◈</div>
+            )}
+            <textarea
+              style={C.textarea}
+              placeholder="Share your thoughts on this kit..."
+              value={body}
+              onChange={e => setBody(e.target.value)}
+              onKeyDown={handleKeyDown}
+              maxLength={1000}
+            />
+            <button
+              style={{...C.postBtn, ...((!body.trim() || posting) ? C.postBtnDisabled : {})}}
+              onClick={postComment}
+              disabled={!body.trim() || posting}
+            >
+              {posting ? "..." : "POST →"}
+            </button>
+          </div>
+          {error && <div style={C.error}>✕ {error}</div>}
+        </div>
+      ) : (
+        <div style={C.signInNote}>SIGN IN TO LEAVE A COMMENT</div>
+      )}
+
+      {/* Comment list */}
+      {loading ? (
+        <div style={C.loading}>LOADING COMMENTS...</div>
+      ) : comments.length === 0 ? (
+        <div style={C.empty}>NO COMMENTS YET — BE THE FIRST</div>
+      ) : (
+        comments.map(c => (
+          <div key={c.id} style={C.comment}>
+            {c.avatar_url ? (
+              <img src={c.avatar_url} alt="" style={C.avatar} />
+            ) : (
+              <div style={C.avatarPlaceholder}>◈</div>
+            )}
+            <div style={C.commentBody}>
+              <div style={C.commentHeader}>
+                <span style={C.commentUser}>{c.username}</span>
+                <span style={C.commentTime}>{timeAgo(c.created_at)}</span>
+                {(user?.id === c.user_id || isAdmin) && (
+                  <button style={C.deleteBtn} onClick={() => deleteComment(c.id)} title="Delete comment">🗑</button>
+                )}
+              </div>
+              <div style={C.commentText}>{c.body}</div>
+            </div>
+          </div>
+        ))
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
 // KitDetail — main export
 // ─────────────────────────────────────────────────────────────
 export default function KitDetail({
   allKits,
   isSignedIn,
+  user,
   favourites,
   buildProgress,
   pageProgress,
@@ -625,6 +792,9 @@ export default function KitDetail({
           </div>
         </div>
       )}
+
+      {/* ── COMMENTS ─────────────────────────────────────────── */}
+      <CommentSection kitId={kit.id} isSignedIn={isSignedIn} user={user} />
 
       {fullscreenManual && (
         <PdfFullscreenModal manual={fullscreenManual} onClose={() => setFullscreenManual(null)} />
