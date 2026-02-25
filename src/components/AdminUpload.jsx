@@ -41,6 +41,13 @@ export default function AdminUpload() {
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [deleteStatus, setDeleteStatus] = useState(null);
 
+  // Inline editing state
+  const [editingKit, setEditingKit] = useState(null); // kit id being edited
+  const [editFields, setEditFields] = useState({});
+  const [editManuals, setEditManuals] = useState([]);
+  const [saving, setSaving] = useState(false);
+  const [editStatus, setEditStatus] = useState(null);
+
   const fileInputRef = useRef(null);
 
   // ── Auth ───────────────────────────────────────────────────
@@ -106,6 +113,39 @@ export default function AdminUpload() {
       setDeleteStatus({ ok: false, message: err.message });
     }
     setConfirmDelete(null);
+  };
+
+  // ── Inline edit ─────────────────────────────────────────────
+  const startEdit = (kit) => {
+    setEditingKit(kit.id);
+    setEditFields({ name: kit.name, grade: kit.grade, scale: kit.scale, series: kit.series || "", image_url: kit.image_url || "" });
+    setEditManuals(kit.manuals.map(m => ({ id: m.id, name: m.name, lang: m.lang, pages: m.pages || 0 })));
+    setEditStatus(null);
+  };
+
+  const cancelEdit = () => { setEditingKit(null); setEditFields({}); setEditManuals([]); setEditStatus(null); };
+
+  const saveEdit = async () => {
+    setSaving(true);
+    setEditStatus(null);
+    try {
+      const res = await fetch(`/api/kit/${editingKit}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", "X-Admin-Key": adminKey },
+        body: JSON.stringify({ kit: editFields, manuals: editManuals }),
+      });
+      const data = await res.json();
+      if (res.ok && data.ok) {
+        setEditStatus({ ok: true, message: "Saved" });
+        fetchKits();
+        setTimeout(() => { setEditingKit(null); setEditStatus(null); }, 800);
+      } else {
+        setEditStatus({ ok: false, message: data.error || "Save failed" });
+      }
+    } catch (err) {
+      setEditStatus({ ok: false, message: err.message });
+    }
+    setSaving(false);
   };
 
   // ── File selection ─────────────────────────────────────────
@@ -288,31 +328,109 @@ export default function AdminUpload() {
 
         {filteredKits.map(kit => (
           <div key={kit.id} style={{border:"1px solid #1a2f50",background:"#080c12",marginBottom:10,padding:"14px 16px"}}>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,flexWrap:"wrap",marginBottom:6}}>
-              <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
-                <span style={S.pdfBadge}>{kit.grade}</span>
-                <span style={{fontSize:"0.6rem",color:"#5a7a9f"}}>{kit.scale}</span>
-                <span style={{fontSize:"0.7rem",color:"#c8ddf5"}}>{kit.name}</span>
-                <span style={{fontSize:"0.55rem",color:"#2a4060"}}>#{kit.id}</span>
+            {editingKit === kit.id ? (
+              /* ── EDIT MODE ── */
+              <div>
+                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
+                  <span style={{fontSize:"0.6rem",letterSpacing:"2px",color:"#00aaff"}}>✎ EDITING KIT #{kit.id}</span>
+                  {editStatus && <span style={{fontSize:"0.55rem",color:editStatus.ok?"#00ff88":"#ff2244",marginLeft:"auto"}}>{editStatus.ok?"✓":"✕"} {editStatus.message}</span>}
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:"80px 80px 1fr",gap:8,marginBottom:8}}>
+                  <div>
+                    <div style={{fontSize:"0.5rem",color:"#5a7a9f",letterSpacing:"1px",marginBottom:4}}>GRADE</div>
+                    <select value={editFields.grade} onChange={e=>setEditFields(p=>({...p,grade:e.target.value}))}
+                      style={{...S.input,marginBottom:0,padding:"8px",fontSize:"0.65rem",width:"100%"}}>
+                      {["HG","MG","RG","PG","SD","EG","MGSD"].map(g=><option key={g} value={g}>{g}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <div style={{fontSize:"0.5rem",color:"#5a7a9f",letterSpacing:"1px",marginBottom:4}}>SCALE</div>
+                    <input value={editFields.scale} onChange={e=>setEditFields(p=>({...p,scale:e.target.value}))}
+                      style={{...S.input,marginBottom:0,padding:"8px",fontSize:"0.65rem"}} />
+                  </div>
+                  <div>
+                    <div style={{fontSize:"0.5rem",color:"#5a7a9f",letterSpacing:"1px",marginBottom:4}}>NAME</div>
+                    <input value={editFields.name} onChange={e=>setEditFields(p=>({...p,name:e.target.value}))}
+                      style={{...S.input,marginBottom:0,padding:"8px",fontSize:"0.65rem"}} />
+                  </div>
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
+                  <div>
+                    <div style={{fontSize:"0.5rem",color:"#5a7a9f",letterSpacing:"1px",marginBottom:4}}>SERIES</div>
+                    <input value={editFields.series} onChange={e=>setEditFields(p=>({...p,series:e.target.value}))}
+                      placeholder="e.g. Gundam SEED" style={{...S.input,marginBottom:0,padding:"8px",fontSize:"0.65rem"}} />
+                  </div>
+                  <div>
+                    <div style={{fontSize:"0.5rem",color:"#5a7a9f",letterSpacing:"1px",marginBottom:4}}>IMAGE URL</div>
+                    <input value={editFields.image_url} onChange={e=>setEditFields(p=>({...p,image_url:e.target.value}))}
+                      placeholder="https://..." style={{...S.input,marginBottom:0,padding:"8px",fontSize:"0.65rem"}} />
+                  </div>
+                </div>
+                {/* Manual editing */}
+                {editManuals.map((m, i) => (
+                  <div key={m.id} style={{display:"grid",gridTemplateColumns:"1fr 60px 60px",gap:8,marginBottom:4,paddingLeft:12,borderLeft:"2px solid #1a2f50"}}>
+                    <div>
+                      <div style={{fontSize:"0.45rem",color:"#5a7a9f",letterSpacing:"1px",marginBottom:2}}>MANUAL NAME</div>
+                      <input value={m.name} onChange={e=>{const u=[...editManuals];u[i]={...u[i],name:e.target.value};setEditManuals(u);}}
+                        style={{...S.input,marginBottom:0,padding:"6px 8px",fontSize:"0.6rem"}} />
+                    </div>
+                    <div>
+                      <div style={{fontSize:"0.45rem",color:"#5a7a9f",letterSpacing:"1px",marginBottom:2}}>LANG</div>
+                      <input value={m.lang} onChange={e=>{const u=[...editManuals];u[i]={...u[i],lang:e.target.value};setEditManuals(u);}}
+                        style={{...S.input,marginBottom:0,padding:"6px 8px",fontSize:"0.6rem"}} />
+                    </div>
+                    <div>
+                      <div style={{fontSize:"0.45rem",color:"#5a7a9f",letterSpacing:"1px",marginBottom:2}}>PAGES</div>
+                      <input type="number" value={m.pages} onChange={e=>{const u=[...editManuals];u[i]={...u[i],pages:parseInt(e.target.value)||0};setEditManuals(u);}}
+                        style={{...S.input,marginBottom:0,padding:"6px 8px",fontSize:"0.6rem"}} />
+                    </div>
+                  </div>
+                ))}
+                <div style={{display:"flex",gap:8,marginTop:12}}>
+                  <button style={{...S.btnPrimary,width:"auto",padding:"8px 20px",fontSize:"0.6rem",...(saving?{opacity:0.5}:{})}} onClick={saveEdit} disabled={saving}>
+                    {saving ? "SAVING..." : "💾 SAVE"}
+                  </button>
+                  <button style={{padding:"8px 20px",background:"rgba(90,122,159,0.1)",border:"1px solid #1a2f50",color:"#5a7a9f",fontFamily:"'Share Tech Mono',monospace",fontSize:"0.6rem",letterSpacing:"1px",cursor:"pointer"}} onClick={cancelEdit}>
+                    CANCEL
+                  </button>
+                </div>
               </div>
-              <button style={{background:"rgba(255,34,68,0.08)",border:"1px solid rgba(255,34,68,0.3)",color:"#ff2244",fontFamily:"'Share Tech Mono',monospace",fontSize:"0.55rem",padding:"4px 10px",cursor:"pointer",letterSpacing:"1px"}}
-                onClick={()=>setConfirmDelete({type:"kit",id:kit.id,label:`${kit.grade} · ${kit.scale} · ${kit.name} (kit #${kit.id} + ${kit.manuals.length} manual${kit.manuals.length!==1?"s":""})`})}>
-                ✕ DELETE KIT
-              </button>
-            </div>
-            {kit.manuals.map(m => (
-              <div key={m.id} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0 6px 12px",borderTop:"1px solid #111a2a",flexWrap:"wrap"}}>
-                <span style={{...S.pdfBadge,fontSize:"0.5rem",padding:"1px 4px",border:"1px solid #1a2f50"}}>PDF</span>
-                <span style={{fontSize:"0.65rem",color:"#c8ddf5",minWidth:80}}>{m.name}</span>
-                <span style={{fontSize:"0.55rem",color:"#5a7a9f"}}>{m.lang} · {m.pages||"?"} pgs</span>
-                <span style={{fontSize:"0.5rem",color:"#2a4060",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}} title={m.url}>{m.url?.length>50?"..."+m.url.slice(-47):m.url}</span>
-                <button style={{background:"none",border:"1px solid rgba(255,34,68,0.2)",color:"#ff2244",cursor:"pointer",fontSize:"0.65rem",padding:"2px 8px",opacity:0.6}}
-                  onClick={()=>setConfirmDelete({type:"manual",id:m.id,label:`"${m.name}" from ${kit.grade} ${kit.name} (manual #${m.id})`})}>
-                  ✕
-                </button>
-              </div>
-            ))}
-            {kit.manuals.length===0&&<div style={{...S.note,padding:"8px 0 0 36px",opacity:0.4}}>No manuals — consider deleting this empty kit</div>}
+            ) : (
+              /* ── DISPLAY MODE ── */
+              <>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,flexWrap:"wrap",marginBottom:6}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                    <span style={S.pdfBadge}>{kit.grade}</span>
+                    <span style={{fontSize:"0.6rem",color:"#5a7a9f"}}>{kit.scale}</span>
+                    <span style={{fontSize:"0.7rem",color:"#c8ddf5"}}>{kit.name}</span>
+                    <span style={{fontSize:"0.55rem",color:"#2a4060"}}>#{kit.id}</span>
+                  </div>
+                  <div style={{display:"flex",gap:6}}>
+                    <button style={{background:"rgba(0,170,255,0.08)",border:"1px solid rgba(0,170,255,0.3)",color:"#00aaff",fontFamily:"'Share Tech Mono',monospace",fontSize:"0.55rem",padding:"4px 10px",cursor:"pointer",letterSpacing:"1px"}}
+                      onClick={()=>startEdit(kit)}>
+                      ✎ EDIT
+                    </button>
+                    <button style={{background:"rgba(255,34,68,0.08)",border:"1px solid rgba(255,34,68,0.3)",color:"#ff2244",fontFamily:"'Share Tech Mono',monospace",fontSize:"0.55rem",padding:"4px 10px",cursor:"pointer",letterSpacing:"1px"}}
+                      onClick={()=>setConfirmDelete({type:"kit",id:kit.id,label:`${kit.grade} · ${kit.scale} · ${kit.name} (kit #${kit.id} + ${kit.manuals.length} manual${kit.manuals.length!==1?"s":""})`})}>
+                      ✕ DELETE KIT
+                    </button>
+                  </div>
+                </div>
+                {kit.manuals.map(m => (
+                  <div key={m.id} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0 6px 12px",borderTop:"1px solid #111a2a",flexWrap:"wrap"}}>
+                    <span style={{...S.pdfBadge,fontSize:"0.5rem",padding:"1px 4px",border:"1px solid #1a2f50"}}>PDF</span>
+                    <span style={{fontSize:"0.65rem",color:"#c8ddf5",minWidth:80}}>{m.name}</span>
+                    <span style={{fontSize:"0.55rem",color:"#5a7a9f"}}>{m.lang} · {m.pages||"?"} pgs</span>
+                    <span style={{fontSize:"0.5rem",color:"#2a4060",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}} title={m.url}>{m.url?.length>50?"..."+m.url.slice(-47):m.url}</span>
+                    <button style={{background:"none",border:"1px solid rgba(255,34,68,0.2)",color:"#ff2244",cursor:"pointer",fontSize:"0.65rem",padding:"2px 8px",opacity:0.6}}
+                      onClick={()=>setConfirmDelete({type:"manual",id:m.id,label:`"${m.name}" from ${kit.grade} ${kit.name} (manual #${m.id})`})}>
+                      ✕
+                    </button>
+                  </div>
+                ))}
+                {kit.manuals.length===0&&<div style={{...S.note,padding:"8px 0 0 36px",opacity:0.4}}>No manuals — consider deleting this empty kit</div>}
+              </>
+            )}
           </div>
         ))}
       </div>

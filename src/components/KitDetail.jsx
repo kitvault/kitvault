@@ -281,6 +281,151 @@ function AdminEditPanel({ kit, onSaved, onCancel }) {
 }
 
 // ─────────────────────────────────────────────────────────────
+// KitImage — Admin drag-drop upload + display
+// ─────────────────────────────────────────────────────────────
+function KitImage({ kit, isAdmin, adminKey, onKitUpdated }) {
+  const [dragOver, setDragOver] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState(null);
+  const fileRef = useRef(null);
+  const imgSrc = kit.imageUrl || kit.image_url || "";
+
+  const uploadImage = async (file) => {
+    if (!file || uploading) return;
+    if (!file.type.startsWith("image/")) { setError("Images only"); return; }
+    if (file.size > 10 * 1024 * 1024) { setError("Max 10MB"); return; }
+    setUploading(true); setError(null);
+    try {
+      const fd = new FormData();
+      fd.append("image", file);
+      const res = await fetch(`/api/kit/${kit.id}/image`, {
+        method: "POST", headers: { "X-Admin-Key": adminKey }, body: fd,
+      });
+      const data = await res.json();
+      if (res.ok && data.ok) {
+        if (onKitUpdated) onKitUpdated();
+      } else {
+        setError(data.error || "Upload failed");
+      }
+    } catch (err) { setError(err.message); }
+    setUploading(false);
+  };
+
+  const handleDrop = (e) => { e.preventDefault(); setDragOver(false); if (isAdmin) uploadImage(e.dataTransfer.files[0]); };
+  const handleClick = () => { if (isAdmin && !uploading) fileRef.current?.click(); };
+
+  return (
+    <div className="kit-image-section">
+      <div className="kit-image-wrap"
+        style={{"--ki-accent": gc(kit.grade).accent, ...(isAdmin ? {cursor:"pointer"} : {}), ...(dragOver ? {borderColor:"#00aaff",boxShadow:"0 0 20px rgba(0,170,255,0.2)"} : {})}}
+        onDragOver={e => { if (isAdmin) { e.preventDefault(); setDragOver(true); }}}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={handleDrop}
+        onClick={handleClick}
+      >
+        {isAdmin && <input ref={fileRef} type="file" accept="image/*" hidden onChange={e => uploadImage(e.target.files[0])} />}
+        {uploading ? (
+          <div className="kit-image-placeholder">
+            <div className="kit-image-placeholder-icon" style={{fontSize:"1.2rem"}}>⏳</div>
+            <div className="kit-image-placeholder-text">UPLOADING...</div>
+          </div>
+        ) : imgSrc ? (
+          <>
+            <img className="kit-image" src={imgSrc} alt={`${kit.name} — ${kit.grade} ${kit.scale}`}
+              onError={e => { e.target.style.display="none"; e.target.nextSibling.style.display="flex"; }} />
+            <div className="kit-image-placeholder" style={{display:"none"}}>
+              <div className="kit-image-placeholder-icon">🤖</div>
+              <div className="kit-image-placeholder-text">IMAGE UNAVAILABLE</div>
+            </div>
+          </>
+        ) : (
+          <div className="kit-image-placeholder">
+            <div className="kit-image-placeholder-icon">🤖</div>
+            <div className="kit-image-placeholder-text">
+              {isAdmin ? "CLICK OR DRAG IMAGE HERE TO UPLOAD" : "NO IMAGE YET"}
+            </div>
+          </div>
+        )}
+        {isAdmin && imgSrc && (
+          <div style={{position:"absolute",bottom:36,right:12,fontSize:"0.5rem",color:"rgba(0,170,255,0.5)",letterSpacing:"1px",fontFamily:"'Share Tech Mono',monospace"}}>
+            CLICK TO REPLACE
+          </div>
+        )}
+        <div className="kit-image-label">{kit.grade} {kit.scale} · {kit.name}</div>
+      </div>
+      {error && <div style={{fontSize:"0.6rem",color:"#ff2244",marginTop:8,letterSpacing:"0.5px"}}>✕ {error}</div>}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// CommunityBuilds — Gallery images tagged with this kit
+// ─────────────────────────────────────────────────────────────
+const CB = {
+  wrap: { marginTop: 32 },
+  title: { fontSize: "0.65rem", letterSpacing: "3px", color: "var(--accent, #00aaff)", marginBottom: 16 },
+  grid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 8 },
+  thumb: { width: "100%", aspectRatio: "1", objectFit: "cover", border: "1px solid var(--border, #1a2f50)", cursor: "pointer", transition: "border-color 0.2s", display: "block", background: "#080c12" },
+  overlay: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, cursor: "pointer" },
+  fullImg: { maxWidth: "90vw", maxHeight: "85vh", objectFit: "contain" },
+  caption: { display: "flex", alignItems: "center", gap: 6, marginTop: 8, fontSize: "0.55rem", color: "var(--text-dim,#5a7a9f)", letterSpacing: "0.5px" },
+  avatar: { width: 16, height: 16, borderRadius: "50%", border: "1px solid rgba(0,170,255,0.15)" },
+  empty: { fontSize: "0.6rem", color: "var(--text-dim, #5a7a9f)", opacity: 0.5, letterSpacing: "1px", padding: "16px 0" },
+};
+
+function CommunityBuilds({ kitId, kitName }) {
+  const [posts, setPosts] = useState([]);
+  const [viewImg, setViewImg] = useState(null);
+
+  useEffect(() => {
+    fetch(`/api/gallery/kit/${kitId}`)
+      .then(r => r.json())
+      .then(data => { if (Array.isArray(data)) setPosts(data); })
+      .catch(() => {});
+  }, [kitId]);
+
+  // Flatten all images from all posts
+  const allImages = posts.flatMap(p =>
+    (p.images || []).map(img => ({ src: img, username: p.username, avatar_url: p.avatar_url, caption: p.caption }))
+  );
+
+  if (allImages.length === 0) return null;
+
+  return (
+    <div style={CB.wrap}>
+      <div style={CB.title}>◈ COMMUNITY BUILDS ({allImages.length})</div>
+      <div style={CB.grid}>
+        {allImages.map((img, i) => (
+          <div key={i}>
+            <img src={img.src} alt={`${kitName} build by ${img.username}`} style={CB.thumb}
+              onClick={() => setViewImg(img)}
+              onMouseEnter={e => e.target.style.borderColor = "var(--accent,#00aaff)"}
+              onMouseLeave={e => e.target.style.borderColor = "var(--border,#1a2f50)"} />
+            <div style={CB.caption}>
+              {img.avatar_url && <img src={img.avatar_url} alt="" style={CB.avatar} />}
+              <span>{img.username}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+      {viewImg && (
+        <div style={CB.overlay} onClick={() => setViewImg(null)}>
+          <div onClick={e => e.stopPropagation()} style={{textAlign:"center"}}>
+            <img src={viewImg.src} alt="" style={CB.fullImg} />
+            <div style={{marginTop:12,fontSize:"0.65rem",color:"#9ab0cc",fontFamily:"'Share Tech Mono',monospace"}}>
+              {viewImg.caption && <div style={{marginBottom:4}}>{viewImg.caption}</div>}
+              <div style={{fontSize:"0.55rem",color:"var(--text-dim,#5a7a9f)"}}>
+                Build by {viewImg.username} · Click outside to close
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
 // CommentSection — kit-level comment thread with replies
 // ─────────────────────────────────────────────────────────────
 const C = {
@@ -800,30 +945,10 @@ export default function KitDetail({
       </div>
 
       {/* ── KIT IMAGE ───────────────────────────────────────── */}
-      <div className="kit-image-section">
-        <div className="kit-image-wrap" style={{"--ki-accent": gc(kit.grade).accent}}>
-          {kit.imageUrl ? (
-            <>
-              <img
-                className="kit-image"
-                src={kit.imageUrl}
-                alt={`${kit.name} — ${kit.grade} ${kit.scale}`}
-                onError={e => { e.target.style.display="none"; e.target.nextSibling.style.display="flex"; }}
-              />
-              <div className="kit-image-placeholder" style={{display:"none"}}>
-                <div className="kit-image-placeholder-icon">🤖</div>
-                <div className="kit-image-placeholder-text">IMAGE UNAVAILABLE<br/>REPLACE imageUrl IN DATA</div>
-              </div>
-            </>
-          ) : (
-            <div className="kit-image-placeholder">
-              <div className="kit-image-placeholder-icon">🤖</div>
-              <div className="kit-image-placeholder-text">NO IMAGE YET<br/>ADD imageUrl TO THIS KIT</div>
-            </div>
-          )}
-          <div className="kit-image-label">{kit.grade} {kit.scale} · {kit.name}</div>
-        </div>
-      </div>
+      <KitImage kit={kit} isAdmin={isAdmin} adminKey={sessionStorage.getItem(ADMIN_KEY_STORAGE)} onKitUpdated={onKitUpdated} />
+
+      {/* ── COMMUNITY BUILDS FROM GALLERY ────────────────────── */}
+      <CommunityBuilds kitId={kit.id} kitName={kit.name} />
 
       {/* ── AMAZON AFFILIATE BANNER ─────────────────────────── */}
       {AMAZON_URLS[String(kit.id)] && (
