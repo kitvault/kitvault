@@ -1,18 +1,105 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>kitvault</title>
-    <meta property="og:title" content="KitVault — Gundam Assembly Manuals" />
-    <meta property="og:description" content="Free Gundam model kit assembly manuals. 600+ kits across HG, MG, RG, PG and more." />
-    <meta property="og:image" content="https://kitvault.io/preview.png" />
-    <meta property="og:url" content="https://kitvault.io" />
-    <meta property="og:type" content="website" />
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="google-site-verification" content="google84be1a94dffad6ec.html" />
+  <!-- Primary Meta Tags -->
+  <title>KitVault.io — Gunpla Manual Database</title>
+  <meta name="description"
+    content="Your complete Gunpla manual database. Browse, view, and download assembly manuals for HG, MG, RG, PG, SD, EG, and MGSD Gundam model kits. Free and community-driven." />
+  <meta name="keywords"
+    content="gunpla, gundam, model kit, assembly manual, instruction manual, HG, MG, RG, PG, SD, EG, MGSD, bandai, gundam manual, gunpla manual, gunpla instructions, gundam instructions, kitvault" />
+  <meta name="author" content="KitVault.io" />
+  <meta name="robots" content="index, follow" />
+
+  <!-- Canonical -->
+  <link rel="canonical" href="https://kitvault.io/" />
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://kitvault.io/" />
+  <meta property="og:title" content="KitVault.io — Gunpla Manual Database" />
+  <meta property="og:description"
+    content="Your complete Gunpla manual database. Browse assembly manuals for HG, MG, RG, PG, SD, and MGSD Gundam model kits. Free, ad-free, community-driven." />
+  <meta property="og:site_name" content="KitVault.io" />
+  <!-- <meta property="og:image" content="https://kitvault.io/og-image.png" /> -->
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="KitVault.io — Gunpla Manual Database" />
+  <meta name="twitter:description"
+    content="Your complete Gunpla manual database. Browse assembly manuals for HG, MG, RG, PG, SD, and MGSD Gundam model kits." />
+  <!-- <meta name="twitter:image" content="https://kitvault.io/og-image.png" /> -->
+
+  <!-- Theme -->
+  <meta name="theme-color" content="#060d18" />
+  <meta name="color-scheme" content="dark" />
+
+  <!-- Favicons (add your own files) -->
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+  <!-- Preconnect to external services -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+  <!-- Fonts -->
+  <link
+    href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap"
+    rel="stylesheet" />
+
+  <!-- Structured Data: WebSite (enables sitelinks search box) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "KitVault.io",
+    "alternateName": "KitVault",
+    "url": "https://kitvault.io",
+    "description": "Your complete Gunpla manual database. Browse assembly manuals for Gundam model kits.",
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": {
+        "@type": "EntryPoint",
+        "urlTemplate": "https://kitvault.io/?q={search_term_string}"
+      },
+      "query-input": "required name=search_term_string"
+    }
+  }
+  </script>
+
+  <!-- Structured Data: Organization -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "KitVault.io",
+    "url": "https://kitvault.io",
+    "logo": "https://kitvault.io/favicon.svg",
+    "description": "Community-driven Gunpla manual archive and hobby resource."
+  }
+  </script>
+
+  <!-- Structured Data: CollectionPage (for the kit library) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    "name": "Gunpla Manual Library",
+    "description": "Browse assembly manuals for hundreds of Gundam model kits across all grades: HG, MG, RG, PG, SD, EG, and MGSD.",
+    "url": "https://kitvault.io/",
+    "isPartOf": {
+      "@type": "WebSite",
+      "name": "KitVault.io"
+    }
+  }
+  </script>
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.jsx"></script>
+</body>
+
 </html>

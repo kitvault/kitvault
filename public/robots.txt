@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://kitvault.io/sitemap.xml
+
+# Block admin page from indexing
+Disallow: /admin
+
+# Block API endpoints
+Disallow: /api/
