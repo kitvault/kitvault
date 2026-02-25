@@ -13,7 +13,6 @@ import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import "./styles/app.css";
 
 // Data & constants
-import { KITS } from "./data/kits.js";
 import {
   VERSION, GRADE_COLORS, GRADES,
   slugify, xpColors,
@@ -84,10 +83,8 @@ export default function KitVault() {
       .catch(() => {});
   }, []);
   useEffect(() => { fetchD1Kits(); }, [fetchD1Kits]);
-  const allKits = useMemo(() => {
-    const d1Ids = new Set(d1Kits.map(k => k.id));
-    return [...KITS.filter(k => !d1Ids.has(k.id)), ...d1Kits];
-  }, [d1Kits]);
+  // All kits now come from D1 only
+  const allKits = d1Kits;
 
   // ── D1 sync ──────────────────────────────────────────────────
   const D1_API = "/api/progress";

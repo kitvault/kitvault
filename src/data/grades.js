@@ -8,8 +8,6 @@
 // ─────────────────────────────────────────────────────────────
 // CLOUDFLARE R2 + VERSION
 // ─────────────────────────────────────────────────────────────
-import { KITS } from "./kits.js";
-
 export const R2 = "https://pub-633dac494e3b4bdb808035bd3c437f27.r2.dev";
 export const VERSION = "v1.0.1";
 
@@ -73,7 +71,7 @@ export const slugify = (kitOrName) => {
     .replace(/^-|-$/g, "");
 };
 
-export const findKitBySlug = (slug) => KITS.find(k => slugify(k) === slug);
+// findKitBySlug removed — all kits now come from D1
 
 // ─────────────────────────────────────────────────────────────
 // RESOLVE URL — handles both D1 (full https) and static (relative) URLs
