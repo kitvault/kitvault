@@ -34,14 +34,15 @@ export default {
       const body = await request.json();
 
       if (body.kit) {
-        const { name, grade, scale, series, image_url } = body.kit;
+        const { name, grade, scale, series, image_url, amazon_asin } = body.kit;
         await env.DB.prepare(
           `UPDATE kits SET
             name = COALESCE(?, name),
             grade = COALESCE(?, grade),
             scale = COALESCE(?, scale),
             series = COALESCE(?, series),
-            image_url = COALESCE(?, image_url)
+            image_url = COALESCE(?, image_url),
+            amazon_asin = COALESCE(?, amazon_asin)
           WHERE id = ?`
         ).bind(
           name || null,
@@ -49,6 +50,7 @@ export default {
           scale || null,
           series ?? null,
           image_url ?? null,
+          amazon_asin ?? null,
           Number(kitId)
         ).run();
       }
@@ -193,7 +195,7 @@ export default {
     if (path === "/api/kits" && request.method === "GET") {
       try {
         const { results } = await env.DB.prepare(`
-          SELECT k.id, k.grade, k.scale, k.name, k.series, k.image_url, k.created_at,
+          SELECT k.id, k.grade, k.scale, k.name, k.series, k.image_url, k.amazon_asin, k.created_at,
             json_group_array(json_object(
               'id', m.id,
               'kit_id', m.kit_id,

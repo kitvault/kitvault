@@ -118,7 +118,7 @@ export default function AdminUpload() {
   // ── Inline edit ─────────────────────────────────────────────
   const startEdit = (kit) => {
     setEditingKit(kit.id);
-    setEditFields({ name: kit.name, grade: kit.grade, scale: kit.scale, series: kit.series || "", image_url: kit.image_url || "" });
+    setEditFields({ name: kit.name, grade: kit.grade, scale: kit.scale, series: kit.series || "", image_url: kit.image_url || "", amazon_asin: kit.amazon_asin || "" });
     setEditManuals(kit.manuals.map(m => ({ id: m.id, name: m.name, lang: m.lang, pages: m.pages || 0 })));
     setEditStatus(null);
   };
@@ -364,6 +364,16 @@ export default function AdminUpload() {
                     <div style={{fontSize:"0.5rem",color:"#5a7a9f",letterSpacing:"1px",marginBottom:4}}>IMAGE URL</div>
                     <input value={editFields.image_url} onChange={e=>setEditFields(p=>({...p,image_url:e.target.value}))}
                       placeholder="https://..." style={{...S.input,marginBottom:0,padding:"8px",fontSize:"0.65rem"}} />
+                  </div>
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:"200px 1fr",gap:8,marginBottom:8}}>
+                  <div>
+                    <div style={{fontSize:"0.5rem",color:"#5a7a9f",letterSpacing:"1px",marginBottom:4}}>AMAZON ASIN</div>
+                    <input value={editFields.amazon_asin} onChange={e=>setEditFields(p=>({...p,amazon_asin:e.target.value.toUpperCase()}))}
+                      placeholder="e.g. B09XYZ1234" maxLength={10} style={{...S.input,marginBottom:0,padding:"8px",fontSize:"0.65rem"}} />
+                  </div>
+                  <div style={{display:"flex",alignItems:"flex-end",paddingBottom:4}}>
+                    {editFields.amazon_asin && <span style={{fontSize:"0.5rem",color:"#5a7a9f"}}>→ amazon.com/dp/{editFields.amazon_asin}?tag=kitvault-20</span>}
                   </div>
                 </div>
                 {/* Manual editing */}

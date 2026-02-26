@@ -193,6 +193,7 @@ function AdminEditPanel({ kit, onSaved, onCancel }) {
     scale: kit.scale,
     series: kit.series || "",
     image_url: kit.imageUrl || kit.image_url || "",
+    amazon_asin: kit.amazon_asin || "",
   });
   const [manualForms, setManualForms] = useState(
     kit.manuals.map(m => ({ id: m.id, name: m.name, lang: m.lang || "JP", pages: m.pages || 0 }))
@@ -251,6 +252,11 @@ function AdminEditPanel({ kit, onSaved, onCancel }) {
       <div style={E.row}>
         <span style={E.label}>IMAGE URL</span>
         <input style={E.input} value={form.image_url} onChange={e => updateField("image_url", e.target.value)} placeholder="https://..." />
+      </div>
+      <div style={E.row}>
+        <span style={E.label}>AMAZON ASIN</span>
+        <input style={{...E.input, maxWidth:200}} value={form.amazon_asin} onChange={e => updateField("amazon_asin", e.target.value.toUpperCase())} placeholder="e.g. B09XYZ1234" maxLength={10} />
+        {form.amazon_asin && <span style={{fontSize:"0.5rem",color:"#5a7a9f",alignSelf:"center",whiteSpace:"nowrap"}}>amazon.com/dp/{form.amazon_asin}</span>}
       </div>
 
       {manualForms.map((m, idx) => (
@@ -951,7 +957,7 @@ export default function KitDetail({
       <CommunityBuilds kitId={kit.id} kitName={kit.name} />
 
       {/* ── AMAZON AFFILIATE BANNER ─────────────────────────── */}
-      {AMAZON_URLS[String(kit.id)] && (
+      {(kit.amazon_asin || AMAZON_URLS[String(kit.id)]) && (
         <div className="affiliate-banner">
           <div className="affiliate-left">
             <div className="affiliate-icon">🛒</div>
@@ -960,7 +966,9 @@ export default function KitDetail({
               <div className="affiliate-sub">{kit.grade} {kit.scale} · {kit.name}</div>
             </div>
           </div>
-          <a className="btn-amazon" href={AMAZON_URLS[String(kit.id)]} target="_blank" rel="noopener noreferrer sponsored">
+          <a className="btn-amazon"
+            href={kit.amazon_asin ? `https://www.amazon.com/dp/${kit.amazon_asin}?tag=kitvault-20` : AMAZON_URLS[String(kit.id)]}
+            target="_blank" rel="noopener noreferrer sponsored">
             VIEW ON AMAZON →
           </a>
           <div className="affiliate-disclaimer">
