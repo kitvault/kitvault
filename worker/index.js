@@ -13,6 +13,181 @@ export default {
       return new Response(null, { headers: corsHeaders });
     }
 
+    // ══════════════════════════════════════════════════════════
+    // XP + SPRITE ENDPOINTS
+    // ══════════════════════════════════════════════════════════
+
+    // ── GET /api/xp?user_id= — Get user's XP balance + owned sprites ──
+    if (path === "/api/xp" && request.method === "GET") {
+      try {
+        const userId = url.searchParams.get("user_id");
+        if (!userId) return new Response(JSON.stringify({ xp: 0, sprites: [] }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+
+        const xpRow = await env.DB.prepare(
+          "SELECT xp FROM user_xp WHERE user_id = ?"
+        ).bind(userId).first();
+
+        const { results: spriteRows } = await env.DB.prepare(
+          "SELECT sprite_id FROM user_sprites WHERE user_id = ?"
+        ).bind(userId).all();
+
+        return new Response(JSON.stringify({
+          xp: xpRow?.xp || 0,
+          sprites: (spriteRows || []).map(r => r.sprite_id),
+        }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      } catch (err) {
+        return new Response(JSON.stringify({ xp: 0, sprites: [] }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
+    // ── POST /api/xp/award — Internal helper: award XP to a user ──
+    // Called internally after comment or gallery post — not exposed directly
+    // but also available for future admin use via X-Admin-Key
+    async function awardXP(env, userId, amount, reason, refId) {
+      const now = Math.floor(Date.now() / 1000);
+      // Upsert XP balance
+      await env.DB.prepare(`
+        INSERT INTO user_xp (user_id, xp, updated_at) VALUES (?, ?, ?)
+        ON CONFLICT(user_id) DO UPDATE SET xp = xp + ?, updated_at = ?
+      `).bind(userId, amount, now, amount, now).run();
+      // Log the transaction
+      await env.DB.prepare(
+        "INSERT INTO xp_log (user_id, amount, reason, ref_id, created_at) VALUES (?, ?, ?, ?, ?)"
+      ).bind(userId, amount, reason, refId || null, now).run();
+    }
+
+    // ── POST /api/sprites/buy — Purchase a sprite with XP ──────
+    if (path === "/api/sprites/buy" && request.method === "POST") {
+      try {
+        const { user_id, sprite_id } = await request.json();
+
+        if (!user_id || !sprite_id) {
+          return new Response(JSON.stringify({ ok: false, error: "Missing fields" }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Sprite cost table — must match frontend SPRITES array
+        const SPRITE_COSTS = {
+          rx78:     0,
+          wingzero: 150,
+          unicorn:  200,
+          barbatos: 150,
+          exia:     300,
+        };
+
+        if (!(sprite_id in SPRITE_COSTS)) {
+          return new Response(JSON.stringify({ ok: false, error: "Unknown sprite" }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Check already owned
+        const existing = await env.DB.prepare(
+          "SELECT id FROM user_sprites WHERE user_id = ? AND sprite_id = ?"
+        ).bind(user_id, sprite_id).first();
+        if (existing) {
+          return new Response(JSON.stringify({ ok: false, error: "Already owned" }), {
+            status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        const cost = SPRITE_COSTS[sprite_id];
+
+        // Free sprites — no XP check
+        if (cost > 0) {
+          const xpRow = await env.DB.prepare(
+            "SELECT xp FROM user_xp WHERE user_id = ?"
+          ).bind(user_id).first();
+          const balance = xpRow?.xp || 0;
+          if (balance < cost) {
+            return new Response(JSON.stringify({ ok: false, error: "Not enough XP", xp: balance }), {
+              status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+          // Deduct XP
+          const now = Math.floor(Date.now() / 1000);
+          await env.DB.prepare(
+            "UPDATE user_xp SET xp = xp - ?, updated_at = ? WHERE user_id = ?"
+          ).bind(cost, now, user_id).run();
+        }
+
+        // Grant sprite
+        const now = Math.floor(Date.now() / 1000);
+        await env.DB.prepare(
+          "INSERT INTO user_sprites (user_id, sprite_id, created_at) VALUES (?, ?, ?)"
+        ).bind(user_id, sprite_id, now).run();
+
+        // Return updated XP balance
+        const updatedXp = await env.DB.prepare(
+          "SELECT xp FROM user_xp WHERE user_id = ?"
+        ).bind(user_id).first();
+
+        return new Response(JSON.stringify({
+          ok: true,
+          sprite_id,
+          xp: updatedXp?.xp || 0,
+        }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+      } catch (err) {
+        return new Response(JSON.stringify({ ok: false, error: err.message }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
+    // ── POST /api/sprites/upload — Admin upload sprite PNG to R2 ──
+    if (path === "/api/sprites/upload" && request.method === "POST") {
+      const key = request.headers.get("X-Admin-Key");
+      if (key !== env.ADMIN_KEY) {
+        return new Response(JSON.stringify({ ok: false, error: "Unauthorized" }), {
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      try {
+        const formData = await request.formData();
+        const file = formData.get("image");
+        const spriteId = formData.get("sprite_id"); // e.g. "rx78"
+
+        const VALID_SPRITES = ["rx78", "wingzero", "unicorn", "barbatos", "exia"];
+        if (!VALID_SPRITES.includes(spriteId)) {
+          return new Response(JSON.stringify({ ok: false, error: "Invalid sprite_id" }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        if (!file || !file.size) {
+          return new Response(JSON.stringify({ ok: false, error: "No file provided" }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        const buf = await file.arrayBuffer();
+        if (buf.byteLength > 2 * 1024 * 1024) {
+          return new Response(JSON.stringify({ ok: false, error: "Max 2MB" }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        const r2Key = `sprites/${spriteId}.png`;
+        await env.BUCKET.put(r2Key, buf, {
+          httpMetadata: { contentType: "image/png" },
+        });
+
+        const url_out = `https://pub-633dac494e3b4bdb808035bd3c437f27.r2.dev/${r2Key}`;
+        return new Response(JSON.stringify({ ok: true, url: url_out, sprite_id: spriteId }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch (err) {
+        return new Response(JSON.stringify({ ok: false, error: err.message }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     // ── PATCH /api/kit/:id — Update kit fields and/or manual fields ──
     if (request.method === "PATCH" && url.pathname.startsWith("/api/kit/")) {
       const key = request.headers.get("X-Admin-Key");
@@ -396,6 +571,12 @@ export default {
           now
         ).run();
 
+        // Award 10 XP for commenting
+        try {
+          const insertId = await env.DB.prepare("SELECT last_insert_rowid() as id").first();
+          await awardXP(env, user_id, 10, "comment", insertId?.id || null);
+        } catch (_) { /* XP award failure is non-fatal */ }
+
         return new Response(JSON.stringify({ ok: true }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -543,6 +724,12 @@ export default {
           INSERT INTO gallery (user_id, username, avatar_url, kit_id, kit_name, kit_grade, kit_scale, caption, image_urls, likes, created_at)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
         `).bind(userId, username, avatarUrl, Number(kitId), kitName, kitGrade, kitScale, caption, JSON.stringify(imageUrls), now).run();
+
+        // Award 50 XP for gallery post
+        try {
+          const insertId = await env.DB.prepare("SELECT last_insert_rowid() as id").first();
+          await awardXP(env, userId, 50, "gallery_post", insertId?.id || null);
+        } catch (_) { /* XP award failure is non-fatal */ }
 
         return new Response(JSON.stringify({ ok: true }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
