@@ -21,7 +21,7 @@ export default {
     if (path === "/api/xp" && request.method === "GET") {
       try {
         const userId = url.searchParams.get("user_id");
-        if (!userId) return new Response(JSON.stringify({ xp: 0, sprites: [] }), {
+        if (!userId) return new Response(JSON.stringify({ xp: 0, sprites: [], parade: [] }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
 
@@ -30,15 +30,19 @@ export default {
         ).bind(userId).first();
 
         const { results: spriteRows } = await env.DB.prepare(
-          "SELECT sprite_id FROM user_sprites WHERE user_id = ?"
+          "SELECT sprite_id, in_parade FROM user_sprites WHERE user_id = ?"
         ).bind(userId).all();
+
+        const allSprites = (spriteRows || []).map(r => r.sprite_id);
+        const paradeSprites = (spriteRows || []).filter(r => r.in_parade !== 0).map(r => r.sprite_id);
 
         return new Response(JSON.stringify({
           xp: xpRow?.xp || 0,
-          sprites: (spriteRows || []).map(r => r.sprite_id),
+          sprites: allSprites,
+          parade: paradeSprites,
         }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       } catch (err) {
-        return new Response(JSON.stringify({ xp: 0, sprites: [] }), {
+        return new Response(JSON.stringify({ xp: 0, sprites: [], parade: [] }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -168,26 +172,20 @@ export default {
       }
     }
 
-    // ── DELETE /api/sprites/remove — Remove a sprite from user's hangar ──
-    if (path === "/api/sprites/remove" && request.method === "POST") {
+    // ── POST /api/sprites/toggle-parade — Show/hide sprite in marquee ──
+    if (path === "/api/sprites/toggle-parade" && request.method === "POST") {
       try {
-        const { user_id, sprite_id } = await request.json();
-        if (!user_id || !sprite_id) {
+        const { user_id, sprite_id, active } = await request.json();
+        if (!user_id || !sprite_id || active === undefined) {
           return new Response(JSON.stringify({ ok: false, error: "Missing fields" }), {
             status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
-        // Never allow removing the free starter sprite
-        if (sprite_id === "rx78") {
-          return new Response(JSON.stringify({ ok: false, error: "Cannot remove starter sprite" }), {
-            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
         await env.DB.prepare(
-          "DELETE FROM user_sprites WHERE user_id = ? AND sprite_id = ?"
-        ).bind(user_id, sprite_id).run();
+          "UPDATE user_sprites SET in_parade = ? WHERE user_id = ? AND sprite_id = ?"
+        ).bind(active ? 1 : 0, user_id, sprite_id).run();
 
-        return new Response(JSON.stringify({ ok: true, sprite_id }), {
+        return new Response(JSON.stringify({ ok: true, sprite_id, active }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       } catch (err) {

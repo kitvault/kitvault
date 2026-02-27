@@ -33,12 +33,12 @@ import useSEO, { SEO, kitSEO, gradeSEO, toolSEO } from "./hooks/useSEO.js";
 // SPRITE ROSTER
 // ─────────────────────────────────────────────────────────────
 const SPRITES = [
-  { id: "rx78", name: "RX-78-2", series: "Mobile Suit Gundam", cost: 0, free: true, rarity: "STARTER", rarityColor: "#aabbcc", colors: { primary: "#4a7aff", accent: "#ff3311", badge: "#ffcc00" } },
-  { id: "wingzero", name: "Wing Zero", series: "Gundam Wing", cost: 150, free: false, rarity: "RARE", rarityColor: "#00aaff", colors: { primary: "#e8eeff", accent: "#ffcc00", badge: "#00aaff" } },
-  { id: "unicorn", name: "Unicorn", series: "Gundam UC", cost: 200, free: false, rarity: "RARE", rarityColor: "#00aaff", colors: { primary: "#c8d8ff", accent: "#0066ff", badge: "#88ccff" } },
-  { id: "barbatos", name: "Barbatos", series: "Iron-Blooded Orphans", cost: 150, free: false, rarity: "RARE", rarityColor: "#00aaff", colors: { primary: "#8899aa", accent: "#ff6600", badge: "#cc4400" } },
-  { id: "exia", name: "Exia", series: "Gundam 00", cost: 300, free: false, rarity: "EPIC", rarityColor: "#cc44ff", colors: { primary: "#2244cc", accent: "#00ffcc", badge: "#88ffee" } },
-  { id: "sazabi", name: "Sazabi", series: "Char's Counterattack", cost: 400, free: false, rarity: "EPIC", rarityColor: "#cc44ff", colors: { primary: "#cc1111", accent: "#ff6600", badge: "#ff4400" } },
+  { id: "rx78",     name: "RX-78-2",   series: "Mobile Suit Gundam",   cost: 0,   free: true,  rarity: "STARTER", rarityColor: "#aabbcc", colors: { primary: "#4a7aff", accent: "#ff3311", badge: "#ffcc00" } },
+  { id: "wingzero", name: "Wing Zero",  series: "Gundam Wing",          cost: 150, free: false, rarity: "RARE",    rarityColor: "#00aaff", colors: { primary: "#e8eeff", accent: "#ffcc00", badge: "#00aaff" } },
+  { id: "unicorn",  name: "Unicorn",    series: "Gundam UC",            cost: 200, free: false, rarity: "RARE",    rarityColor: "#00aaff", colors: { primary: "#c8d8ff", accent: "#0066ff", badge: "#88ccff" } },
+  { id: "barbatos", name: "Barbatos",   series: "Iron-Blooded Orphans", cost: 150, free: false, rarity: "RARE",    rarityColor: "#00aaff", colors: { primary: "#8899aa", accent: "#ff6600", badge: "#cc4400" } },
+  { id: "exia",     name: "Exia",       series: "Gundam 00",            cost: 300, free: false, rarity: "EPIC",    rarityColor: "#cc44ff", colors: { primary: "#2244cc", accent: "#00ffcc", badge: "#88ffee" } },
+  { id: "sazabi",   name: "Sazabi",     series: "Char's Counterattack", cost: 400, free: false, rarity: "EPIC",    rarityColor: "#cc44ff", colors: { primary: "#cc1111", accent: "#ff6600", badge: "#ff4400" } },
 ];
 const SPRITE_BASE = "https://pub-633dac494e3b4bdb808035bd3c437f27.r2.dev/sprites";
 
@@ -111,15 +111,16 @@ function MarqueeStrip({ ownedSprites }) {
   );
 }
 
-function CustomizeModal({ onClose, ownedIds, xp, onPurchaseComplete, userId }) {
+function CustomizeModal({ onClose, ownedIds, paradeIds, xp, onPurchaseComplete, onParadeChange, userId }) {
   const [localXp, setLocalXp] = useState(xp);
   const [localOwned, setLocalOwned] = useState(ownedIds);
+  const [localParade, setLocalParade] = useState(paradeIds || ownedIds);
   const [buying, setBuying] = useState(null);
-  const [removing, setRemoving] = useState(null);
+  const [toggling, setToggling] = useState(null);
   const [justBought, setJustBought] = useState(null);
   const [error, setError] = useState(null);
 
-  // Always fetch fresh XP when modal opens
+  // Always fetch fresh XP + parade state when modal opens
   useEffect(() => {
     if (!userId) return;
     fetch(`/api/xp?user_id=${userId}`)
@@ -127,9 +128,11 @@ function CustomizeModal({ onClose, ownedIds, xp, onPurchaseComplete, userId }) {
       .then(data => {
         setLocalXp(data.xp || 0);
         setLocalOwned(data.sprites || []);
+        setLocalParade(data.parade || data.sprites || []);
       })
-      .catch(() => { });
+      .catch(() => {});
   }, [userId]);
+
   const handleBuy = async (sprite) => {
     if (buying || localOwned.includes(sprite.id)) return;
     setBuying(sprite.id); setError(null);
@@ -138,27 +141,30 @@ function CustomizeModal({ onClose, ownedIds, xp, onPurchaseComplete, userId }) {
       const data = await res.json();
       if (data.ok) {
         setLocalOwned(prev => [...prev, sprite.id]);
+        setLocalParade(prev => [...prev, sprite.id]); // auto-add to parade on purchase
         setLocalXp(data.xp);
         setJustBought(sprite.id);
         setTimeout(() => setJustBought(null), 1500);
         onPurchaseComplete(sprite.id, data.xp);
+        onParadeChange(sprite.id, true);
       } else { setError(data.error || "Purchase failed"); }
     } catch (err) { setError(err.message); }
     setBuying(null);
   };
 
-  const handleRemove = async (sprite) => {
-    if (removing || sprite.free) return;
-    setRemoving(sprite.id); setError(null);
+  const handleToggleParade = async (sprite) => {
+    if (toggling) return;
+    const isActive = localParade.includes(sprite.id);
+    setToggling(sprite.id); setError(null);
     try {
-      const res = await fetch("/api/sprites/remove", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ user_id: userId, sprite_id: sprite.id }) });
+      const res = await fetch("/api/sprites/toggle-parade", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ user_id: userId, sprite_id: sprite.id, active: !isActive }) });
       const data = await res.json();
       if (data.ok) {
-        setLocalOwned(prev => prev.filter(id => id !== sprite.id));
-        onPurchaseComplete(null, null, sprite.id);
-      } else { setError(data.error || "Remove failed"); }
+        setLocalParade(prev => isActive ? prev.filter(id => id !== sprite.id) : [...prev, sprite.id]);
+        onParadeChange(sprite.id, !isActive);
+      } else { setError(data.error || "Failed"); }
     } catch (err) { setError(err.message); }
-    setRemoving(null);
+    setToggling(null);
   };
 
   return (
@@ -190,6 +196,7 @@ function CustomizeModal({ onClose, ownedIds, xp, onPurchaseComplete, userId }) {
         <div style={{ padding: "28px 40px", overflowY: "auto", display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(270px,1fr))", gap: 20, flex: 1 }}>
           {SPRITES.map(sprite => {
             const owned = localOwned.includes(sprite.id);
+            const inParade = localParade.includes(sprite.id);
             const canAfford = localXp >= sprite.cost;
             const isBuying = buying === sprite.id;
             const boughtAnim = justBought === sprite.id;
@@ -206,12 +213,19 @@ function CustomizeModal({ onClose, ownedIds, xp, onPurchaseComplete, userId }) {
                   <div style={{ fontSize: "0.62rem", color: "#1a3a5a", letterSpacing: "1px", marginBottom: 16 }}>{sprite.series.toUpperCase()}</div>
                   {owned ? (
                     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                      <div style={{ fontSize: "0.68rem", color: "#00ff88", letterSpacing: "1px", textAlign: "center" }}>● IN YOUR HANGAR</div>
-                      {!sprite.free && (
-                        <button onClick={() => handleRemove(sprite)} disabled={removing === sprite.id} style={{ width: "100%", background: "rgba(255,34,68,0.06)", border: "1px solid rgba(255,34,68,0.2)", color: "rgba(255,34,68,0.6)", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.58rem", padding: "8px", cursor: "pointer", letterSpacing: "1.5px" }}>
-                          {removing === sprite.id ? "REMOVING..." : "✕ REMOVE"}
-                        </button>
-                      )}
+                      <button
+                        onClick={() => handleToggleParade(sprite)}
+                        disabled={toggling === sprite.id}
+                        style={{
+                          width: "100%", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.65rem",
+                          padding: "11px", cursor: "pointer", letterSpacing: "1.5px", transition: "all 0.2s",
+                          background: inParade ? "rgba(0,255,136,0.08)" : "rgba(255,255,255,0.03)",
+                          border: `1px solid ${inParade ? "rgba(0,255,136,0.3)" : "rgba(255,255,255,0.1)"}`,
+                          color: inParade ? "#00ff88" : "#3a5a7a",
+                        }}
+                      >
+                        {toggling === sprite.id ? "..." : inParade ? "● IN PARADE — CLICK TO HIDE" : "○ HIDDEN — CLICK TO SHOW"}
+                      </button>
                     </div>
                   ) : sprite.free ? (
                     <button onClick={() => handleBuy(sprite)} disabled={isBuying} style={{ width: "100%", background: "rgba(0,255,136,0.1)", border: "1px solid rgba(0,255,136,0.3)", color: "#00ff88", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.68rem", padding: "12px", cursor: "pointer", letterSpacing: "1.5px" }}>✦ FREE — ADD TO HANGAR</button>
@@ -306,6 +320,7 @@ export default function KitVault() {
   // ── XP + Sprites ─────────────────────────────────────────────
   const [xp, setXp] = useState(0);
   const [ownedSpriteIds, setOwnedSpriteIds] = useState([]);
+  const [paradeIds, setParadeIds] = useState([]);
   const [showCustomize, setShowCustomize] = useState(false);
 
   const fetchXpAndSprites = useCallback(async () => {
@@ -315,7 +330,8 @@ export default function KitVault() {
       const data = await res.json();
       setXp(data.xp || 0);
       setOwnedSpriteIds(data.sprites || []);
-    } catch (_) { }
+      setParadeIds(data.parade || data.sprites || []);
+    } catch (_) {}
   }, [isSignedIn, user]);
 
   useEffect(() => { fetchXpAndSprites(); }, [fetchXpAndSprites]);
@@ -323,6 +339,7 @@ export default function KitVault() {
   useEffect(() => { if (user?.id) window.__kvUserId = user.id; }, [user]);
 
   const ownedSprites = SPRITES.filter(s => ownedSpriteIds.includes(s.id));
+  const paradeSprites = SPRITES.filter(s => paradeIds.includes(s.id));
 
   // ── D1 sync ──────────────────────────────────────────────────
   const D1_API = "/api/progress";
@@ -655,7 +672,7 @@ export default function KitVault() {
 
         {/* MARQUEE — owned sprites parade (logged-in only) */}
         <SignedIn>
-          <MarqueeStrip ownedSprites={ownedSprites} />
+          <MarqueeStrip ownedSprites={paradeSprites} />
         </SignedIn>
 
         <Routes>
@@ -1109,6 +1126,7 @@ export default function KitVault() {
           <CustomizeModal
             onClose={() => setShowCustomize(false)}
             ownedIds={ownedSpriteIds}
+            paradeIds={paradeIds}
             xp={xp}
             userId={user?.id}
             onPurchaseComplete={(spriteId, newXp, removedId) => {
@@ -1118,6 +1136,12 @@ export default function KitVault() {
                 setOwnedSpriteIds(prev => [...prev, spriteId]);
                 setXp(newXp);
               }
+            }}
+            onParadeChange={(spriteId, active) => {
+              setParadeIds(prev => active
+                ? [...prev, spriteId]
+                : prev.filter(id => id !== spriteId)
+              );
             }}
           />
         )}
