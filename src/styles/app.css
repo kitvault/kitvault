@@ -8,7 +8,7 @@
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-  :root {
+  :root, [data-theme="dark"] {
     --bg: #080c12;
     --bg2: #0d1420;
     --bg3: #111b2e;
@@ -27,7 +27,112 @@
     --glow: 0 0 20px rgba(0,170,255,0.3);
     --glow2: 0 0 15px rgba(255,102,0,0.4);
     --glow-green: 0 0 15px rgba(0,255,136,0.4);
+    --header-bg: linear-gradient(180deg, rgba(0,20,50,0.95) 0%, rgba(8,12,18,0.95) 100%);
+    --grid-line: rgba(0,170,255,0.04);
+    --scanline: rgba(0,0,0,0.03);
+    --card-hover-bg: rgba(0,170,255,0.04);
+    --nav-hover: #ffcc00;
   }
+
+  /* ── LIGHT THEME ── */
+  [data-theme="light"] {
+    --bg: #f0f2f5;
+    --bg2: #ffffff;
+    --bg3: #e8ecf1;
+    --panel: #f5f7fa;
+    --border: #c8d1dc;
+    --border-bright: #a0b0c8;
+    --accent: #0077cc;
+    --accent2: #e05500;
+    --accent3: #00b894;
+    --text: #2c3e50;
+    --text-dim: #7f8c9b;
+    --text-bright: #1a2530;
+    --red: #e0243e;
+    --gold: #d4a800;
+    --green: #00b86b;
+    --glow: 0 2px 12px rgba(0,119,204,0.15);
+    --glow2: 0 2px 12px rgba(224,85,0,0.15);
+    --glow-green: 0 2px 12px rgba(0,184,107,0.15);
+    --header-bg: linear-gradient(180deg, #ffffff 0%, #f0f2f5 100%);
+    --grid-line: rgba(0,100,200,0.05);
+    --scanline: rgba(0,0,0,0);
+    --card-hover-bg: rgba(0,119,204,0.06);
+    --nav-hover: #0077cc;
+  }
+  [data-theme="light"] body { background: var(--bg); color: var(--text); }
+  [data-theme="light"] body::before { background: none; }
+  [data-theme="light"] .grid-bg {
+    background-image:
+      linear-gradient(var(--grid-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  }
+  [data-theme="light"] .header {
+    background: var(--header-bg);
+    border-bottom-color: var(--border);
+  }
+  [data-theme="light"] .header::after { background: linear-gradient(90deg, transparent, var(--accent), transparent); opacity: 0.3; }
+  [data-theme="light"] .nav-btn { color: var(--text-dim); }
+  [data-theme="light"] .nav-btn:hover, [data-theme="light"] .nav-item.open .nav-btn { color: var(--accent); }
+  [data-theme="light"] .hangar-btn { background: rgba(212,168,0,0.08); border-color: rgba(212,168,0,0.3); color: #b08f00; }
+  [data-theme="light"] .hangar-xp-badge { background: rgba(212,168,0,0.12); }
+  [data-theme="light"] .vault-btn { color: var(--text-dim); border-color: var(--border); }
+  [data-theme="light"] .nav-dropdown { background: var(--bg2); border-color: var(--border); }
+  [data-theme="light"] .kit-card { background: var(--bg2); border-color: var(--border); }
+  [data-theme="light"] .cog-btn { color: var(--text-dim); border-color: var(--border); }
+  [data-theme="light"] .filter-btn { background: var(--bg2); border-color: var(--border); color: var(--text); }
+  [data-theme="light"] .search-input { background: var(--bg2); border-color: var(--border); color: var(--text); }
+
+  /* ── NEKO (PINK/KAWAII) THEME ── */
+  [data-theme="neko"] {
+    --bg: #1a0f18;
+    --bg2: #241420;
+    --bg3: #2e1a2a;
+    --panel: #1e1220;
+    --border: #4a2848;
+    --border-bright: #6a3870;
+    --accent: #ff69b4;
+    --accent2: #ff8cc6;
+    --accent3: #ffb3d9;
+    --text: #f0d6e8;
+    --text-dim: #a07090;
+    --text-bright: #ffe8f5;
+    --red: #ff4477;
+    --gold: #ffaa88;
+    --green: #88ffcc;
+    --glow: 0 0 20px rgba(255,105,180,0.35);
+    --glow2: 0 0 15px rgba(255,140,198,0.4);
+    --glow-green: 0 0 15px rgba(136,255,204,0.4);
+    --header-bg: linear-gradient(180deg, rgba(36,14,30,0.97) 0%, rgba(26,15,24,0.97) 100%);
+    --grid-line: rgba(255,105,180,0.04);
+    --scanline: rgba(0,0,0,0.02);
+    --card-hover-bg: rgba(255,105,180,0.06);
+    --nav-hover: #ff69b4;
+  }
+  [data-theme="neko"] body::before {
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.02) 2px, rgba(0,0,0,0.02) 4px);
+  }
+  [data-theme="neko"] .grid-bg {
+    background-image:
+      linear-gradient(var(--grid-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  }
+  [data-theme="neko"] .header { background: var(--header-bg); }
+  [data-theme="neko"] .header::after { background: linear-gradient(90deg, transparent, #ff69b4, transparent); }
+  [data-theme="neko"] .nav-btn { color: #f0d6e8; }
+  [data-theme="neko"] .nav-btn:hover, [data-theme="neko"] .nav-item.open .nav-btn { color: #ff69b4; }
+  [data-theme="neko"] .hangar-btn { background: rgba(255,105,180,0.08); border-color: rgba(255,105,180,0.25); color: #ff69b4; }
+  [data-theme="neko"] .hangar-xp-badge { background: rgba(255,105,180,0.15); }
+  [data-theme="neko"] .vault-btn { color: #f0d6e8; border-color: var(--border); }
+  [data-theme="neko"] .vault-btn:hover, [data-theme="neko"] .vault-btn.active { border-color: #ff69b4; color: #ff69b4; }
+  [data-theme="neko"] .logo-icon { border-color: #ff69b4; color: #ff69b4; background: rgba(255,105,180,0.1); box-shadow: var(--glow); }
+  [data-theme="neko"] .cog-btn:hover { border-color: #ff69b4; color: #ff69b4; }
+  [data-theme="neko"] .filter-btn { color: #f0d6e8; }
+  [data-theme="neko"] .filter-btn:hover, [data-theme="neko"] .filter-btn.active { border-color: #ff69b4; color: #ff69b4; background: rgba(255,105,180,0.1); }
+  [data-theme="neko"] .search-input { border-color: var(--border); }
+  [data-theme="neko"] .search-input:focus { border-color: #ff69b4; box-shadow: var(--glow); }
+  [data-theme="neko"] .theme-toggle-btn { border-color: rgba(255,105,180,0.3); }
+  [data-theme="neko"] .theme-toggle-btn:hover { border-color: #ff69b4; background: rgba(255,105,180,0.1); }
 
   body {
     background: var(--bg);
@@ -63,12 +168,13 @@
   /* HEADER */
   .header {
     border-bottom: 1px solid var(--border);
-    background: linear-gradient(180deg, rgba(0,20,50,0.95) 0%, rgba(8,12,18,0.95) 100%);
+    background: var(--header-bg);
     backdrop-filter: blur(10px);
     position: sticky; top: 0; z-index: 100;
     padding: 0 40px;
     display: flex; align-items: center; justify-content: space-between;
-    height: 70px;
+    flex-wrap: wrap;
+    min-height: 70px;
   }
   .header::after {
     content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 1px;
@@ -117,6 +223,48 @@
   .cog-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(0,170,255,0.08); transform: rotate(30deg); }
   .cog-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(0,170,255,0.1); }
 
+  /* ── HEADER ACTION BTNS (HANGAR + MY VAULT wrapper) ── */
+  .header-action-btns {
+    display: flex; align-items: center; gap: 8px;
+  }
+  /* Hangar button */
+  .hangar-btn {
+    background: rgba(255,204,0,0.05); border: 1px solid rgba(255,204,0,0.2);
+    color: #ffcc00; font-family: 'Share Tech Mono', monospace; font-size: 0.6rem;
+    padding: 6px 14px; cursor: pointer; letter-spacing: 1.5px; transition: all 0.2s;
+    clip-path: polygon(0 0,88% 0,100% 30%,100% 100%,12% 100%,0 70%);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .hangar-btn:hover { background: rgba(255,204,0,0.12); border-color: rgba(255,204,0,0.4); }
+  .hangar-btn.locked {
+    background: rgba(255,204,0,0.03); border-color: rgba(255,204,0,0.12);
+    color: rgba(255,204,0,0.4);
+  }
+  .hangar-xp-badge {
+    font-size: 0.45rem; background: rgba(255,204,0,0.15);
+    padding: 1px 6px; border-radius: 1px;
+  }
+  /* Vault button */
+  .vault-btn {
+    background: none; border: 1px solid var(--border); color: var(--text-dim);
+    font-family: 'Share Tech Mono', monospace; font-size: 0.65rem;
+    padding: 8px 14px; cursor: pointer; letter-spacing: 1px; transition: all 0.2s;
+    clip-path: polygon(0 0, 88% 0, 100% 30%, 100% 100%, 12% 100%, 0 70%);
+  }
+  .vault-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .vault-btn.active { border-color: var(--accent); color: var(--accent); }
+
+  /* ── THEME TOGGLE BUTTON ── */
+  .theme-toggle-btn {
+    background: none; border: 1px solid var(--border); color: var(--text-dim);
+    width: 36px; height: 36px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: all 0.25s;
+    clip-path: polygon(0 0, 88% 0, 100% 12%, 100% 100%, 12% 100%, 0 88%);
+    font-size: 0.9rem; flex-shrink: 0;
+  }
+  .theme-toggle-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(0,170,255,0.08); }
+
   @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
 
   /* NAV DROPDOWNS */
@@ -125,13 +273,13 @@
   }
   .nav-item { position: relative; }
   .nav-btn {
-    background: none; border: none; color: var(--text-dim);
+    background: none; border: none; color: #e8edf4;
     font-family: 'Share Tech Mono', monospace; font-size: 0.68rem;
     padding: 8px 14px; cursor: pointer; letter-spacing: 1.5px;
     transition: color 0.2s; display: flex; align-items: center; gap: 6px;
     white-space: nowrap;
   }
-  .nav-btn:hover, .nav-item.open .nav-btn { color: var(--accent); }
+  .nav-btn:hover, .nav-item.open .nav-btn { color: #ffcc00; }
   .nav-btn-arrow { font-size: 0.5rem; transition: transform 0.2s; opacity: 0.6; }
   .nav-item.open .nav-btn-arrow { transform: rotate(180deg); }
   .nav-dropdown {
@@ -203,6 +351,7 @@
 
   /* Tablet nav: horizontal scroll with fixed bounds so items don't disappear */
   @media (max-width: 860px) {
+    .header { padding: 0 20px; }
     .nav-right {
       overflow-x: auto; flex-wrap: nowrap;
       -webkit-overflow-scrolling: touch; scrollbar-width: none;
@@ -213,6 +362,14 @@
     .nav-right::-webkit-scrollbar { display: none; }
     .nav-btn { font-size: 0.58rem; padding: 8px 10px; flex-shrink: 0; }
     .nav-dropdown { min-width: 260px; right: auto; left: 0; }
+    /* Move HANGAR + MY VAULT to second row */
+    .header-action-btns {
+      order: 10;
+      width: 100%;
+      justify-content: center; gap: 10px;
+      padding: 8px 0 10px;
+      border-top: 1px solid rgba(26,47,80,0.3);
+    }
   }
 
   /* ── MOBILE: hamburger menu (≤640px) ── */
@@ -229,7 +386,7 @@
     .nav-right {
       /* Collapse into a vertical dropdown panel */
       position: fixed;
-      top: 60px; left: 0; right: 0;
+      top: 100px; left: 0; right: 0;
       max-width: 100%; width: 100%;
       background: linear-gradient(180deg, rgba(8,16,30,0.98) 0%, rgba(6,13,26,0.98) 100%);
       backdrop-filter: blur(12px);
@@ -241,7 +398,7 @@
       z-index: 300;
       overflow-x: visible;
       overflow-y: auto;
-      max-height: calc(100dvh - 60px);
+      max-height: calc(100dvh - 100px);
       /* Hidden by default */
       opacity: 0;
       pointer-events: none;
@@ -515,7 +672,7 @@
   .search-input::placeholder { color: var(--text-dim); }
   .search-input:focus { border-color: var(--accent); box-shadow: var(--glow); }
   .filter-btn {
-    background: var(--panel); border: 1px solid var(--border); color: var(--text-dim);
+    background: var(--panel); border: 1px solid var(--border); color: #e8edf4;
     font-family: 'Share Tech Mono', monospace; font-size: 0.7rem; padding: 10px 16px;
     cursor: pointer; letter-spacing: 1px; transition: all 0.2s;
     clip-path: polygon(0 0, 90% 0, 100% 30%, 100% 100%, 10% 100%, 0 70%);
@@ -1221,13 +1378,25 @@
     * { -webkit-tap-highlight-color: transparent; }
 
     /* Header */
-    .header { padding: 0 12px; height: 60px; }
+    .header { padding: 0 12px; min-height: auto; }
     .logo { font-size: 1.2rem; gap: 8px; }
     .logo-icon { width: 30px; height: 30px; font-size: 0.85rem; }
     .logo-sub { font-size: 0.42rem; letter-spacing: 2px; }
-    .header-right { gap: 6px; }
-    .cog-btn { width: 36px; height: 36px; font-size: 1.1rem; } /* touch target */
-    .status-dot { display: none; } /* hide on mobile to save space */
+    .header-right { gap: 6px; min-height: 56px; flex-wrap: wrap; }
+    .cog-btn { width: 36px; height: 36px; font-size: 1.1rem; }
+    .theme-toggle-btn { width: 36px; height: 36px; font-size: 0.85rem; }
+    .status-dot { display: none; }
+    /* Sub-row: HANGAR + MY VAULT on their own line */
+    .header-action-btns {
+      order: 10;
+      width: 100%;
+      justify-content: center; gap: 10px;
+      padding: 6px 0 10px;
+      border-top: 1px solid rgba(26,47,80,0.3);
+    }
+    .hangar-btn { font-size: 0.58rem; padding: 8px 16px; flex: 1; justify-content: center; max-width: 180px; }
+    .vault-btn { font-size: 0.58rem; padding: 8px 16px; flex: 1; text-align: center; max-width: 140px; }
+    .hangar-btn.locked { flex: 1; justify-content: center; max-width: 180px; }
 
     /* Hero */
     .hero { padding: 36px 16px 28px; }

@@ -297,6 +297,12 @@ export default function KitVault() {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  // ── Theme persistence ──────────────────────────────────────
+  useEffect(() => {
+    const saved = localStorage.getItem("kv-theme");
+    if (saved) document.documentElement.setAttribute("data-theme", saved);
+  }, []);
   const [favourites, setFavourites] = useState(() => {
     try { return JSON.parse(localStorage.getItem("kv_favourites") || "[]"); } catch { return []; }
   });
@@ -604,12 +610,12 @@ export default function KitVault() {
               </div>
 
               {/* RESOURCES */}
-              <button className="nav-btn" onClick={() => { closeMobileMenu(); navigate("/resources"); }} style={{ color: location.pathname === "/resources" ? "var(--accent)" : "" }}>
+              <button className="nav-btn" onClick={() => { closeMobileMenu(); navigate("/resources"); }} style={{ color: location.pathname === "/resources" ? "#ffcc00" : "" }}>
                 RESOURCES
               </button>
 
               {/* GALLERY */}
-              <button className="nav-btn" onClick={() => { closeMobileMenu(); navigate("/gallery"); }} style={{ color: location.pathname === "/gallery" ? "var(--accent)" : "" }}>
+              <button className="nav-btn" onClick={() => { closeMobileMenu(); navigate("/gallery"); }} style={{ color: location.pathname === "/gallery" ? "#ffcc00" : "" }}>
                 GALLERY
               </button>
 
@@ -644,31 +650,37 @@ export default function KitVault() {
             {/* Mobile menu overlay */}
             {mobileMenuOpen && <div className="mobile-menu-overlay" onClick={closeMobileMenu} />}
 
-            {/* CUSTOMIZE BUTTON */}
-            <SignedIn>
-              <button onClick={() => setShowCustomize(true)} style={{ background: "rgba(255,204,0,0.05)", border: "1px solid rgba(255,204,0,0.2)", color: "#ffcc00", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.6rem", padding: "6px 14px", cursor: "pointer", letterSpacing: "1.5px", transition: "all 0.2s", marginLeft: 4, clipPath: "polygon(0 0,88% 0,100% 30%,100% 100%,12% 100%,0 70%)", display: "flex", alignItems: "center", gap: 6 }}>
-                ◈ HANGAR
-                <span style={{ fontSize: "0.45rem", background: "rgba(255,204,0,0.15)", padding: "1px 6px", borderRadius: 1 }}>{xp} XP</span>
-              </button>
-            </SignedIn>
-            <SignedOut>
-              <button onClick={() => setShowCustomize(true)} style={{ background: "rgba(255,204,0,0.03)", border: "1px solid rgba(255,204,0,0.12)", color: "rgba(255,204,0,0.4)", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.6rem", padding: "6px 14px", cursor: "pointer", letterSpacing: "1.5px", marginLeft: 4, clipPath: "polygon(0 0,88% 0,100% 30%,100% 100%,12% 100%,0 70%)" }}>
-                🔒 HANGAR
-              </button>
-            </SignedOut>
+            {/* HANGAR + MY VAULT (desktop: inline here, mobile: drops to sub-row) */}
+            <div className="header-action-btns">
+              <SignedIn>
+                <button onClick={() => setShowCustomize(true)} className="hangar-btn">
+                  ◈ HANGAR
+                  <span className="hangar-xp-badge">{xp} XP</span>
+                </button>
+              </SignedIn>
+              <SignedOut>
+                <button onClick={() => setShowCustomize(true)} className="hangar-btn locked">
+                  🔒 HANGAR
+                </button>
+              </SignedOut>
+
+              <SignedIn>
+                <button onClick={goVault} className={`vault-btn${location.pathname === "/vault" ? " active" : ""}`}>
+                  ⭐ MY VAULT
+                </button>
+              </SignedIn>
+            </div>
+
+            {/* THEME TOGGLE */}
+            <button className="theme-toggle-btn" onClick={() => {
+              const themes = ["dark", "light", "neko"];
+              const current = document.documentElement.getAttribute("data-theme") || "dark";
+              const next = themes[(themes.indexOf(current) + 1) % themes.length];
+              document.documentElement.setAttribute("data-theme", next);
+              localStorage.setItem("kv-theme", next);
+            }} title="Change Theme">🎨</button>
 
             <SignedIn>
-              <button
-                onClick={goVault}
-                style={{
-                  background: "none", border: "1px solid var(--border)", color: location.pathname === "/vault" ? "var(--accent)" : "var(--text-dim)",
-                  fontFamily: "'Share Tech Mono',monospace", fontSize: "0.65rem",
-                  padding: "8px 14px", cursor: "pointer", letterSpacing: "1px", transition: "all 0.2s",
-                  clipPath: "polygon(0 0, 88% 0, 100% 30%, 100% 100%, 12% 100%, 0 70%)"
-                }}
-              >
-                ⭐ MY VAULT
-              </button>
               <UserButton afterSignOutUrl="/" />
             </SignedIn>
             <SignedOut>
