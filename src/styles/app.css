@@ -1,10 +1,10 @@
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
+
 /* ═══════════════════════════════════════════════════════════
    KITVAULT.IO — MAIN STYLESHEET
    All app styles live here.
    Import this once at the top of main.jsx or App.jsx
 ═══════════════════════════════════════════════════════════ */
-
-  @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 

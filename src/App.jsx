@@ -302,6 +302,13 @@ export default function KitVault() {
   useEffect(() => {
     const saved = localStorage.getItem("kv-theme");
     if (saved) document.documentElement.setAttribute("data-theme", saved);
+    // Ensure Google Fonts load (Firefox fallback if CSS @import fails in Vite bundle)
+    if (!document.querySelector('link[href*="fonts.googleapis.com/css2?family=Rajdhani"]')) {
+      const link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = "https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap";
+      document.head.appendChild(link);
+    }
   }, []);
   const [favourites, setFavourites] = useState(() => {
     try { return JSON.parse(localStorage.getItem("kv_favourites") || "[]"); } catch { return []; }
