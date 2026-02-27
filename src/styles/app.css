@@ -201,15 +201,17 @@
     display: none;
   }
 
-  /* Mobile nav: horizontal scroll instead of hiding (tablet) */
+  /* Tablet nav: horizontal scroll with fixed bounds so items don't disappear */
   @media (max-width: 860px) {
     .nav-right {
       overflow-x: auto; flex-wrap: nowrap;
       -webkit-overflow-scrolling: touch; scrollbar-width: none;
       max-width: 50vw;
+      min-width: 0;
+      flex-shrink: 1;
     }
     .nav-right::-webkit-scrollbar { display: none; }
-    .nav-btn { font-size: 0.58rem; padding: 8px 10px; }
+    .nav-btn { font-size: 0.58rem; padding: 8px 10px; flex-shrink: 0; }
     .nav-dropdown { min-width: 260px; right: auto; left: 0; }
   }
 
@@ -256,18 +258,27 @@
       pointer-events: all;
       transform: translateY(0);
     }
+    /* Uniform nav buttons — all same size/style, white text, bigger font */
     .nav-right .nav-btn {
-      font-size: 0.7rem;
-      padding: 14px 24px;
-      letter-spacing: 2px;
+      font-size: 0.8rem;
+      padding: 16px 24px;
+      letter-spacing: 2.5px;
+      color: #e8edf4;
       width: 100%;
       text-align: left;
       justify-content: space-between;
       border-bottom: 1px solid rgba(26,47,80,0.3);
     }
-    .nav-right .nav-btn:last-child { border-bottom: none; }
-    .nav-right .nav-btn-arrow { display: inline-block; font-size: 0.5rem; }
+    .nav-right .nav-btn:hover { color: var(--accent); }
     .nav-right .nav-item { position: relative; }
+    /* Make TOOLS and GRADES items same height as RESOURCES/GALLERY when closed */
+    .nav-right .nav-item > .nav-btn {
+      font-size: 0.8rem;
+      padding: 16px 24px;
+      letter-spacing: 2.5px;
+      color: #e8edf4;
+    }
+    .nav-right .nav-btn-arrow { display: inline-block; font-size: 0.5rem; color: rgba(255,255,255,0.4); }
     .nav-right .nav-dropdown {
       position: relative;
       top: 0; left: 0; right: 0;

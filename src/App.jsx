@@ -252,7 +252,7 @@ function GuestCustomizeTeaser({ onClose }) {
           {SPRITES.slice(0, 4).map(s => <ChibiSprite key={s.id} sprite={s} size={40} />)}
         </div>
         <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.5rem", color: "#00aaff", letterSpacing: "3px", marginBottom: 12 }}>◈ HANGAR CUSTOMIZATION</div>
-        <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "1rem", color: "#c8ddf5", letterSpacing: "3px", marginBottom: 8 }}>COLLECT <span style={{ color: "#ffcc00" }}>CHIBI</span> SPRITES</div>
+        <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "1rem", color: "#c8ddf5", letterSpacing: "3px", marginBottom: 8 }}>COLLECT <span style={{ color: "#ffcc00" }}>SPRITES</span></div>
         <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.5rem", color: "#3a5a7a", letterSpacing: "1.5px", lineHeight: 2.2, marginBottom: 28 }}>EARN XP BY POSTING TO THE GALLERY<br />AND COMMENTING · SPEND XP TO UNLOCK<br />SPRITES THAT PARADE ABOVE THE VAULT</div>
         <button onClick={onClose} style={{ background: "none", border: "none", color: "#1a3a5a", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.42rem", cursor: "pointer", letterSpacing: "1px" }}>DISMISS</button>
       </div>
