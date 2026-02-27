@@ -33,12 +33,12 @@ import useSEO, { SEO, kitSEO, gradeSEO, toolSEO } from "./hooks/useSEO.js";
 // SPRITE ROSTER
 // ─────────────────────────────────────────────────────────────
 const SPRITES = [
-  { id: "rx78",     name: "RX-78-2",   series: "Mobile Suit Gundam",   cost: 0,   free: true,  rarity: "STARTER", rarityColor: "#aabbcc", colors: { primary: "#4a7aff", accent: "#ff3311", badge: "#ffcc00" } },
-  { id: "wingzero", name: "Wing Zero",  series: "Gundam Wing",          cost: 150, free: false, rarity: "RARE",    rarityColor: "#00aaff", colors: { primary: "#e8eeff", accent: "#ffcc00", badge: "#00aaff" } },
-  { id: "unicorn",  name: "Unicorn",    series: "Gundam UC",            cost: 200, free: false, rarity: "RARE",    rarityColor: "#00aaff", colors: { primary: "#c8d8ff", accent: "#0066ff", badge: "#88ccff" } },
-  { id: "barbatos", name: "Barbatos",   series: "Iron-Blooded Orphans", cost: 150, free: false, rarity: "RARE",    rarityColor: "#00aaff", colors: { primary: "#8899aa", accent: "#ff6600", badge: "#cc4400" } },
-  { id: "exia",     name: "Exia",       series: "Gundam 00",            cost: 300, free: false, rarity: "EPIC",    rarityColor: "#cc44ff", colors: { primary: "#2244cc", accent: "#00ffcc", badge: "#88ffee" } },
-  { id: "sazabi",   name: "Sazabi",     series: "Char's Counterattack", cost: 400, free: false, rarity: "EPIC",    rarityColor: "#cc44ff", colors: { primary: "#cc1111", accent: "#ff6600", badge: "#ff4400" } },
+  { id: "rx78", name: "RX-78-2", series: "Mobile Suit Gundam", cost: 0, free: true, rarity: "STARTER", rarityColor: "#aabbcc", colors: { primary: "#4a7aff", accent: "#ff3311", badge: "#ffcc00" } },
+  { id: "wingzero", name: "Wing Zero", series: "Gundam Wing", cost: 150, free: false, rarity: "RARE", rarityColor: "#00aaff", colors: { primary: "#e8eeff", accent: "#ffcc00", badge: "#00aaff" } },
+  { id: "unicorn", name: "Unicorn", series: "Gundam UC", cost: 200, free: false, rarity: "RARE", rarityColor: "#00aaff", colors: { primary: "#c8d8ff", accent: "#0066ff", badge: "#88ccff" } },
+  { id: "barbatos", name: "Barbatos", series: "Iron-Blooded Orphans", cost: 150, free: false, rarity: "RARE", rarityColor: "#00aaff", colors: { primary: "#8899aa", accent: "#ff6600", badge: "#cc4400" } },
+  { id: "exia", name: "Exia", series: "Gundam 00", cost: 300, free: false, rarity: "EPIC", rarityColor: "#cc44ff", colors: { primary: "#2244cc", accent: "#00ffcc", badge: "#88ffee" } },
+  { id: "sazabi", name: "Sazabi", series: "Char's Counterattack", cost: 400, free: false, rarity: "EPIC", rarityColor: "#cc44ff", colors: { primary: "#cc1111", accent: "#ff6600", badge: "#ff4400" } },
 ];
 const SPRITE_BASE = "https://pub-633dac494e3b4bdb808035bd3c437f27.r2.dev/sprites";
 
@@ -111,17 +111,29 @@ function MarqueeStrip({ ownedSprites }) {
   );
 }
 
-function CustomizeModal({ onClose, ownedIds, xp, onPurchaseComplete }) {
+function CustomizeModal({ onClose, ownedIds, xp, onPurchaseComplete, userId }) {
   const [localXp, setLocalXp] = useState(xp);
   const [localOwned, setLocalOwned] = useState(ownedIds);
   const [buying, setBuying] = useState(null);
   const [justBought, setJustBought] = useState(null);
   const [error, setError] = useState(null);
+
+  // Always fetch fresh XP when modal opens
+  useEffect(() => {
+    if (!userId) return;
+    fetch(`/api/xp?user_id=${userId}`)
+      .then(r => r.json())
+      .then(data => {
+        setLocalXp(data.xp || 0);
+        setLocalOwned(data.sprites || []);
+      })
+      .catch(() => { });
+  }, [userId]);
   const handleBuy = async (sprite) => {
     if (buying || localOwned.includes(sprite.id)) return;
     setBuying(sprite.id); setError(null);
     try {
-      const res = await fetch("/api/sprites/buy", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ user_id: window.__kvUserId, sprite_id: sprite.id }) });
+      const res = await fetch("/api/sprites/buy", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ user_id: userId, sprite_id: sprite.id }) });
       const data = await res.json();
       if (data.ok) {
         setLocalOwned(prev => [...prev, sprite.id]);
@@ -135,31 +147,31 @@ function CustomizeModal({ onClose, ownedIds, xp, onPurchaseComplete }) {
   };
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,5,18,0.92)", backdropFilter: "blur(8px)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }} onClick={onClose}>
-      <div style={{ background: "linear-gradient(160deg,#0a1628 0%,#070f1e 100%)", border: "1px solid rgba(0,170,255,0.3)", borderRadius: 2, width: "100%", maxWidth: 760, maxHeight: "85vh", overflow: "hidden", display: "flex", flexDirection: "column", boxShadow: "0 0 80px rgba(0,170,255,0.15)", clipPath: "polygon(0 0,97% 0,100% 3%,100% 100%,3% 100%,0 97%)" }} onClick={e => e.stopPropagation()}>
+      <div style={{ background: "linear-gradient(160deg,#0a1628 0%,#070f1e 100%)", border: "1px solid rgba(0,170,255,0.3)", borderRadius: 2, width: "100%", maxWidth: 960, maxHeight: "92vh", overflow: "hidden", display: "flex", flexDirection: "column", boxShadow: "0 0 80px rgba(0,170,255,0.15)", clipPath: "polygon(0 0,97% 0,100% 3%,100% 100%,3% 100%,0 97%)" }} onClick={e => e.stopPropagation()}>
         <div style={{ padding: "20px 28px 16px", borderBottom: "1px solid rgba(0,170,255,0.12)", display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(0,170,255,0.04)" }}>
           <div>
-            <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.5rem", color: "#00aaff", letterSpacing: "3px", marginBottom: 4 }}>◈ HANGAR CUSTOMIZATION</div>
-            <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "1.1rem", color: "#c8ddf5", letterSpacing: "3px" }}>CHIBI <span style={{ color: "#ffcc00" }}>ROSTER</span></div>
+            <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.6rem", color: "#00aaff", letterSpacing: "3px", marginBottom: 4 }}>◈ HANGAR CUSTOMIZATION</div>
+            <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "1.4rem", color: "#c8ddf5", letterSpacing: "3px" }}>CHIBI <span style={{ color: "#ffcc00" }}>ROSTER</span></div>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
-            <div style={{ background: "rgba(255,204,0,0.08)", border: "1px solid rgba(255,204,0,0.3)", padding: "8px 16px", fontFamily: "'Share Tech Mono',monospace" }}>
-              <div style={{ fontSize: "0.4rem", color: "#ffcc00", letterSpacing: "2px", marginBottom: 2 }}>YOUR XP</div>
-              <div style={{ fontSize: "1rem", color: "#ffcc00", letterSpacing: "2px" }}>{localXp.toLocaleString()}</div>
+            <div style={{ background: "rgba(255,204,0,0.08)", border: "1px solid rgba(255,204,0,0.3)", padding: "10px 20px", fontFamily: "'Share Tech Mono',monospace" }}>
+              <div style={{ fontSize: "0.5rem", color: "#ffcc00", letterSpacing: "2px", marginBottom: 2 }}>YOUR XP</div>
+              <div style={{ fontSize: "1.2rem", color: "#ffcc00", letterSpacing: "2px" }}>{localXp.toLocaleString()}</div>
             </div>
-            <button onClick={onClose} style={{ background: "none", border: "1px solid rgba(255,255,255,0.1)", color: "#5a7a9f", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.7rem", width: 32, height: 32, cursor: "pointer" }}>✕</button>
+            <button onClick={onClose} style={{ background: "none", border: "1px solid rgba(255,255,255,0.1)", color: "#5a7a9f", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.8rem", width: 36, height: 36, cursor: "pointer" }}>✕</button>
           </div>
         </div>
-        <div style={{ padding: "10px 28px", borderBottom: "1px solid rgba(0,170,255,0.08)", display: "flex", gap: 24, alignItems: "center", background: "rgba(0,0,0,0.2)", flexWrap: "wrap" }}>
-          <span style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.42rem", color: "#1a3a5a", letterSpacing: "2px" }}>EARN XP BY:</span>
+        <div style={{ padding: "12px 32px", borderBottom: "1px solid rgba(0,170,255,0.08)", display: "flex", gap: 24, alignItems: "center", background: "rgba(0,0,0,0.2)", flexWrap: "wrap" }}>
+          <span style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.52rem", color: "#1a3a5a", letterSpacing: "2px" }}>EARN XP BY:</span>
           {[{ label: "POST TO GALLERY", xp: "+50 XP" }, { label: "LEAVE A COMMENT", xp: "+10 XP" }].map(a => (
             <div key={a.label} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.42rem", color: "#5a7a9f", letterSpacing: "1.5px" }}>{a.label}</span>
-              <span style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.42rem", color: "#ffcc00", letterSpacing: "1px" }}>{a.xp}</span>
+              <span style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.52rem", color: "#5a7a9f", letterSpacing: "1.5px" }}>{a.label}</span>
+              <span style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.52rem", color: "#ffcc00", letterSpacing: "1px" }}>{a.xp}</span>
             </div>
           ))}
         </div>
-        {error && <div style={{ padding: "8px 28px", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.5rem", color: "#ff2244", background: "rgba(255,34,68,0.06)" }}>{error}</div>}
-        <div style={{ padding: "24px 28px", overflowY: "auto", display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(200px,1fr))", gap: 16, flex: 1 }}>
+        {error && <div style={{ padding: "8px 32px", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.55rem", color: "#ff2244", background: "rgba(255,34,68,0.06)" }}>{error}</div>}
+        <div style={{ padding: "24px 32px", overflowY: "auto", display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(240px,1fr))", gap: 20, flex: 1 }}>
           {SPRITES.map(sprite => {
             const owned = localOwned.includes(sprite.id);
             const canAfford = localXp >= sprite.cost;
@@ -167,22 +179,22 @@ function CustomizeModal({ onClose, ownedIds, xp, onPurchaseComplete }) {
             const boughtAnim = justBought === sprite.id;
             return (
               <div key={sprite.id} style={{ background: "rgba(0,0,0,0.25)", border: `1px solid ${owned ? sprite.colors.badge + "44" : "rgba(255,255,255,0.06)"}`, borderRadius: 2, padding: "20px 16px 16px", position: "relative", clipPath: "polygon(0 0,94% 0,100% 6%,100% 100%,6% 100%,0 94%)", animation: boughtAnim ? "kvPurchasePop 0.5s cubic-bezier(0.175,0.885,0.32,1.275)" : "none" }}>
-                <div style={{ position: "absolute", top: 8, left: 8, fontFamily: "'Share Tech Mono',monospace", fontSize: "0.38rem", color: sprite.rarityColor, letterSpacing: "1.5px" }}>{sprite.rarity}</div>
-                {owned && <div style={{ position: "absolute", top: 8, right: 8, fontFamily: "'Share Tech Mono',monospace", fontSize: "0.38rem", color: "#00ff88", letterSpacing: "1px", border: "1px solid #00ff8844", padding: "2px 6px" }}>✓ OWNED</div>}
+                <div style={{ position: "absolute", top: 8, left: 8, fontFamily: "'Share Tech Mono',monospace", fontSize: "0.48rem", color: sprite.rarityColor, letterSpacing: "1.5px" }}>{sprite.rarity}</div>
+                {owned && <div style={{ position: "absolute", top: 8, right: 8, fontFamily: "'Share Tech Mono',monospace", fontSize: "0.48rem", color: "#00ff88", letterSpacing: "1px", border: "1px solid #00ff8844", padding: "2px 6px" }}>✓ OWNED</div>}
                 <div style={{ display: "flex", justifyContent: "center", marginBottom: 12, marginTop: 8 }}>
                   <div style={{ filter: owned ? `drop-shadow(0 0 8px ${sprite.colors.accent}99)` : "none" }}>
                     <ChibiSprite sprite={sprite} size={80} />
                   </div>
                 </div>
                 <div style={{ fontFamily: "'Share Tech Mono',monospace" }}>
-                  <div style={{ fontSize: "0.65rem", color: owned ? sprite.colors.badge : "#c8ddf5", letterSpacing: "1.5px", marginBottom: 2 }}>{sprite.name.toUpperCase()}</div>
-                  <div style={{ fontSize: "0.42rem", color: "#1a3a5a", letterSpacing: "1px", marginBottom: 12 }}>{sprite.series.toUpperCase()}</div>
+                  <div style={{ fontSize: "0.75rem", color: owned ? sprite.colors.badge : "#c8ddf5", letterSpacing: "1.5px", marginBottom: 4 }}>{sprite.name.toUpperCase()}</div>
+                  <div style={{ fontSize: "0.52rem", color: "#1a3a5a", letterSpacing: "1px", marginBottom: 14 }}>{sprite.series.toUpperCase()}</div>
                   {owned ? (
-                    <div style={{ fontSize: "0.45rem", color: "#00ff88", letterSpacing: "1px", textAlign: "center" }}>● IN YOUR HANGAR</div>
+                    <div style={{ fontSize: "0.55rem", color: "#00ff88", letterSpacing: "1px", textAlign: "center" }}>● IN YOUR HANGAR</div>
                   ) : sprite.free ? (
-                    <button onClick={() => handleBuy(sprite)} disabled={isBuying} style={{ width: "100%", background: "rgba(0,255,136,0.1)", border: "1px solid rgba(0,255,136,0.3)", color: "#00ff88", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.45rem", padding: "7px", cursor: "pointer", letterSpacing: "1.5px" }}>✦ FREE — ADD TO HANGAR</button>
+                    <button onClick={() => handleBuy(sprite)} disabled={isBuying} style={{ width: "100%", background: "rgba(0,255,136,0.1)", border: "1px solid rgba(0,255,136,0.3)", color: "#00ff88", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.55rem", padding: "9px", cursor: "pointer", letterSpacing: "1.5px" }}>✦ FREE — ADD TO HANGAR</button>
                   ) : (
-                    <button onClick={() => handleBuy(sprite)} disabled={!canAfford || isBuying} style={{ width: "100%", background: canAfford ? "rgba(255,204,0,0.08)" : "rgba(0,0,0,0.2)", border: `1px solid ${canAfford ? "rgba(255,204,0,0.35)" : "rgba(255,255,255,0.06)"}`, color: canAfford ? "#ffcc00" : "#2a3a5a", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.45rem", padding: "7px", cursor: canAfford ? "pointer" : "not-allowed", letterSpacing: "1.5px" }}>
+                    <button onClick={() => handleBuy(sprite)} disabled={!canAfford || isBuying} style={{ width: "100%", background: canAfford ? "rgba(255,204,0,0.08)" : "rgba(0,0,0,0.2)", border: `1px solid ${canAfford ? "rgba(255,204,0,0.35)" : "rgba(255,255,255,0.06)"}`, color: canAfford ? "#ffcc00" : "#2a3a5a", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.55rem", padding: "9px", cursor: canAfford ? "pointer" : "not-allowed", letterSpacing: "1.5px" }}>
                       {isBuying ? "UNLOCKING..." : canAfford ? `⭐ ${sprite.cost} XP — UNLOCK` : `⭐ ${sprite.cost} XP — NOT ENOUGH`}
                     </button>
                   )}
@@ -281,7 +293,7 @@ export default function KitVault() {
       const data = await res.json();
       setXp(data.xp || 0);
       setOwnedSpriteIds(data.sprites || []);
-    } catch (_) {}
+    } catch (_) { }
   }, [isSignedIn, user]);
 
   useEffect(() => { fetchXpAndSprites(); }, [fetchXpAndSprites]);
@@ -586,13 +598,13 @@ export default function KitVault() {
             {/* CUSTOMIZE BUTTON */}
             <SignedIn>
               <button onClick={() => setShowCustomize(true)} style={{ background: "rgba(255,204,0,0.05)", border: "1px solid rgba(255,204,0,0.2)", color: "#ffcc00", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.6rem", padding: "6px 14px", cursor: "pointer", letterSpacing: "1.5px", transition: "all 0.2s", marginLeft: 4, clipPath: "polygon(0 0,88% 0,100% 30%,100% 100%,12% 100%,0 70%)", display: "flex", alignItems: "center", gap: 6 }}>
-                ◈ CUSTOMIZE
+                ◈ HANGAR
                 <span style={{ fontSize: "0.45rem", background: "rgba(255,204,0,0.15)", padding: "1px 6px", borderRadius: 1 }}>{xp} XP</span>
               </button>
             </SignedIn>
             <SignedOut>
               <button onClick={() => setShowCustomize(true)} style={{ background: "rgba(255,204,0,0.03)", border: "1px solid rgba(255,204,0,0.12)", color: "rgba(255,204,0,0.4)", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.6rem", padding: "6px 14px", cursor: "pointer", letterSpacing: "1.5px", marginLeft: 4, clipPath: "polygon(0 0,88% 0,100% 30%,100% 100%,12% 100%,0 70%)" }}>
-                🔒 CUSTOMIZE
+                🔒 HANGAR
               </button>
             </SignedOut>
 
@@ -1076,6 +1088,7 @@ export default function KitVault() {
             onClose={() => setShowCustomize(false)}
             ownedIds={ownedSpriteIds}
             xp={xp}
+            userId={user?.id}
             onPurchaseComplete={(spriteId, newXp) => {
               setOwnedSpriteIds(prev => [...prev, spriteId]);
               setXp(newXp);
