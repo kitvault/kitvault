@@ -60,7 +60,34 @@ export default {
       ).bind(userId, amount, reason, refId || null, now).run();
     }
 
-    // ── POST /api/sprites/buy — Purchase a sprite with XP ──────
+    // ── POST /api/xp/grant — Admin: grant XP to any user ──────
+    if (path === "/api/xp/grant" && request.method === "POST") {
+      const key = request.headers.get("X-Admin-Key");
+      if (key !== env.ADMIN_KEY) {
+        return new Response(JSON.stringify({ ok: false, error: "Unauthorized" }), {
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      try {
+        const { user_id, amount } = await request.json();
+        if (!user_id || !amount || isNaN(amount)) {
+          return new Response(JSON.stringify({ ok: false, error: "Missing user_id or amount" }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        await awardXP(env, user_id, Number(amount), "admin_grant", null);
+        const updated = await env.DB.prepare("SELECT xp FROM user_xp WHERE user_id = ?").bind(user_id).first();
+        return new Response(JSON.stringify({ ok: true, xp: updated?.xp || 0 }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch (err) {
+        return new Response(JSON.stringify({ ok: false, error: err.message }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
+
     if (path === "/api/sprites/buy" && request.method === "POST") {
       try {
         const { user_id, sprite_id } = await request.json();
@@ -78,6 +105,7 @@ export default {
           unicorn:  200,
           barbatos: 150,
           exia:     300,
+          sazabi:   400,
         };
 
         if (!(sprite_id in SPRITE_COSTS)) {
@@ -153,7 +181,7 @@ export default {
         const file = formData.get("image");
         const spriteId = formData.get("sprite_id"); // e.g. "rx78"
 
-        const VALID_SPRITES = ["rx78", "wingzero", "unicorn", "barbatos", "exia"];
+        const VALID_SPRITES = ["rx78", "wingzero", "unicorn", "barbatos", "exia", "sazabi"];
         if (!VALID_SPRITES.includes(spriteId)) {
           return new Response(JSON.stringify({ ok: false, error: "Invalid sprite_id" }), {
             status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },

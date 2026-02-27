@@ -38,21 +38,41 @@ const SPRITES = [
   { id: "unicorn",  name: "Unicorn",    series: "Gundam UC",            cost: 200, free: false, rarity: "RARE",    rarityColor: "#00aaff", colors: { primary: "#c8d8ff", accent: "#0066ff", badge: "#88ccff" } },
   { id: "barbatos", name: "Barbatos",   series: "Iron-Blooded Orphans", cost: 150, free: false, rarity: "RARE",    rarityColor: "#00aaff", colors: { primary: "#8899aa", accent: "#ff6600", badge: "#cc4400" } },
   { id: "exia",     name: "Exia",       series: "Gundam 00",            cost: 300, free: false, rarity: "EPIC",    rarityColor: "#cc44ff", colors: { primary: "#2244cc", accent: "#00ffcc", badge: "#88ffee" } },
+  { id: "sazabi",   name: "Sazabi",     series: "Char's Counterattack", cost: 400, free: false, rarity: "EPIC",    rarityColor: "#cc44ff", colors: { primary: "#cc1111", accent: "#ff6600", badge: "#ff4400" } },
 ];
 const SPRITE_BASE = "https://pub-633dac494e3b4bdb808035bd3c437f27.r2.dev/sprites";
 
-function ChibiSprite({ sprite, size = 48 }) {
+function ChibiSprite({ sprite, size = 48, bob = false }) {
   const [imgError, setImgError] = useState(false);
-  const dim = size;
   if (!imgError) {
     return (
-      <img src={`${SPRITE_BASE}/${sprite.id}.png`} alt={sprite.name} width={dim} height={dim}
-        style={{ imageRendering: "pixelated", display: "block" }}
-        onError={() => setImgError(true)} />
+      <div style={{
+        width: size, height: size,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        flexShrink: 0,
+        animation: bob ? "kvBob 1.8s ease-in-out infinite" : "none",
+      }}>
+        <img
+          src={`${SPRITE_BASE}/${sprite.id}.png`}
+          alt={sprite.name}
+          style={{
+            width: "100%", height: "100%",
+            objectFit: "contain",
+            imageRendering: "pixelated",
+            display: "block",
+          }}
+          onError={() => setImgError(true)}
+        />
+      </div>
     );
   }
+  // Fallback placeholder
   return (
-    <div style={{ width: dim, height: dim * 1.2, position: "relative", imageRendering: "pixelated", flexShrink: 0 }}>
+    <div style={{
+      width: size, height: size,
+      position: "relative", imageRendering: "pixelated", flexShrink: 0,
+      animation: bob ? "kvBob 1.8s ease-in-out infinite" : "none",
+    }}>
       <div style={{ position: "absolute", top: 0, left: "25%", width: "50%", height: "30%", background: sprite.colors.primary, border: "1px solid #111" }}>
         <div style={{ position: "absolute", top: "35%", left: "10%", width: "30%", height: "30%", background: sprite.colors.badge, border: "1px solid #000" }} />
         <div style={{ position: "absolute", top: "35%", right: "10%", width: "30%", height: "30%", background: sprite.colors.badge, border: "1px solid #000" }} />
@@ -81,8 +101,8 @@ function MarqueeStrip({ ownedSprites }) {
       <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 60, background: "linear-gradient(270deg,#060d1a,transparent)", zIndex: 2, pointerEvents: "none" }} />
       <div style={{ display: "flex", alignItems: "flex-end", width: "300%", animation: `kvMarquee ${duration}s linear infinite` }}>
         {tripled.map((sprite, i) => (
-          <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, flex: `0 0 calc(100% / ${tripled.length})` }}>
-            <ChibiSprite sprite={sprite} size={44} />
+          <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, flex: `0 0 calc(100% / ${tripled.length})` }}>
+            <ChibiSprite sprite={sprite} size={64} bob={true} />
             <span style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.38rem", color: sprite.colors.badge, letterSpacing: "1.5px", whiteSpace: "nowrap" }}>{sprite.name.toUpperCase()}</span>
           </div>
         ))}
@@ -150,8 +170,8 @@ function CustomizeModal({ onClose, ownedIds, xp, onPurchaseComplete }) {
                 <div style={{ position: "absolute", top: 8, left: 8, fontFamily: "'Share Tech Mono',monospace", fontSize: "0.38rem", color: sprite.rarityColor, letterSpacing: "1.5px" }}>{sprite.rarity}</div>
                 {owned && <div style={{ position: "absolute", top: 8, right: 8, fontFamily: "'Share Tech Mono',monospace", fontSize: "0.38rem", color: "#00ff88", letterSpacing: "1px", border: "1px solid #00ff8844", padding: "2px 6px" }}>✓ OWNED</div>}
                 <div style={{ display: "flex", justifyContent: "center", marginBottom: 12, marginTop: 8 }}>
-                  <div style={{ filter: owned ? `drop-shadow(0 0 6px ${sprite.colors.accent}88)` : "none" }}>
-                    <ChibiSprite sprite={sprite} size={56} />
+                  <div style={{ filter: owned ? `drop-shadow(0 0 8px ${sprite.colors.accent}99)` : "none" }}>
+                    <ChibiSprite sprite={sprite} size={80} />
                   </div>
                 </div>
                 <div style={{ fontFamily: "'Share Tech Mono',monospace" }}>
@@ -481,6 +501,7 @@ export default function KitVault() {
           <style>{`
             @keyframes kvMarquee { from{transform:translateX(0)} to{transform:translateX(-33.3333%)} }
             @keyframes kvPurchasePop { 0%{transform:scale(0.9)} 60%{transform:scale(1.04)} 100%{transform:scale(1)} }
+            @keyframes kvBob { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
           `}</style>
           <div className="logo" onClick={goHome} style={{ cursor: "pointer" }}>
             <div className="logo-icon">▣</div>

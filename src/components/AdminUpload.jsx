@@ -50,6 +50,95 @@ export default function AdminUpload() {
 
   const fileInputRef = useRef(null);
 
+  // ── Sprite upload state ───────────────────────────────────
+  const SPRITE_SLOTS = [
+    { id: "rx78",     name: "RX-78-2",   series: "Mobile Suit Gundam",   rarity: "STARTER" },
+    { id: "wingzero", name: "Wing Zero",  series: "Gundam Wing",          rarity: "RARE" },
+    { id: "unicorn",  name: "Unicorn",    series: "Gundam UC",            rarity: "RARE" },
+    { id: "barbatos", name: "Barbatos",   series: "Iron-Blooded Orphans", rarity: "RARE" },
+    { id: "exia",     name: "Exia",       series: "Gundam 00",            rarity: "EPIC" },
+    { id: "sazabi",   name: "Sazabi",     series: "Char's Counterattack", rarity: "EPIC" },
+  ];
+  const R2_SPRITE_BASE = "https://pub-633dac494e3b4bdb808035bd3c437f27.r2.dev/sprites";
+  const [spriteStatuses, setSpriteStatuses] = useState({}); // { rx78: 'uploading'|'ok'|'error', ... }
+  const [spriteErrors, setSpriteErrors]     = useState({}); // { rx78: "error msg", ... }
+  const [spriteExists, setSpriteExists]     = useState({}); // { rx78: true|false, ... }
+  const spriteDragOver = useRef({});
+
+  // Check which sprites already have a PNG in R2
+  useEffect(() => {
+    if (!isAuthed) return;
+    SPRITE_SLOTS.forEach(async (slot) => {
+      try {
+        const res = await fetch(`${R2_SPRITE_BASE}/${slot.id}.png`, { method: "HEAD" });
+        setSpriteExists(prev => ({ ...prev, [slot.id]: res.ok }));
+      } catch {
+        setSpriteExists(prev => ({ ...prev, [slot.id]: false }));
+      }
+    });
+  }, [isAuthed]);
+
+  // ── XP grant (admin testing) ──────────────────────────────
+  const [xpUserId, setXpUserId]   = useState("");
+  const [xpAmount, setXpAmount]   = useState("500");
+  const [xpGrantStatus, setXpGrantStatus] = useState(null);
+
+  const grantXP = async () => {
+    if (!xpUserId.trim() || !xpAmount) return;
+    setXpGrantStatus("loading");
+    try {
+      const res = await fetch("/api/xp/grant", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Admin-Key": adminKey },
+        body: JSON.stringify({ user_id: xpUserId.trim(), amount: Number(xpAmount) }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setXpGrantStatus({ ok: true, message: `Done — new balance: ${data.xp} XP` });
+      } else {
+        setXpGrantStatus({ ok: false, message: data.error || "Failed" });
+      }
+    } catch (err) {
+      setXpGrantStatus({ ok: false, message: err.message });
+    }
+  };
+
+  const uploadSprite = async (slotId, file) => {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setSpriteErrors(prev => ({ ...prev, [slotId]: "Images only (PNG recommended)" }));
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      setSpriteErrors(prev => ({ ...prev, [slotId]: "Max 2MB" }));
+      return;
+    }
+    setSpriteStatuses(prev => ({ ...prev, [slotId]: "uploading" }));
+    setSpriteErrors(prev => ({ ...prev, [slotId]: null }));
+    try {
+      const fd = new FormData();
+      fd.append("image", file);
+      fd.append("sprite_id", slotId);
+      const res = await fetch("/api/sprites/upload", {
+        method: "POST",
+        headers: { "X-Admin-Key": adminKey },
+        body: fd,
+      });
+      const data = await res.json();
+      if (res.ok && data.ok) {
+        setSpriteStatuses(prev => ({ ...prev, [slotId]: "ok" }));
+        setSpriteExists(prev => ({ ...prev, [slotId]: true }));
+        setTimeout(() => setSpriteStatuses(prev => ({ ...prev, [slotId]: null })), 2000);
+      } else {
+        setSpriteStatuses(prev => ({ ...prev, [slotId]: "error" }));
+        setSpriteErrors(prev => ({ ...prev, [slotId]: data.error || "Upload failed" }));
+      }
+    } catch (err) {
+      setSpriteStatuses(prev => ({ ...prev, [slotId]: "error" }));
+      setSpriteErrors(prev => ({ ...prev, [slotId]: err.message }));
+    }
+  };
+
   // ── Auth ───────────────────────────────────────────────────
   const handleAuth = (e) => {
     e.preventDefault();
@@ -283,6 +372,145 @@ export default function AdminUpload() {
           ))}
         </div>
       )}
+
+      {/* ═══════════════════════════════════════════════════════
+          XP GRANT (ADMIN TESTING)
+         ═══════════════════════════════════════════════════════ */}
+      <div style={S.section}>
+        <div style={S.sectionTitle}>◈ GRANT XP — ADMIN TEST TOOL</div>
+        <div style={S.note}>Credit XP to any user by their Clerk user ID. Use this to test the sprite shop without waiting to earn XP naturally.</div>
+        <div style={{ display: "flex", gap: 10, alignItems: "flex-end", flexWrap: "wrap" }}>
+          <div style={{ flex: 2, minWidth: 200 }}>
+            <div style={{ fontSize: "0.5rem", color: "#5a7a9f", letterSpacing: "1px", marginBottom: 4 }}>CLERK USER ID</div>
+            <input value={xpUserId} onChange={e => setXpUserId(e.target.value)} placeholder="user_2abc123..." style={{ ...S.input, marginBottom: 0 }} />
+          </div>
+          <div style={{ width: 120 }}>
+            <div style={{ fontSize: "0.5rem", color: "#5a7a9f", letterSpacing: "1px", marginBottom: 4 }}>AMOUNT</div>
+            <input type="number" value={xpAmount} onChange={e => setXpAmount(e.target.value)} style={{ ...S.input, marginBottom: 0 }} />
+          </div>
+          <button onClick={grantXP} disabled={!xpUserId.trim() || xpGrantStatus === "loading"}
+            style={{ ...S.btnPrimary, width: "auto", padding: "12px 24px", whiteSpace: "nowrap", opacity: !xpUserId.trim() ? 0.4 : 1 }}>
+            {xpGrantStatus === "loading" ? "GRANTING..." : `⭐ GRANT ${xpAmount} XP`}
+          </button>
+        </div>
+        {xpGrantStatus && xpGrantStatus !== "loading" && (
+          <div style={{ marginTop: 10, fontSize: "0.6rem", color: xpGrantStatus.ok ? "#00ff88" : "#ff2244", letterSpacing: "1px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span>{xpGrantStatus.ok ? "✓" : "✕"} {xpGrantStatus.message}</span>
+            <button onClick={() => setXpGrantStatus(null)} style={{ background: "none", border: "none", color: "inherit", cursor: "pointer" }}>✕</button>
+          </div>
+        )}
+        <div style={{ ...S.note, marginTop: 12, opacity: 0.5 }}>
+          ⓘ Find your Clerk user ID in the Clerk dashboard → Users, or check your browser's DevTools network tab after logging in (look for <code style={S.code}>userId</code>).
+        </div>
+      </div>
+
+      {/* ═══════════════════════════════════════════════════════
+          CHIBI SPRITE UPLOAD
+         ═══════════════════════════════════════════════════════ */}
+      <div style={{...S.section, marginTop: 60}}>
+        <div style={S.sectionTitle}>◈ CHIBI SPRITE ASSETS</div>
+        <div style={S.note}>
+          Upload a <strong>64×64 PNG</strong> for each sprite slot. Transparent background recommended.
+          Drop a file onto the slot or click it to browse. The file is stored in R2 at <code style={S.code}>sprites/{"{id}"}.png</code> and served publicly.
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 16, marginTop: 20 }}>
+          {SPRITE_SLOTS.map(slot => {
+            const status   = spriteStatuses[slot.id];
+            const err      = spriteErrors[slot.id];
+            const exists   = spriteExists[slot.id];
+            const inputRef = { current: null };
+            const isUploading = status === "uploading";
+            const isOk        = status === "ok";
+            const rarityColor = slot.rarity === "STARTER" ? "#aabbcc" : slot.rarity === "RARE" ? "#00aaff" : "#cc44ff";
+
+            return (
+              <div key={slot.id}
+                style={{
+                  border: `1px solid ${isOk ? "rgba(0,255,136,0.5)" : exists ? "rgba(0,170,255,0.25)" : "#1a2f50"}`,
+                  background: "#080c12",
+                  padding: 16,
+                  position: "relative",
+                  transition: "border-color 0.2s",
+                }}
+                onDragOver={e => { e.preventDefault(); e.currentTarget.style.borderColor = "#00aaff"; }}
+                onDragLeave={e => { e.currentTarget.style.borderColor = isOk ? "rgba(0,255,136,0.5)" : exists ? "rgba(0,170,255,0.25)" : "#1a2f50"; }}
+                onDrop={e => {
+                  e.preventDefault();
+                  e.currentTarget.style.borderColor = exists ? "rgba(0,170,255,0.25)" : "#1a2f50";
+                  const file = e.dataTransfer.files[0];
+                  if (file) uploadSprite(slot.id, file);
+                }}
+              >
+                {/* Rarity + name */}
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+                  <div>
+                    <div style={{ fontSize: "0.42rem", color: rarityColor, letterSpacing: "2px", marginBottom: 3 }}>{slot.rarity}</div>
+                    <div style={{ fontSize: "0.7rem", color: "#c8ddf5", letterSpacing: "1px" }}>{slot.name}</div>
+                    <div style={{ fontSize: "0.45rem", color: "#2a4060", letterSpacing: "1px" }}>{slot.series}</div>
+                  </div>
+                  {/* Status badge */}
+                  {isOk && <span style={{ fontSize: "0.42rem", color: "#00ff88", border: "1px solid rgba(0,255,136,0.3)", padding: "2px 6px", letterSpacing: "1px" }}>✓ UPLOADED</span>}
+                  {exists && !isOk && !isUploading && <span style={{ fontSize: "0.42rem", color: "#00aaff", border: "1px solid rgba(0,170,255,0.3)", padding: "2px 6px", letterSpacing: "1px" }}>● LIVE</span>}
+                  {isUploading && <span style={{ fontSize: "0.42rem", color: "#ffcc00", letterSpacing: "1px" }}>UPLOADING...</span>}
+                </div>
+
+                {/* Preview + drop zone */}
+                <div
+                  onClick={() => { if (!isUploading) inputRef.current?.click(); }}
+                  style={{
+                    border: "1px dashed #1a2f50",
+                    background: "rgba(0,170,255,0.02)",
+                    display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+                    gap: 8, padding: "16px 8px", cursor: isUploading ? "not-allowed" : "pointer",
+                    minHeight: 90, position: "relative",
+                    transition: "all 0.2s",
+                  }}
+                >
+                  {exists ? (
+                    <>
+                      <img
+                        src={`${R2_SPRITE_BASE}/${slot.id}.png?t=${Date.now()}`}
+                        alt={slot.name}
+                        style={{ width: 64, height: 64, imageRendering: "pixelated" }}
+                        onError={e => { e.target.style.display = "none"; }}
+                      />
+                      <span style={{ fontSize: "0.42rem", color: "#1a3a5a", letterSpacing: "1px" }}>CLICK OR DROP TO REPLACE</span>
+                    </>
+                  ) : (
+                    <>
+                      <div style={{ fontSize: "1.6rem", opacity: 0.2 }}>▣</div>
+                      <span style={{ fontSize: "0.45rem", color: "#1a3a5a", letterSpacing: "1.5px", textAlign: "center" }}>
+                        DROP 64×64 PNG HERE<br />OR CLICK TO BROWSE
+                      </span>
+                    </>
+                  )}
+                </div>
+
+                {/* Expected filename */}
+                <div style={{ marginTop: 8, fontSize: "0.42rem", color: "#2a4060", letterSpacing: "1px" }}>
+                  EXPECTS: <code style={{ color: "#3a5a4a" }}>{slot.id}.png</code>
+                </div>
+
+                {/* Error */}
+                {err && <div style={{ marginTop: 6, fontSize: "0.45rem", color: "#ff2244", letterSpacing: "0.5px" }}>✕ {err}</div>}
+
+                {/* Hidden file input */}
+                <input
+                  type="file" accept="image/png,image/gif,image/webp"
+                  style={{ display: "none" }}
+                  ref={el => { inputRef.current = el; }}
+                  onChange={e => { const f = e.target.files[0]; if (f) uploadSprite(slot.id, f); e.target.value = ""; }}
+                />
+              </div>
+            );
+          })}
+        </div>
+
+        <div style={{ ...S.note, marginTop: 16, opacity: 0.6 }}>
+          ⓘ Sprites are served directly from R2. After upload they appear live in the marquee and customize shop immediately — no redeploy needed.
+        </div>
+      </div>
 
       {/* ═══════════════════════════════════════════════════════
           KIT MANAGEMENT
