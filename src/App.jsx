@@ -671,14 +671,31 @@ export default function KitVault() {
               </SignedIn>
             </div>
 
-            {/* THEME TOGGLE */}
-            <button className="theme-toggle-btn" onClick={() => {
-              const themes = ["dark", "light", "neko"];
-              const current = document.documentElement.getAttribute("data-theme") || "dark";
-              const next = themes[(themes.indexOf(current) + 1) % themes.length];
-              document.documentElement.setAttribute("data-theme", next);
-              localStorage.setItem("kv-theme", next);
-            }} title="Change Theme">🎨</button>
+            {/* THEME DROPDOWN */}
+            <div className={`nav-item theme-picker${openNav === "theme" ? " open" : ""}`}>
+              <button className="theme-toggle-btn" onClick={() => toggleNav("theme")} title="Change Theme">🎨</button>
+              <div className="nav-dropdown theme-dropdown">
+                <div className="nav-dropdown-header">◈ THEME</div>
+                {[
+                  { id: "dark", label: "Dark Mode", icon: "🌑", sub: "Default tech blue" },
+                  { id: "light", label: "Light Mode", icon: "☀️", sub: "Clean and bright" },
+                  { id: "neko", label: "Neko Pink", icon: "🌸", sub: "Kawaii pink vibes" },
+                  { id: "cat", label: "Cat Mode", icon: "🐱", sub: "Meow! Cats everywhere" },
+                ].map(t => (
+                  <div key={t.id} className={`nav-dd-item${(document.documentElement.getAttribute("data-theme") || "dark") === t.id ? " active-theme" : ""}`} onClick={() => {
+                    document.documentElement.setAttribute("data-theme", t.id);
+                    localStorage.setItem("kv-theme", t.id);
+                    closeNav();
+                  }}>
+                    <span className="nav-dd-icon">{t.icon}</span>
+                    <span className="nav-dd-text">
+                      <span className="nav-dd-label">{t.label}</span>
+                      <span className="nav-dd-sub">{t.sub}</span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
 
             <SignedIn>
               <UserButton afterSignOutUrl="/" />

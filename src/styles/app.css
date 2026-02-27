@@ -134,6 +134,76 @@
   [data-theme="neko"] .theme-toggle-btn { border-color: rgba(255,105,180,0.3); }
   [data-theme="neko"] .theme-toggle-btn:hover { border-color: #ff69b4; background: rgba(255,105,180,0.1); }
 
+  /* ── CAT THEME ── */
+  [data-theme="cat"] {
+    --bg: #1c1510;
+    --bg2: #251e17;
+    --bg3: #2e2519;
+    --panel: #201a14;
+    --border: #4a3828;
+    --border-bright: #6a5038;
+    --accent: #f4a940;
+    --accent2: #e8824a;
+    --accent3: #b8d458;
+    --text: #f0e4d0;
+    --text-dim: #a08868;
+    --text-bright: #fff5e6;
+    --red: #e84a4a;
+    --gold: #f4c542;
+    --green: #88d468;
+    --glow: 0 0 20px rgba(244,169,64,0.3);
+    --glow2: 0 0 15px rgba(232,130,74,0.3);
+    --glow-green: 0 0 15px rgba(136,212,104,0.3);
+    --header-bg: linear-gradient(180deg, rgba(37,30,23,0.97) 0%, rgba(28,21,16,0.97) 100%);
+    --grid-line: rgba(244,169,64,0.03);
+    --scanline: rgba(0,0,0,0.02);
+    --card-hover-bg: rgba(244,169,64,0.05);
+    --nav-hover: #f4a940;
+  }
+  [data-theme="cat"] body::before {
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.02) 2px, rgba(0,0,0,0.02) 4px);
+  }
+  [data-theme="cat"] .grid-bg {
+    background-image:
+      linear-gradient(var(--grid-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  }
+  [data-theme="cat"] .header { background: var(--header-bg); }
+  [data-theme="cat"] .header::after { background: linear-gradient(90deg, transparent, #f4a940, transparent); }
+  [data-theme="cat"] .nav-btn { color: #f0e4d0; }
+  [data-theme="cat"] .nav-btn:hover, [data-theme="cat"] .nav-item.open .nav-btn { color: #f4a940; }
+  [data-theme="cat"] .hangar-btn { background: rgba(244,169,64,0.08); border-color: rgba(244,169,64,0.25); color: #f4a940; }
+  [data-theme="cat"] .hangar-xp-badge { background: rgba(244,169,64,0.15); }
+  [data-theme="cat"] .vault-btn { color: #f0e4d0; border-color: var(--border); }
+  [data-theme="cat"] .vault-btn:hover, [data-theme="cat"] .vault-btn.active { border-color: #f4a940; color: #f4a940; }
+  [data-theme="cat"] .logo-icon { border-color: #f4a940; color: #f4a940; background: rgba(244,169,64,0.1); box-shadow: var(--glow); }
+  [data-theme="cat"] .cog-btn:hover { border-color: #f4a940; color: #f4a940; }
+  [data-theme="cat"] .filter-btn { color: #f0e4d0; }
+  [data-theme="cat"] .filter-btn:hover, [data-theme="cat"] .filter-btn.active { border-color: #f4a940; color: #f4a940; background: rgba(244,169,64,0.1); }
+  [data-theme="cat"] .search-input { border-color: var(--border); }
+  [data-theme="cat"] .search-input:focus { border-color: #f4a940; box-shadow: var(--glow); }
+  [data-theme="cat"] .theme-toggle-btn { border-color: rgba(244,169,64,0.3); }
+  [data-theme="cat"] .theme-toggle-btn:hover { border-color: #f4a940; background: rgba(244,169,64,0.1); }
+  /* Cat decorations — paw prints as subtle background accents */
+  [data-theme="cat"] .hero::before {
+    content: '🐾'; position: absolute; top: 20px; right: 40px;
+    font-size: 2.5rem; opacity: 0.08; transform: rotate(-15deg); pointer-events: none;
+  }
+  [data-theme="cat"] .hero::after {
+    content: '🐱'; position: absolute; bottom: 20px; left: 40px;
+    font-size: 2rem; opacity: 0.08; pointer-events: none;
+  }
+  [data-theme="cat"] .footer::before {
+    content: '🐾 😺 🐾'; position: absolute; top: -2px; left: 50%; transform: translateX(-50%);
+    font-size: 0.7rem; opacity: 0.15; letter-spacing: 8px; pointer-events: none;
+  }
+  [data-theme="cat"] .section-header::after {
+    content: ' 🐱'; font-size: 0.65rem; opacity: 0.4;
+  }
+  [data-theme="cat"] .logo-sub::after {
+    content: ' ∧,,,∧  (  ̳• · • ̳)'; font-size: 0.4rem; margin-left: 6px; opacity: 0.35;
+  }
+
   body {
     background: var(--bg);
     color: var(--text);
@@ -264,6 +334,14 @@
     font-size: 0.9rem; flex-shrink: 0;
   }
   .theme-toggle-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(0,170,255,0.08); }
+  .theme-picker { position: relative; }
+  .theme-picker.open .theme-toggle-btn { border-color: var(--accent); background: rgba(0,170,255,0.08); }
+  .theme-dropdown { min-width: 220px; right: 0; left: auto; }
+  .nav-dd-item.active-theme {
+    background: rgba(0,170,255,0.06);
+    border-left: 2px solid var(--accent);
+  }
+  .nav-dd-item.active-theme .nav-dd-label { color: var(--accent); }
 
   @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
 
