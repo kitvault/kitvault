@@ -168,6 +168,35 @@ export default {
       }
     }
 
+    // ── DELETE /api/sprites/remove — Remove a sprite from user's hangar ──
+    if (path === "/api/sprites/remove" && request.method === "POST") {
+      try {
+        const { user_id, sprite_id } = await request.json();
+        if (!user_id || !sprite_id) {
+          return new Response(JSON.stringify({ ok: false, error: "Missing fields" }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        // Never allow removing the free starter sprite
+        if (sprite_id === "rx78") {
+          return new Response(JSON.stringify({ ok: false, error: "Cannot remove starter sprite" }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        await env.DB.prepare(
+          "DELETE FROM user_sprites WHERE user_id = ? AND sprite_id = ?"
+        ).bind(user_id, sprite_id).run();
+
+        return new Response(JSON.stringify({ ok: true, sprite_id }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch (err) {
+        return new Response(JSON.stringify({ ok: false, error: err.message }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     // ── POST /api/sprites/upload — Admin upload sprite PNG to R2 ──
     if (path === "/api/sprites/upload" && request.method === "POST") {
       const key = request.headers.get("X-Admin-Key");

@@ -115,6 +115,7 @@ function CustomizeModal({ onClose, ownedIds, xp, onPurchaseComplete, userId }) {
   const [localXp, setLocalXp] = useState(xp);
   const [localOwned, setLocalOwned] = useState(ownedIds);
   const [buying, setBuying] = useState(null);
+  const [removing, setRemoving] = useState(null);
   const [justBought, setJustBought] = useState(null);
   const [error, setError] = useState(null);
 
@@ -145,56 +146,77 @@ function CustomizeModal({ onClose, ownedIds, xp, onPurchaseComplete, userId }) {
     } catch (err) { setError(err.message); }
     setBuying(null);
   };
+
+  const handleRemove = async (sprite) => {
+    if (removing || sprite.free) return;
+    setRemoving(sprite.id); setError(null);
+    try {
+      const res = await fetch("/api/sprites/remove", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ user_id: userId, sprite_id: sprite.id }) });
+      const data = await res.json();
+      if (data.ok) {
+        setLocalOwned(prev => prev.filter(id => id !== sprite.id));
+        onPurchaseComplete(null, null, sprite.id);
+      } else { setError(data.error || "Remove failed"); }
+    } catch (err) { setError(err.message); }
+    setRemoving(null);
+  };
+
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,5,18,0.92)", backdropFilter: "blur(8px)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }} onClick={onClose}>
-      <div style={{ background: "linear-gradient(160deg,#0a1628 0%,#070f1e 100%)", border: "1px solid rgba(0,170,255,0.3)", borderRadius: 2, width: "100%", maxWidth: 960, maxHeight: "92vh", overflow: "hidden", display: "flex", flexDirection: "column", boxShadow: "0 0 80px rgba(0,170,255,0.15)", clipPath: "polygon(0 0,97% 0,100% 3%,100% 100%,3% 100%,0 97%)" }} onClick={e => e.stopPropagation()}>
-        <div style={{ padding: "20px 28px 16px", borderBottom: "1px solid rgba(0,170,255,0.12)", display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(0,170,255,0.04)" }}>
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,5,18,0.92)", backdropFilter: "blur(8px)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={onClose}>
+      <div style={{ background: "linear-gradient(160deg,#0a1628 0%,#070f1e 100%)", border: "1px solid rgba(0,170,255,0.3)", borderRadius: 2, width: "100%", maxWidth: 1100, maxHeight: "95vh", overflow: "hidden", display: "flex", flexDirection: "column", boxShadow: "0 0 80px rgba(0,170,255,0.15)", clipPath: "polygon(0 0,97% 0,100% 3%,100% 100%,3% 100%,0 97%)" }} onClick={e => e.stopPropagation()}>
+        <div style={{ padding: "28px 40px 22px", borderBottom: "1px solid rgba(0,170,255,0.12)", display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(0,170,255,0.04)" }}>
           <div>
-            <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.6rem", color: "#00aaff", letterSpacing: "3px", marginBottom: 4 }}>◈ HANGAR CUSTOMIZATION</div>
-            <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "1.4rem", color: "#c8ddf5", letterSpacing: "3px" }}>CHIBI <span style={{ color: "#ffcc00" }}>ROSTER</span></div>
+            <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.75rem", color: "#00aaff", letterSpacing: "3px", marginBottom: 8 }}>◈ HANGAR CUSTOMIZATION</div>
+            <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "2rem", color: "#ffcc00", letterSpacing: "4px" }}>ROSTER</div>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
-            <div style={{ background: "rgba(255,204,0,0.08)", border: "1px solid rgba(255,204,0,0.3)", padding: "10px 20px", fontFamily: "'Share Tech Mono',monospace" }}>
-              <div style={{ fontSize: "0.5rem", color: "#ffcc00", letterSpacing: "2px", marginBottom: 2 }}>YOUR XP</div>
-              <div style={{ fontSize: "1.2rem", color: "#ffcc00", letterSpacing: "2px" }}>{localXp.toLocaleString()}</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
+            <div style={{ background: "rgba(255,204,0,0.08)", border: "1px solid rgba(255,204,0,0.3)", padding: "14px 28px", fontFamily: "'Share Tech Mono',monospace" }}>
+              <div style={{ fontSize: "0.65rem", color: "#ffcc00", letterSpacing: "2px", marginBottom: 4 }}>YOUR XP</div>
+              <div style={{ fontSize: "1.6rem", color: "#ffcc00", letterSpacing: "2px" }}>{localXp.toLocaleString()}</div>
             </div>
-            <button onClick={onClose} style={{ background: "none", border: "1px solid rgba(255,255,255,0.1)", color: "#5a7a9f", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.8rem", width: 36, height: 36, cursor: "pointer" }}>✕</button>
+            <button onClick={onClose} style={{ background: "none", border: "1px solid rgba(255,255,255,0.1)", color: "#5a7a9f", fontFamily: "'Share Tech Mono',monospace", fontSize: "1rem", width: 42, height: 42, cursor: "pointer" }}>✕</button>
           </div>
         </div>
-        <div style={{ padding: "12px 32px", borderBottom: "1px solid rgba(0,170,255,0.08)", display: "flex", gap: 24, alignItems: "center", background: "rgba(0,0,0,0.2)", flexWrap: "wrap" }}>
-          <span style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.52rem", color: "#1a3a5a", letterSpacing: "2px" }}>EARN XP BY:</span>
+        <div style={{ padding: "14px 40px", borderBottom: "1px solid rgba(0,170,255,0.08)", display: "flex", gap: 32, alignItems: "center", background: "rgba(0,0,0,0.2)", flexWrap: "wrap" }}>
+          <span style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.65rem", color: "#1a3a5a", letterSpacing: "2px" }}>EARN XP BY:</span>
           {[{ label: "POST TO GALLERY", xp: "+50 XP" }, { label: "LEAVE A COMMENT", xp: "+10 XP" }].map(a => (
-            <div key={a.label} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.52rem", color: "#5a7a9f", letterSpacing: "1.5px" }}>{a.label}</span>
-              <span style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.52rem", color: "#ffcc00", letterSpacing: "1px" }}>{a.xp}</span>
+            <div key={a.label} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.65rem", color: "#5a7a9f", letterSpacing: "1.5px" }}>{a.label}</span>
+              <span style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.65rem", color: "#ffcc00", letterSpacing: "1px" }}>{a.xp}</span>
             </div>
           ))}
         </div>
-        {error && <div style={{ padding: "8px 32px", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.55rem", color: "#ff2244", background: "rgba(255,34,68,0.06)" }}>{error}</div>}
-        <div style={{ padding: "24px 32px", overflowY: "auto", display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(240px,1fr))", gap: 20, flex: 1 }}>
+        {error && <div style={{ padding: "10px 40px", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.65rem", color: "#ff2244", background: "rgba(255,34,68,0.06)" }}>{error}</div>}
+        <div style={{ padding: "28px 40px", overflowY: "auto", display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(270px,1fr))", gap: 20, flex: 1 }}>
           {SPRITES.map(sprite => {
             const owned = localOwned.includes(sprite.id);
             const canAfford = localXp >= sprite.cost;
             const isBuying = buying === sprite.id;
             const boughtAnim = justBought === sprite.id;
             return (
-              <div key={sprite.id} style={{ background: "rgba(0,0,0,0.25)", border: `1px solid ${owned ? sprite.colors.badge + "44" : "rgba(255,255,255,0.06)"}`, borderRadius: 2, padding: "20px 16px 16px", position: "relative", clipPath: "polygon(0 0,94% 0,100% 6%,100% 100%,6% 100%,0 94%)", animation: boughtAnim ? "kvPurchasePop 0.5s cubic-bezier(0.175,0.885,0.32,1.275)" : "none" }}>
-                <div style={{ position: "absolute", top: 8, left: 8, fontFamily: "'Share Tech Mono',monospace", fontSize: "0.48rem", color: sprite.rarityColor, letterSpacing: "1.5px" }}>{sprite.rarity}</div>
-                {owned && <div style={{ position: "absolute", top: 8, right: 8, fontFamily: "'Share Tech Mono',monospace", fontSize: "0.48rem", color: "#00ff88", letterSpacing: "1px", border: "1px solid #00ff8844", padding: "2px 6px" }}>✓ OWNED</div>}
-                <div style={{ display: "flex", justifyContent: "center", marginBottom: 12, marginTop: 8 }}>
+              <div key={sprite.id} style={{ background: "rgba(0,0,0,0.25)", border: `1px solid ${owned ? sprite.colors.badge + "44" : "rgba(255,255,255,0.06)"}`, borderRadius: 2, padding: "24px 20px 20px", position: "relative", clipPath: "polygon(0 0,94% 0,100% 6%,100% 100%,6% 100%,0 94%)", animation: boughtAnim ? "kvPurchasePop 0.5s cubic-bezier(0.175,0.885,0.32,1.275)" : "none" }}>
+                {owned && <div style={{ position: "absolute", top: 10, right: 10, fontFamily: "'Share Tech Mono',monospace", fontSize: "0.58rem", color: "#00ff88", letterSpacing: "1px", border: "1px solid #00ff8844", padding: "3px 8px" }}>✓ OWNED</div>}
+                <div style={{ display: "flex", justifyContent: "center", marginBottom: 16, marginTop: 8 }}>
                   <div style={{ filter: owned ? `drop-shadow(0 0 8px ${sprite.colors.accent}99)` : "none" }}>
-                    <ChibiSprite sprite={sprite} size={80} />
+                    <ChibiSprite sprite={sprite} size={96} />
                   </div>
                 </div>
                 <div style={{ fontFamily: "'Share Tech Mono',monospace" }}>
-                  <div style={{ fontSize: "0.75rem", color: owned ? sprite.colors.badge : "#c8ddf5", letterSpacing: "1.5px", marginBottom: 4 }}>{sprite.name.toUpperCase()}</div>
-                  <div style={{ fontSize: "0.52rem", color: "#1a3a5a", letterSpacing: "1px", marginBottom: 14 }}>{sprite.series.toUpperCase()}</div>
+                  <div style={{ fontSize: "0.9rem", color: owned ? sprite.colors.badge : "#c8ddf5", letterSpacing: "1.5px", marginBottom: 6 }}>{sprite.name.toUpperCase()}</div>
+                  <div style={{ fontSize: "0.62rem", color: "#1a3a5a", letterSpacing: "1px", marginBottom: 16 }}>{sprite.series.toUpperCase()}</div>
                   {owned ? (
-                    <div style={{ fontSize: "0.55rem", color: "#00ff88", letterSpacing: "1px", textAlign: "center" }}>● IN YOUR HANGAR</div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                      <div style={{ fontSize: "0.68rem", color: "#00ff88", letterSpacing: "1px", textAlign: "center" }}>● IN YOUR HANGAR</div>
+                      {!sprite.free && (
+                        <button onClick={() => handleRemove(sprite)} disabled={removing === sprite.id} style={{ width: "100%", background: "rgba(255,34,68,0.06)", border: "1px solid rgba(255,34,68,0.2)", color: "rgba(255,34,68,0.6)", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.58rem", padding: "8px", cursor: "pointer", letterSpacing: "1.5px" }}>
+                          {removing === sprite.id ? "REMOVING..." : "✕ REMOVE"}
+                        </button>
+                      )}
+                    </div>
                   ) : sprite.free ? (
-                    <button onClick={() => handleBuy(sprite)} disabled={isBuying} style={{ width: "100%", background: "rgba(0,255,136,0.1)", border: "1px solid rgba(0,255,136,0.3)", color: "#00ff88", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.55rem", padding: "9px", cursor: "pointer", letterSpacing: "1.5px" }}>✦ FREE — ADD TO HANGAR</button>
+                    <button onClick={() => handleBuy(sprite)} disabled={isBuying} style={{ width: "100%", background: "rgba(0,255,136,0.1)", border: "1px solid rgba(0,255,136,0.3)", color: "#00ff88", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.68rem", padding: "12px", cursor: "pointer", letterSpacing: "1.5px" }}>✦ FREE — ADD TO HANGAR</button>
                   ) : (
-                    <button onClick={() => handleBuy(sprite)} disabled={!canAfford || isBuying} style={{ width: "100%", background: canAfford ? "rgba(255,204,0,0.08)" : "rgba(0,0,0,0.2)", border: `1px solid ${canAfford ? "rgba(255,204,0,0.35)" : "rgba(255,255,255,0.06)"}`, color: canAfford ? "#ffcc00" : "#2a3a5a", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.55rem", padding: "9px", cursor: canAfford ? "pointer" : "not-allowed", letterSpacing: "1.5px" }}>
+                    <button onClick={() => handleBuy(sprite)} disabled={!canAfford || isBuying} style={{ width: "100%", background: canAfford ? "rgba(255,204,0,0.08)" : "rgba(0,0,0,0.2)", border: `1px solid ${canAfford ? "rgba(255,204,0,0.35)" : "rgba(255,255,255,0.06)"}`, color: canAfford ? "#ffcc00" : "#2a3a5a", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.68rem", padding: "12px", cursor: canAfford ? "pointer" : "not-allowed", letterSpacing: "1.5px" }}>
                       {isBuying ? "UNLOCKING..." : canAfford ? `⭐ ${sprite.cost} XP — UNLOCK` : `⭐ ${sprite.cost} XP — NOT ENOUGH`}
                     </button>
                   )}
@@ -1089,9 +1111,13 @@ export default function KitVault() {
             ownedIds={ownedSpriteIds}
             xp={xp}
             userId={user?.id}
-            onPurchaseComplete={(spriteId, newXp) => {
-              setOwnedSpriteIds(prev => [...prev, spriteId]);
-              setXp(newXp);
+            onPurchaseComplete={(spriteId, newXp, removedId) => {
+              if (removedId) {
+                setOwnedSpriteIds(prev => prev.filter(id => id !== removedId));
+              } else {
+                setOwnedSpriteIds(prev => [...prev, spriteId]);
+                setXp(newXp);
+              }
             }}
           />
         )}
