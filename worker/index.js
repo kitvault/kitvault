@@ -48,17 +48,13 @@ export default {
       }
     }
 
-    // ── POST /api/xp/award — Internal helper: award XP to a user ──
-    // Called internally after comment or gallery post — not exposed directly
-    // but also available for future admin use via X-Admin-Key
+    // ── Internal helper: award XP to a user ──
     async function awardXP(env, userId, amount, reason, refId) {
       const now = Math.floor(Date.now() / 1000);
-      // Upsert XP balance
       await env.DB.prepare(`
         INSERT INTO user_xp (user_id, xp, updated_at) VALUES (?, ?, ?)
         ON CONFLICT(user_id) DO UPDATE SET xp = xp + ?, updated_at = ?
       `).bind(userId, amount, now, amount, now).run();
-      // Log the transaction
       await env.DB.prepare(
         "INSERT INTO xp_log (user_id, amount, reason, ref_id, created_at) VALUES (?, ?, ?, ?, ?)"
       ).bind(userId, amount, reason, refId || null, now).run();
@@ -91,7 +87,7 @@ export default {
       }
     }
 
-
+    // ── POST /api/sprites/buy — Purchase a sprite with XP ──
     if (path === "/api/sprites/buy" && request.method === "POST") {
       try {
         const { user_id, sprite_id } = await request.json();
@@ -102,7 +98,6 @@ export default {
           });
         }
 
-        // Sprite cost table — must match frontend SPRITES array
         const SPRITE_COSTS = {
           rx78:     0,
           wingzero: 150,
@@ -118,7 +113,6 @@ export default {
           });
         }
 
-        // Check already owned
         const existing = await env.DB.prepare(
           "SELECT id FROM user_sprites WHERE user_id = ? AND sprite_id = ?"
         ).bind(user_id, sprite_id).first();
@@ -130,7 +124,6 @@ export default {
 
         const cost = SPRITE_COSTS[sprite_id];
 
-        // Free sprites — no XP check
         if (cost > 0) {
           const xpRow = await env.DB.prepare(
             "SELECT xp FROM user_xp WHERE user_id = ?"
@@ -141,20 +134,17 @@ export default {
               status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
             });
           }
-          // Deduct XP
           const now = Math.floor(Date.now() / 1000);
           await env.DB.prepare(
             "UPDATE user_xp SET xp = xp - ?, updated_at = ? WHERE user_id = ?"
           ).bind(cost, now, user_id).run();
         }
 
-        // Grant sprite
         const now = Math.floor(Date.now() / 1000);
         await env.DB.prepare(
           "INSERT INTO user_sprites (user_id, sprite_id, created_at) VALUES (?, ?, ?)"
         ).bind(user_id, sprite_id, now).run();
 
-        // Return updated XP balance
         const updatedXp = await env.DB.prepare(
           "SELECT xp FROM user_xp WHERE user_id = ?"
         ).bind(user_id).first();
@@ -206,7 +196,7 @@ export default {
       try {
         const formData = await request.formData();
         const file = formData.get("image");
-        const spriteId = formData.get("sprite_id"); // e.g. "rx78"
+        const spriteId = formData.get("sprite_id");
 
         const VALID_SPRITES = ["rx78", "wingzero", "unicorn", "barbatos", "exia", "sazabi"];
         if (!VALID_SPRITES.includes(spriteId)) {
@@ -599,7 +589,6 @@ export default {
           });
         }
 
-        // Rate limit: 10 comments per user per day
         const dayAgo = Math.floor(Date.now() / 1000) - 86400;
         const countResult = await env.DB.prepare(
           "SELECT COUNT(*) as cnt FROM comments WHERE user_id = ? AND created_at > ?"
@@ -651,7 +640,6 @@ export default {
 
         const isAdmin = admin_key && admin_key === env.ADMIN_KEY;
 
-        // Verify ownership or admin
         if (!isAdmin) {
           const comment = await env.DB.prepare(
             "SELECT user_id FROM comments WHERE id = ?"
@@ -739,7 +727,6 @@ export default {
           });
         }
 
-        // Rate limit: 5 gallery posts per day
         const dayAgo = Math.floor(Date.now() / 1000) - 86400;
         const countResult = await env.DB.prepare(
           "SELECT COUNT(*) as cnt FROM gallery WHERE user_id = ? AND created_at > ?"
@@ -750,7 +737,6 @@ export default {
           });
         }
 
-        // Upload images to R2
         const imageUrls = [];
         for (const file of imageFiles) {
           if (!file || !file.size) continue;
@@ -760,7 +746,7 @@ export default {
           const r2Key = `gallery/${userId}/${ts}-${rand}.${ext}`;
           const buf = await file.arrayBuffer();
 
-          if (buf.byteLength > 5 * 1024 * 1024) continue; // skip >5MB
+          if (buf.byteLength > 5 * 1024 * 1024) continue;
 
           await env.BUCKET.put(r2Key, buf, {
             httpMetadata: { contentType: file.type || "image/jpeg" },
@@ -881,7 +867,6 @@ export default {
           return new Response(JSON.stringify({ ok: false, error: "Missing fields" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
         }
 
-        // Rate limit: 20 gallery comments per day
         const dayAgo = Math.floor(Date.now() / 1000) - 86400;
         const cnt = await env.DB.prepare("SELECT COUNT(*) as c FROM gallery_comments WHERE user_id = ? AND created_at > ?").bind(user_id, dayAgo).first();
         if (cnt && cnt.c >= 20) {

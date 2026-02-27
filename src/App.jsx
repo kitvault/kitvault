@@ -33,12 +33,12 @@ import useSEO, { SEO, kitSEO, gradeSEO, toolSEO } from "./hooks/useSEO.js";
 // SPRITE ROSTER
 // ─────────────────────────────────────────────────────────────
 const SPRITES = [
-  { id: "rx78",     name: "RX-78-2",   series: "Mobile Suit Gundam",   cost: 0,   free: true,  rarity: "STARTER", rarityColor: "#aabbcc", colors: { primary: "#4a7aff", accent: "#ff3311", badge: "#ffcc00" } },
-  { id: "wingzero", name: "Wing Zero",  series: "Gundam Wing",          cost: 150, free: false, rarity: "RARE",    rarityColor: "#00aaff", colors: { primary: "#e8eeff", accent: "#ffcc00", badge: "#00aaff" } },
-  { id: "unicorn",  name: "Unicorn",    series: "Gundam UC",            cost: 200, free: false, rarity: "RARE",    rarityColor: "#00aaff", colors: { primary: "#c8d8ff", accent: "#0066ff", badge: "#88ccff" } },
-  { id: "barbatos", name: "Barbatos",   series: "Iron-Blooded Orphans", cost: 150, free: false, rarity: "RARE",    rarityColor: "#00aaff", colors: { primary: "#8899aa", accent: "#ff6600", badge: "#cc4400" } },
-  { id: "exia",     name: "Exia",       series: "Gundam 00",            cost: 300, free: false, rarity: "EPIC",    rarityColor: "#cc44ff", colors: { primary: "#2244cc", accent: "#00ffcc", badge: "#88ffee" } },
-  { id: "sazabi",   name: "Sazabi",     series: "Char's Counterattack", cost: 400, free: false, rarity: "EPIC",    rarityColor: "#cc44ff", colors: { primary: "#cc1111", accent: "#ff6600", badge: "#ff4400" } },
+  { id: "rx78", name: "RX-78-2", series: "Mobile Suit Gundam", cost: 0, free: true, rarity: "STARTER", rarityColor: "#aabbcc", colors: { primary: "#4a7aff", accent: "#ff3311", badge: "#ffcc00" } },
+  { id: "wingzero", name: "Wing Zero", series: "Gundam Wing", cost: 150, free: false, rarity: "RARE", rarityColor: "#00aaff", colors: { primary: "#e8eeff", accent: "#ffcc00", badge: "#00aaff" } },
+  { id: "unicorn", name: "Unicorn", series: "Gundam UC", cost: 200, free: false, rarity: "RARE", rarityColor: "#00aaff", colors: { primary: "#c8d8ff", accent: "#0066ff", badge: "#88ccff" } },
+  { id: "barbatos", name: "Barbatos", series: "Iron-Blooded Orphans", cost: 150, free: false, rarity: "RARE", rarityColor: "#00aaff", colors: { primary: "#8899aa", accent: "#ff6600", badge: "#cc4400" } },
+  { id: "exia", name: "Exia", series: "Gundam 00", cost: 300, free: false, rarity: "EPIC", rarityColor: "#cc44ff", colors: { primary: "#2244cc", accent: "#00ffcc", badge: "#88ffee" } },
+  { id: "sazabi", name: "Sazabi", series: "Char's Counterattack", cost: 400, free: false, rarity: "EPIC", rarityColor: "#cc44ff", colors: { primary: "#cc1111", accent: "#ff6600", badge: "#ff4400" } },
 ];
 const SPRITE_BASE = "https://pub-633dac494e3b4bdb808035bd3c437f27.r2.dev/sprites";
 
@@ -130,7 +130,7 @@ function CustomizeModal({ onClose, ownedIds, paradeIds, xp, onPurchaseComplete, 
         setLocalOwned(data.sprites || []);
         setLocalParade(data.parade || data.sprites || []);
       })
-      .catch(() => {});
+      .catch(() => { });
   }, [userId]);
 
   const handleBuy = async (sprite) => {
@@ -331,7 +331,7 @@ export default function KitVault() {
       setXp(data.xp || 0);
       setOwnedSpriteIds(data.sprites || []);
       setParadeIds(data.parade || data.sprites || []);
-    } catch (_) {}
+    } catch (_) { }
   }, [isSignedIn, user]);
 
   useEffect(() => { fetchXpAndSprites(); }, [fetchXpAndSprites]);
