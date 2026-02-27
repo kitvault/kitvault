@@ -279,8 +279,10 @@ export default function KitVault() {
   const navigate = useNavigate();
   const location = useLocation();
   const [openNav, setOpenNav] = useState(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const toggleNav = (name) => setOpenNav(prev => prev === name ? null : name);
   const closeNav = () => setOpenNav(null);
+  const closeMobileMenu = () => { setMobileMenuOpen(false); closeNav(); };
   const [gradeFilter, setGradeFilter] = useState("ALL");
   const [search, setSearch] = useState("");
   const [openManualId, setOpenManualId] = useState(null);
@@ -565,8 +567,13 @@ export default function KitVault() {
           <div className="header-right">
             <div className="status-dot" />
 
+            {/* ── HAMBURGER (mobile only) ── */}
+            <button className={`hamburger-btn${mobileMenuOpen ? " open" : ""}`} onClick={() => setMobileMenuOpen(v => !v)} aria-label="Menu">
+              <span /><span /><span />
+            </button>
+
             {/* ── NAV RIGHT ── */}
-            <nav className="nav-right">
+            <nav className={`nav-right${mobileMenuOpen ? " mobile-open" : ""}`}>
 
               {/* TOOLS */}
               <div className={`nav-item${openNav === "tools" ? " open" : ""}`}>
@@ -585,7 +592,7 @@ export default function KitVault() {
                     { icon: "🧴", label: "Top Coats", sub: "Gloss, semi-gloss, matte. Lock in your finish and protect your work.", route: "/tools/top-coats" },
                     { icon: "🪚", label: "Hobby Knives", sub: "Olfa & X-Acto knives for cleanup and minor modifications", route: "/tools/hobby-knives" },
                   ].map(item => (
-                    <div key={item.label} className="nav-dd-item" onClick={() => { closeNav(); if (item.route) navigate(item.route); }}>
+                    <div key={item.label} className="nav-dd-item" onClick={() => { closeMobileMenu(); if (item.route) navigate(item.route); }}>
                       <span className="nav-dd-icon">{item.icon}</span>
                       <span className="nav-dd-text">
                         <span className="nav-dd-label">{item.label}{!item.route && <span style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.5rem", color: "var(--text-dim)", marginLeft: 8, letterSpacing: 1 }}>SOON</span>}</span>
@@ -597,12 +604,12 @@ export default function KitVault() {
               </div>
 
               {/* RESOURCES */}
-              <button className="nav-btn" onClick={() => { closeNav(); navigate("/resources"); }} style={{ color: location.pathname === "/resources" ? "var(--accent)" : "" }}>
+              <button className="nav-btn" onClick={() => { closeMobileMenu(); navigate("/resources"); }} style={{ color: location.pathname === "/resources" ? "var(--accent)" : "" }}>
                 RESOURCES
               </button>
 
               {/* GALLERY */}
-              <button className="nav-btn" onClick={() => { closeNav(); navigate("/gallery"); }} style={{ color: location.pathname === "/gallery" ? "var(--accent)" : "" }}>
+              <button className="nav-btn" onClick={() => { closeMobileMenu(); navigate("/gallery"); }} style={{ color: location.pathname === "/gallery" ? "var(--accent)" : "" }}>
                 GALLERY
               </button>
 
@@ -622,7 +629,7 @@ export default function KitVault() {
                     { slug: "sd", label: "SD — Super Deformed", sub: "Chibi-style, fun and quick builds for all levels", color: "#00ffcc" },
                     { slug: "mgsd", label: "MGSD — Master Grade SD", sub: "MG inner frame with SD proportions. Best of both", color: "#ff6677" },
                   ].map(item => (
-                    <div key={item.slug} className="nav-dd-item" onClick={() => { closeNav(); navigate(`/grade/${item.slug}`); }}>
+                    <div key={item.slug} className="nav-dd-item" onClick={() => { closeMobileMenu(); navigate(`/grade/${item.slug}`); }}>
                       <span className="nav-dd-text">
                         <span className="nav-dd-label" style={{ color: item.color }}>{item.label}</span>
                         <span className="nav-dd-sub">{item.sub}</span>
@@ -633,6 +640,9 @@ export default function KitVault() {
               </div>
 
             </nav>
+
+            {/* Mobile menu overlay */}
+            {mobileMenuOpen && <div className="mobile-menu-overlay" onClick={closeMobileMenu} />}
 
             {/* CUSTOMIZE BUTTON */}
             <SignedIn>
