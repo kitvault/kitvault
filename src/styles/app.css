@@ -215,7 +215,7 @@
     content: '';
     position: fixed; top: 0; left: 0;
     width: 100%; height: 100%;
-    pointer-events: none; z-index: 0;
+    pointer-events: none; z-index: -1;
     opacity: 0.09;
     background-image: url("https://pub-633dac494e3b4bdb808035bd3c437f27.r2.dev/cat-stickerbomb.png");
     background-size: 800px auto;
@@ -249,7 +249,18 @@
   }
 
   /* Kit cards — paw prints on hover */
-  [data-theme="cat"] .kit-card { position: relative; transition: all 0.3s; }
+  [data-theme="cat"] .kit-card { position: relative; transition: all 0.3s; z-index: 1; }
+  /* Ensure all page content sits above the sticker bomb background */
+  [data-theme="cat"] .page-hero,
+  [data-theme="cat"] .hero,
+  [data-theme="cat"] .controls,
+  [data-theme="cat"] .section-header,
+  [data-theme="cat"] .kit-grid,
+  [data-theme="cat"] .vault-grid,
+  [data-theme="cat"] .vault-empty,
+  [data-theme="cat"] footer {
+    position: relative; z-index: 1;
+  }
   [data-theme="cat"] .kit-card::after {
     content: '🐾'; position: absolute; top: 8px; right: 10px;
     font-size: 0.8rem; opacity: 0; transition: opacity 0.3s; pointer-events: none;
