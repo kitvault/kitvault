@@ -796,11 +796,11 @@ export default function KitVault() {
                   buildProgress[k.id] === "complete" ||
                   buildProgress[k.id] === "backlog"
                 );
+                const favOnly = vaultKits.filter(k => favourites.includes(k.id));
                 const inProgress = vaultKits.filter(k => buildProgress[k.id] === "inprogress");
                 const complete = vaultKits.filter(k => buildProgress[k.id] === "complete");
                 const backlog = vaultKits.filter(k =>
-                  buildProgress[k.id] === "backlog" ||
-                  (!buildProgress[k.id] && favourites.includes(k.id))
+                  buildProgress[k.id] === "backlog" && !favourites.includes(k.id)
                 );
 
                 return (
@@ -818,6 +818,16 @@ export default function KitVault() {
                       </div>
                     ) : (
                       <div style={{ padding: "0 40px 60px" }}>
+                        {favOnly.length > 0 && (
+                          <>
+                            <div className="section-header" style={{ padding: "0 0 20px", marginBottom: "4px" }}>
+                              <span className="section-title" style={{ color: "var(--gold)" }}>⭐ FAVORITES</span>
+                              <div className="section-line" />
+                              <span className="section-count">{favOnly.length} KIT{favOnly.length !== 1 ? "S" : ""}</span>
+                            </div>
+                            <div className="vault-grid" style={{ padding: "0 0 32px" }}>{favOnly.map(k => renderKitCard(k, { showBacklog: true, showRemove: true }))}</div>
+                          </>
+                        )}
                         {inProgress.length > 0 && (
                           <>
                             <div className="section-header" style={{ padding: "0 0 20px", marginBottom: "4px" }}>

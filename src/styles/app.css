@@ -193,20 +193,17 @@
       linear-gradient(var(--grid-line) 1px, transparent 1px),
       linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
   }
+
+  /* ══ CAT STICKER BOMB BACKGROUND ══ */
   [data-theme="cat"] .app::before {
-    content: '🐱  😺  🐈  🙀  😸  🐱‍👤  🐈‍⬛  😻  🐾  😽  🐱  😺  🐈  🙀  😸  🐱  🐈‍⬛  😻  🐾  😽';
-    position: fixed; top: 0; left: 0; right: 0;
-    font-size: 1.8rem; letter-spacing: 30px; line-height: 80px;
-    white-space: nowrap; overflow: hidden;
-    height: 100vh; width: 200vw;
-    word-wrap: break-word; white-space: pre-wrap;
-    opacity: 0.035; pointer-events: none; z-index: 0;
-    animation: catFloat 30s linear infinite;
-  }
-  @keyframes catFloat {
-    0% { transform: translate(0, 0); }
-    50% { transform: translate(-20px, -10px); }
-    100% { transform: translate(0, 0); }
+    content: '';
+    position: fixed; top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none; z-index: 0;
+    opacity: 0.09;
+    background-image: url("https://pub-633dac494e3b4bdb808035bd3c437f27.r2.dev/cat-stickerbomb.png");
+    background-size: 800px auto;
+    background-repeat: repeat;
   }
 
   /* Hero section — big cats */
@@ -567,27 +564,25 @@
     display: none;
   }
 
-  /* Tablet nav: horizontal scroll with fixed bounds so items don't disappear */
+  /* Tablet: restructured header layout */
   @media (max-width: 860px) {
-    .header { padding: 0 20px; }
-    .nav-right {
-      overflow-x: auto; flex-wrap: nowrap;
-      -webkit-overflow-scrolling: touch; scrollbar-width: none;
-      max-width: 50vw;
-      min-width: 0;
-      flex-shrink: 1;
-    }
-    .nav-right::-webkit-scrollbar { display: none; }
-    .nav-btn { font-size: 0.58rem; padding: 8px 10px; flex-shrink: 0; }
-    .nav-dropdown { min-width: 260px; right: auto; left: 0; }
-    /* Move HANGAR + MY VAULT to second row */
+    .header { padding: 0 16px; flex-wrap: wrap; }
+    /* HANGAR + MY VAULT stay in the top row (no sub-row) */
     .header-action-btns {
+      order: 0; /* stays in flow, before theme/profile/cog */
+      flex-shrink: 0;
+    }
+    /* Nav becomes its own row — centered, static, no scroll */
+    .nav-right {
       order: 10;
       width: 100%;
-      justify-content: center; gap: 10px;
-      padding: 8px 0 10px;
+      display: flex; justify-content: center; gap: 2px;
+      overflow-x: visible; flex-wrap: nowrap;
       border-top: 1px solid rgba(26,47,80,0.3);
+      padding: 8px 0 10px;
     }
+    .nav-btn { font-size: 0.56rem; padding: 8px 12px; flex-shrink: 0; white-space: nowrap; }
+    .nav-dropdown { min-width: 260px; }
   }
 
   /* ── MOBILE: hamburger menu (≤640px) ── */
