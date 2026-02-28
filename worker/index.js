@@ -782,6 +782,40 @@ export default {
       }
     }
 
+    // ── PATCH /api/gallery/:id — Admin edit a gallery post ─────
+    if (request.method === "PATCH" && url.pathname.match(/^\/api\/gallery\/\d+$/)) {
+      try {
+        const postId = url.pathname.split("/").pop();
+        const body = await request.json();
+        const { admin_key, user_id, kit_name, caption, created_at } = body;
+        const isAdmin = admin_key && admin_key === env.ADMIN_KEY;
+
+        if (!isAdmin) {
+          const post = await env.DB.prepare("SELECT user_id FROM gallery WHERE id = ?").bind(Number(postId)).first();
+          if (!post) return new Response(JSON.stringify({ ok: false, error: "Not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+          if (post.user_id !== user_id) return new Response(JSON.stringify({ ok: false, error: "Unauthorized" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+
+        const sets = [];
+        const binds = [];
+
+        if (kit_name !== undefined) { sets.push("kit_name = ?"); binds.push(kit_name); }
+        if (caption !== undefined) { sets.push("caption = ?"); binds.push(caption); }
+        if (created_at !== undefined) { sets.push("created_at = ?"); binds.push(Number(created_at)); }
+
+        if (sets.length === 0) {
+          return new Response(JSON.stringify({ ok: false, error: "No fields to update" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+
+        binds.push(Number(postId));
+        await env.DB.prepare(`UPDATE gallery SET ${sets.join(", ")} WHERE id = ?`).bind(...binds).run();
+
+        return new Response(JSON.stringify({ ok: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      } catch (err) {
+        return new Response(JSON.stringify({ ok: false, error: err.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+    }
+
     // ── DELETE /api/gallery/:id — Delete a gallery post ────────
     if (request.method === "DELETE" && url.pathname.match(/^\/api\/gallery\/\d+$/)) {
       try {

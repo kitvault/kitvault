@@ -266,6 +266,7 @@ function PostDetail({ post, onClose, onRefresh }) {
   const [comments, setComments] = useState([]);
   const [commentBody, setCommentBody] = useState("");
   const [posting, setPosting] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
 
   const fetchComments = useCallback(async () => {
     try {
@@ -357,9 +358,14 @@ function PostDetail({ post, onClose, onRefresh }) {
           {post.caption && <div style={{fontSize:"0.68rem",color:"#9ab0cc",fontFamily:"'Share Tech Mono',monospace",lineHeight:1.7,marginBottom:16}}>{post.caption}</div>}
 
           {(user?.id === post.user_id || isAdmin) && (
-            <button style={{background:"none",border:"1px solid rgba(255,34,68,0.2)",color:"rgba(255,34,68,0.6)",fontFamily:"'Share Tech Mono',monospace",fontSize:"0.55rem",padding:"6px 12px",cursor:"pointer",marginBottom:16,letterSpacing:"1px"}} onClick={deletePost}>
-              🗑 DELETE POST
-            </button>
+            <div style={{display:"flex",gap:8,marginBottom:16}}>
+              <button style={{background:"none",border:"1px solid rgba(0,170,255,0.2)",color:"rgba(0,170,255,0.6)",fontFamily:"'Share Tech Mono',monospace",fontSize:"0.55rem",padding:"6px 12px",cursor:"pointer",letterSpacing:"1px"}} onClick={() => setShowEdit(true)}>
+                ✎ EDIT POST
+              </button>
+              <button style={{background:"none",border:"1px solid rgba(255,34,68,0.2)",color:"rgba(255,34,68,0.6)",fontFamily:"'Share Tech Mono',monospace",fontSize:"0.55rem",padding:"6px 12px",cursor:"pointer",letterSpacing:"1px"}} onClick={deletePost}>
+                🗑 DELETE POST
+              </button>
+            </div>
           )}
 
           {/* Comments */}
@@ -401,6 +407,132 @@ function PostDetail({ post, onClose, onRefresh }) {
           <div style={{textAlign:"right",marginTop:16}}>
             <button style={S.closeBtn} onClick={onClose}>CLOSE ✕</button>
           </div>
+        </div>
+      </div>
+      {showEdit && (
+        <EditPostModal
+          post={post}
+          onClose={() => setShowEdit(false)}
+          onSaved={() => { setShowEdit(false); onRefresh(); onClose(); }}
+          onDeleted={() => { onRefresh(); onClose(); }}
+        />
+      )}
+    </div>
+  );
+}
+
+// ─── Edit Post Modal (Admin) ──────────────────────────────────
+function EditPostModal({ post, onClose, onSaved, onDeleted }) {
+  const { user } = useUser();
+  const isAdmin = !!sessionStorage.getItem(ADMIN_KEY_STORAGE);
+  const [kitName, setKitName] = useState(post.kit_name || "");
+  const [caption, setCaption] = useState(post.caption || "");
+  const [dateStr, setDateStr] = useState(() => {
+    const d = new Date(post.created_at * 1000);
+    return d.toISOString().slice(0, 16); // yyyy-MM-ddTHH:mm
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(false);
+
+  const handleSave = async () => {
+    if (saving) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const newTimestamp = Math.floor(new Date(dateStr).getTime() / 1000);
+      const res = await fetch(`/api/gallery/${post.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: user?.id,
+          admin_key: isAdmin ? sessionStorage.getItem(ADMIN_KEY_STORAGE) : undefined,
+          kit_name: kitName,
+          caption,
+          created_at: newTimestamp,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.ok) {
+        setSuccess(true);
+        setTimeout(() => onSaved(), 600);
+      } else {
+        setError(data.error || "Update failed");
+      }
+    } catch (err) {
+      setError(err.message);
+    }
+    setSaving(false);
+  };
+
+  const handleDelete = async () => {
+    if (!confirm("Permanently delete this gallery post? This cannot be undone.")) return;
+    try {
+      await fetch(`/api/gallery/${post.id}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: user?.id,
+          admin_key: isAdmin ? sessionStorage.getItem(ADMIN_KEY_STORAGE) : undefined,
+        }),
+      });
+      onDeleted();
+    } catch (_) {}
+  };
+
+  return (
+    <div style={{...S.overlay, zIndex: 1100}} onClick={onClose}>
+      <div style={{...S.modal, maxWidth: 520}} onClick={e => e.stopPropagation()}>
+        <div style={S.modalTitle}>
+          <span>✎ EDIT POST #{post.id}</span>
+          <button style={S.closeBtn} onClick={onClose}>✕</button>
+        </div>
+
+        {/* Kit Name */}
+        <div style={S.label}>KIT NAME</div>
+        <input style={S.input} value={kitName} onChange={e => setKitName(e.target.value)} />
+
+        {/* Caption */}
+        <div style={S.label}>CAPTION</div>
+        <textarea style={S.textarea} value={caption} onChange={e => setCaption(e.target.value)} maxLength={500} />
+
+        {/* Upload Date */}
+        <div style={S.label}>UPLOAD DATE</div>
+        <input
+          type="datetime-local"
+          style={{...S.input, colorScheme: "dark"}}
+          value={dateStr}
+          onChange={e => setDateStr(e.target.value)}
+        />
+
+        {/* Post info (read-only) */}
+        <div style={{display:"flex",gap:16,marginBottom:16,fontSize:"0.55rem",color:"var(--text-dim,#5a7a9f)",letterSpacing:"0.5px",fontFamily:"'Share Tech Mono',monospace"}}>
+          <span>GRADE: {post.kit_grade}</span>
+          <span>SCALE: {post.kit_scale}</span>
+          <span>BY: {post.username}</span>
+          <span>ID: {post.id}</span>
+        </div>
+
+        {error && <div style={S.error}>✕ {error}</div>}
+        {success && <div style={S.success}>✓ SAVED SUCCESSFULLY</div>}
+
+        <button
+          style={{...S.submitBtn, marginBottom: 12, ...((saving) ? S.submitBtnDisabled : {})}}
+          onClick={handleSave}
+          disabled={saving}
+        >
+          {saving ? "SAVING..." : "SAVE CHANGES →"}
+        </button>
+
+        {/* Danger zone */}
+        <div style={{borderTop:"1px solid rgba(255,34,68,0.15)",paddingTop:16,marginTop:8}}>
+          <div style={{fontSize:"0.55rem",letterSpacing:"2px",color:"rgba(255,34,68,0.4)",marginBottom:8,fontFamily:"'Share Tech Mono',monospace"}}>DANGER ZONE</div>
+          <button
+            style={{padding:"10px 20px",background:"rgba(255,34,68,0.06)",border:"1px solid rgba(255,34,68,0.25)",color:"#ff2244",fontFamily:"'Share Tech Mono',monospace",fontSize:"0.6rem",letterSpacing:"1px",cursor:"pointer",width:"100%"}}
+            onClick={handleDelete}
+          >
+            🗑 PERMANENTLY DELETE THIS POST
+          </button>
         </div>
       </div>
     </div>
