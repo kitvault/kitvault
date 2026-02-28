@@ -96,9 +96,9 @@ function MarqueeStrip({ ownedSprites }) {
   const tripled = [...ownedSprites, ...ownedSprites, ...ownedSprites];
   const duration = Math.max(12, ownedSprites.length * 4);
   return (
-    <div style={{ width: "100%", borderTop: "1px solid rgba(0,170,255,0.15)", borderBottom: "1px solid rgba(0,170,255,0.15)", background: "linear-gradient(90deg,rgba(0,10,28,0.97) 0%,rgba(0,20,48,0.88) 50%,rgba(0,10,28,0.97) 100%)", overflow: "hidden", padding: "6px 0", position: "relative" }}>
-      <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 60, background: "linear-gradient(90deg,#060d1a,transparent)", zIndex: 2, pointerEvents: "none" }} />
-      <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 60, background: "linear-gradient(270deg,#060d1a,transparent)", zIndex: 2, pointerEvents: "none" }} />
+    <div className="marquee-strip">
+      <div className="marquee-fade-left" />
+      <div className="marquee-fade-right" />
       <div style={{ display: "flex", alignItems: "flex-end", width: "300%", animation: `kvMarquee ${duration}s linear infinite` }}>
         {tripled.map((sprite, i) => (
           <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, flex: `0 0 calc(100% / ${tripled.length})` }}>
