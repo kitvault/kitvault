@@ -686,7 +686,7 @@ export default function KitVault() {
                 {[
                   { id: "dark", label: "Dark Mode", icon: "🌑", sub: "Default tech blue" },
                   { id: "light", label: "Light Mode", icon: "☀️", sub: "Clean and bright" },
-                  { id: "neko", label: "Neko Pink", icon: "🌸", sub: "Kawaii pink vibes" },
+                  { id: "neko", label: "Cyber Pink", icon: "🌸", sub: "Digital rose glow" },
                   { id: "cat", label: "Cat Mode", icon: "🐱", sub: "Meow! Cats everywhere" },
                 ].map(t => (
                   <div key={t.id} className={`nav-dd-item${(document.documentElement.getAttribute("data-theme") || "dark") === t.id ? " active-theme" : ""}`} onClick={() => {
