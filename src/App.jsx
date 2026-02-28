@@ -704,14 +704,16 @@ export default function KitVault() {
               </div>
             </div>
 
-            <SignedIn>
-              <UserButton afterSignOutUrl="/" />
-            </SignedIn>
-            <SignedOut>
-              <SignInButton mode="modal">
-                <button className="auth-btn">LOG IN</button>
-              </SignInButton>
-            </SignedOut>
+            <div className="header-profile">
+              <SignedIn>
+                <UserButton afterSignOutUrl="/" />
+              </SignedIn>
+              <SignedOut>
+                <SignInButton mode="modal">
+                  <button className="auth-btn">LOG IN</button>
+                </SignInButton>
+              </SignedOut>
+            </div>
             <button className={`cog-btn ${showSettings ? "active" : ""}`} onClick={() => setShowSettings(true)} title="Settings">⚙</button>
           </div>
         </header>

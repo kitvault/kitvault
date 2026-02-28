@@ -194,6 +194,22 @@
       linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
   }
 
+
+  /* ══ CAT MODE CURSOR ══ */
+  [data-theme="cat"],
+  [data-theme="cat"] * {
+    cursor: url("data:image/png;base64,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") 2 2, auto;
+  }
+  [data-theme="cat"] a,
+  [data-theme="cat"] button,
+  [data-theme="cat"] [role="button"],
+  [data-theme="cat"] .nav-btn,
+  [data-theme="cat"] .filter-btn,
+  [data-theme="cat"] .kit-card,
+  [data-theme="cat"] .nav-dd-item {
+    cursor: url("data:image/png;base64,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") 2 2, pointer;
+  }
+
   /* ══ CAT STICKER BOMB BACKGROUND ══ */
   [data-theme="cat"] .app::before {
     content: '';
@@ -414,6 +430,7 @@
     font-family: 'Share Tech Mono', monospace;
     font-size: 0.7rem; color: var(--text-dim); letter-spacing: 1px;
   }
+  .header-profile { display: flex; align-items: center; }
   .status-dot {
     width: 6px; height: 6px; border-radius: 50%;
     background: var(--accent3); box-shadow: 0 0 8px var(--accent3);
@@ -1618,7 +1635,13 @@
     .logo-icon { width: 30px; height: 30px; font-size: 0.85rem; }
     .logo-sub { font-size: 0.42rem; letter-spacing: 2px; }
     .header-right { gap: 6px; min-height: 56px; flex-wrap: wrap; }
-    .cog-btn { width: 36px; height: 36px; font-size: 1.1rem; }
+    /* Push theme/profile/cog to far right on mobile */
+    .hamburger-btn { order: -1; }
+    .nav-right { order: 5; }
+    .header-action-btns { order: 10; }
+    .theme-picker { order: 2; margin-left: auto; }
+    .header-profile { order: 3; display: flex; align-items: center; }
+    .cog-btn { width: 36px; height: 36px; font-size: 1.1rem; order: 4; }
     .theme-toggle-btn { width: 36px; height: 36px; font-size: 0.85rem; }
     .status-dot { display: none; }
     /* Sub-row: HANGAR + MY VAULT on their own line */
