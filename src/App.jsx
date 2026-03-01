@@ -458,7 +458,7 @@ export default function KitVault() {
   }).sort((a, b) => {
     if (sortOrder === "az") return a.name.localeCompare(b.name);
     if (sortOrder === "za") return b.name.localeCompare(a.name);
-    return a.id - b.id;
+    return (b.created_at || 0) - (a.created_at || 0);
   }), [allKits, gradeFilter, search, sortOrder]);
 
   const gc = (g) => GRADE_COLORS[g] || GRADE_COLORS["HG"];
