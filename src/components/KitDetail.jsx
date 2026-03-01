@@ -673,7 +673,6 @@ export default function KitDetail({
 
   const [realPages,        setRealPages]        = useState({});
   const [fullscreenManual, setFullscreenManual] = useState(null);
-  const [dlNotifyId,       setDlNotifyId]       = useState(null);
   const [editing,          setEditing]           = useState(false);
 
   // Check if admin key exists in session
@@ -885,19 +884,17 @@ export default function KitDetail({
                 </button>
                 <button className="btn btn-dl" onClick={e => {
                   e.stopPropagation();
-                  setDlNotifyId(manual.id);
-                  setTimeout(() => setDlNotifyId(null), 2800);
+                  if (manual.url) {
+                    const a = document.createElement("a");
+                    a.href = resolveManualUrl(manual.url);
+                    a.download = `${kit.name} - ${manual.name}.pdf`;
+                    a.target = "_blank";
+                    a.rel = "noopener noreferrer";
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                  }
                 }}>↓ DL</button>
-                {dlNotifyId === manual.id && (
-                  <span style={{
-                    fontFamily:"'Share Tech Mono',monospace", fontSize:"0.6rem",
-                    color:"var(--accent2)", letterSpacing:"1px", padding:"4px 8px",
-                    border:"1px solid rgba(255,102,0,0.3)", background:"rgba(255,102,0,0.06)",
-                    whiteSpace:"nowrap", alignSelf:"center"
-                  }}>
-                    ⚠ DOWNLOADS COMING SOON
-                  </span>
-                )}
               </div>
             </div>
 

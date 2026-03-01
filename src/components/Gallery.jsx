@@ -30,11 +30,11 @@ const S = {
   cardFooter: { display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.55rem", color: "var(--text-dim, #5a7a9f)", letterSpacing: "0.5px" },
   cardUser: { display: "flex", alignItems: "center", gap: 6 },
   cardAvatar: { width: 20, height: 20, borderRadius: "50%", border: "1px solid rgba(0,170,255,0.15)" },
-  likeBtn: { background: "none", border: "none", cursor: "pointer", fontSize: "0.65rem", display: "flex", alignItems: "center", gap: 4, color: "var(--text-dim,#5a7a9f)", fontFamily: "'Share Tech Mono',monospace", transition: "color 0.2s" },
+  likeBtn: { background: "none", border: "none", cursor: "pointer", fontSize: "1.1rem", display: "flex", alignItems: "center", gap: 6, color: "var(--text-dim,#5a7a9f)", fontFamily: "'Share Tech Mono',monospace", transition: "color 0.2s", padding: "4px 8px" },
   likeBtnActive: { color: "#ff2244" },
   commentCount: { fontSize: "0.55rem", color: "var(--text-dim,#5a7a9f)", letterSpacing: "0.5px" },
   // Modal
-  overlay: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 },
+  overlay: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 10000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 },
   modal: { background: "#0a1220", border: "1px solid var(--border, #1a2f50)", width: "100%", maxWidth: 600, maxHeight: "90vh", overflowY: "auto", padding: 24 },
   modalTitle: { fontSize: "0.65rem", letterSpacing: "3px", color: "#00aaff", marginBottom: 20, display: "flex", justifyContent: "space-between", alignItems: "center" },
   closeBtn: { background: "none", border: "none", color: "var(--text-dim,#5a7a9f)", cursor: "pointer", fontSize: "1rem" },
@@ -258,7 +258,7 @@ function UploadModal({ allKits, onClose, onUploaded }) {
 }
 
 // ─── Post Detail Modal ───────────────────────────────────────
-function PostDetail({ post, onClose, onRefresh }) {
+function PostDetail({ post, onClose, onRefresh, userLikes, toggleLike }) {
   const { user, isSignedIn } = useUser();
   const isAdmin = !!sessionStorage.getItem(ADMIN_KEY_STORAGE);
   const images = post.images || [];
@@ -356,6 +356,24 @@ function PostDetail({ post, onClose, onRefresh }) {
             </div>
           </div>
           {post.caption && <div style={{fontSize:"0.68rem",color:"#9ab0cc",fontFamily:"'Share Tech Mono',monospace",lineHeight:1.7,marginBottom:16}}>{post.caption}</div>}
+
+          {/* Like button */}
+          <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:16,paddingBottom:16,borderBottom:"1px solid var(--border,#1a2f50)"}}>
+            <button
+              style={{
+                background: userLikes?.has(post.id) ? "rgba(255,34,68,0.08)" : "none",
+                border: userLikes?.has(post.id) ? "1px solid rgba(255,34,68,0.3)" : "1px solid var(--border,#1a2f50)",
+                cursor: "pointer", fontSize: "1.3rem", display: "flex", alignItems: "center", gap: 8,
+                color: userLikes?.has(post.id) ? "#ff2244" : "var(--text-dim,#5a7a9f)",
+                fontFamily: "'Share Tech Mono',monospace", transition: "all 0.2s",
+                padding: "8px 20px", letterSpacing: "1px",
+              }}
+              onClick={e => toggleLike?.(e, post.id)}
+            >
+              {userLikes?.has(post.id) ? "♥" : "♡"}
+              <span style={{fontSize:"0.7rem",letterSpacing:"1px"}}>{post.likes || 0} {post.likes === 1 ? "LIKE" : "LIKES"}</span>
+            </button>
+          </div>
 
           {(user?.id === post.user_id || isAdmin) && (
             <div style={{display:"flex",gap:8,marginBottom:16}}>
@@ -481,7 +499,7 @@ function EditPostModal({ post, onClose, onSaved, onDeleted }) {
   };
 
   return (
-    <div style={{...S.overlay, zIndex: 1100}} onClick={onClose}>
+    <div style={{...S.overlay, zIndex: 10001}} onClick={onClose}>
       <div style={{...S.modal, maxWidth: 520}} onClick={e => e.stopPropagation()}>
         <div style={S.modalTitle}>
           <span>✎ EDIT POST #{post.id}</span>
@@ -679,7 +697,7 @@ export default function Gallery({ allKits }) {
       </div>
 
       {showUpload && <UploadModal allKits={allKits} onClose={() => setShowUpload(false)} onUploaded={fetchPosts} />}
-      {selectedPost && <PostDetail post={selectedPost} onClose={() => setSelectedPost(null)} onRefresh={fetchPosts} />}
+      {selectedPost && <PostDetail post={selectedPost} onClose={() => setSelectedPost(null)} onRefresh={fetchPosts} userLikes={userLikes} toggleLike={toggleLike} />}
     </>
   );
 }
