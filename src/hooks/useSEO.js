@@ -132,3 +132,13 @@ export function toolSEO(toolSlug) {
     path: `/tools/${toolSlug}`,
   };
 }
+
+export function hangarSEO(profile) {
+  if (!profile) return { title: "Builder Not Found", description: "This builder could not be found.", path: "/hangar/unknown" };
+  const name = profile.display_name || profile.username || "Builder";
+  return {
+    title: `${name}'s Hangar`,
+    description: `Check out ${name}'s Gunpla collection on KitVault.io.${profile.bio ? " " + profile.bio : ""}`.substring(0, 160),
+    path: `/hangar/${profile.username || "unknown"}`,
+  };
+}

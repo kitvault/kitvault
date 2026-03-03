@@ -938,6 +938,251 @@ export default {
       }
     }
 
+    // ══════════════════════════════════════════════════════════
+    // HANGAR / PROFILE ENDPOINTS
+    // ══════════════════════════════════════════════════════════
+
+    // ── GET /api/hangar/check-username?username= — Check if username is taken ──
+    if (path === "/api/hangar/check-username" && request.method === "GET") {
+      try {
+        const username = url.searchParams.get("username")?.trim().toLowerCase();
+        if (!username) return new Response(JSON.stringify({ ok: false, error: "Missing username" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+        const existing = await env.DB.prepare("SELECT user_id FROM user_profiles WHERE username = ?").bind(username).first();
+        return new Response(JSON.stringify({ ok: true, available: !existing }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      } catch (err) {
+        return new Response(JSON.stringify({ ok: false, error: err.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+    }
+
+    // ── GET /api/hangar/profile?user_id= — Get own profile (for settings) ──
+    if (path === "/api/hangar/profile" && request.method === "GET") {
+      try {
+        const userId = url.searchParams.get("user_id");
+        if (!userId) return new Response(JSON.stringify({ ok: false, error: "Missing user_id" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+        const profile = await env.DB.prepare("SELECT * FROM user_profiles WHERE user_id = ?").bind(userId).first();
+        return new Response(JSON.stringify({ ok: true, profile: profile || null }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      } catch (err) {
+        return new Response(JSON.stringify({ ok: false, error: err.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+    }
+
+    // ── POST /api/hangar/profile — Create or update profile ──
+    if (path === "/api/hangar/profile" && request.method === "POST") {
+      try {
+        const { user_id, username, display_name, avatar_url, bio, is_public } = await request.json();
+        if (!user_id || !username) return new Response(JSON.stringify({ ok: false, error: "Missing user_id or username" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+        // Validate username: 3-24 chars, alphanumeric + underscores + hyphens only
+        const cleanUsername = username.trim().toLowerCase();
+        if (!/^[a-z0-9_-]{3,24}$/.test(cleanUsername)) {
+          return new Response(JSON.stringify({ ok: false, error: "Username must be 3-24 characters, letters/numbers/underscores/hyphens only" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+
+        // Reserved words
+        const reserved = ["admin", "api", "gallery", "vault", "support", "settings", "hangar", "kit", "tools", "resources", "disclaimer", "null", "undefined"];
+        if (reserved.includes(cleanUsername)) {
+          return new Response(JSON.stringify({ ok: false, error: "That username is reserved" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+
+        // Check if username is taken by another user
+        const existing = await env.DB.prepare("SELECT user_id FROM user_profiles WHERE username = ? AND user_id != ?").bind(cleanUsername, user_id).first();
+        if (existing) {
+          return new Response(JSON.stringify({ ok: false, error: "Username already taken" }), { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+
+        const now = Math.floor(Date.now() / 1000);
+
+        await env.DB.prepare(`
+          INSERT INTO user_profiles (user_id, username, display_name, avatar_url, bio, is_public, created_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?)
+          ON CONFLICT(user_id) DO UPDATE SET
+            username = excluded.username,
+            display_name = excluded.display_name,
+            avatar_url = excluded.avatar_url,
+            bio = excluded.bio,
+            is_public = excluded.is_public
+        `).bind(
+          user_id,
+          cleanUsername,
+          (display_name || "").trim(),
+          avatar_url || "",
+          (bio || "").trim().substring(0, 280),
+          is_public ? 1 : 0,
+          now
+        ).run();
+
+        return new Response(JSON.stringify({ ok: true, username: cleanUsername }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      } catch (err) {
+        return new Response(JSON.stringify({ ok: false, error: err.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+    }
+
+    // ── GET /api/hangar/photos?user_id=&kit_id= — Get photos for a kit ──
+    if (path === "/api/hangar/photos" && request.method === "GET") {
+      try {
+        const userId = url.searchParams.get("user_id");
+        const kitId = url.searchParams.get("kit_id");
+        if (!userId) return new Response(JSON.stringify([]), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+        let query = "SELECT * FROM hangar_photos WHERE user_id = ?";
+        const binds = [userId];
+        if (kitId) { query += " AND kit_id = ?"; binds.push(Number(kitId)); }
+        query += " ORDER BY created_at DESC";
+
+        const { results } = await env.DB.prepare(query).bind(...binds).all();
+        return new Response(JSON.stringify(results || []), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      } catch (err) {
+        return new Response(JSON.stringify([]), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+    }
+
+    // ── GET /api/hangar/:username — Public hangar page data ──
+    if (request.method === "GET" && url.pathname.match(/^\/api\/hangar\/[a-z0-9_-]+$/)) {
+      try {
+        const username = url.pathname.split("/").pop();
+        const viewerId = url.searchParams.get("viewer_id") || null;
+
+        // Look up profile by username
+        const profile = await env.DB.prepare("SELECT * FROM user_profiles WHERE username = ?").bind(username).first();
+        if (!profile) return new Response(JSON.stringify({ ok: false, error: "User not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+        // Check privacy: allow if public OR if viewer is the owner
+        const isOwner = viewerId && viewerId === profile.user_id;
+        if (!profile.is_public && !isOwner) {
+          return new Response(JSON.stringify({ ok: false, error: "This hangar is private" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+
+        // Get user's vault progress (favourites + build status)
+        const progressRow = await env.DB.prepare("SELECT favourites, progress, pages FROM user_progress WHERE userId = ?").bind(profile.user_id).first();
+        const favourites = progressRow?.favourites ? JSON.parse(progressRow.favourites) : [];
+        const progress = progressRow?.progress ? JSON.parse(progressRow.progress) : {};
+
+        // Get kit IDs that are in the user's vault
+        const vaultKitIds = [];
+        for (const [kitId, status] of Object.entries(progress)) {
+          if (status === "inprogress" || status === "complete" || status === "backlog") {
+            vaultKitIds.push(Number(kitId));
+          }
+        }
+        // Also add favourited kits
+        for (const kitId of favourites) {
+          if (!vaultKitIds.includes(Number(kitId))) vaultKitIds.push(Number(kitId));
+        }
+
+        // Fetch kit details for vault kits
+        let kits = [];
+        if (vaultKitIds.length > 0) {
+          const placeholders = vaultKitIds.map(() => "?").join(",");
+          const { results } = await env.DB.prepare(`SELECT id, grade, scale, name, series, image_url FROM kits WHERE id IN (${placeholders})`).bind(...vaultKitIds).all();
+          kits = results || [];
+        }
+
+        // Fetch hangar photos for this user
+        const { results: photos } = await env.DB.prepare("SELECT id, kit_id, image_url, caption, created_at FROM hangar_photos WHERE user_id = ? ORDER BY created_at DESC").bind(profile.user_id).all();
+
+        // Fetch gallery posts by this user (community builds)
+        const { results: galleryPosts } = await env.DB.prepare(
+          "SELECT id, kit_id, kit_name, kit_grade, image_urls, caption, likes, created_at FROM gallery WHERE user_id = ? ORDER BY created_at DESC LIMIT 50"
+        ).bind(profile.user_id).all();
+
+        return new Response(JSON.stringify({
+          ok: true,
+          profile: {
+            username: profile.username,
+            display_name: profile.display_name,
+            avatar_url: profile.avatar_url,
+            bio: profile.bio,
+            is_public: !!profile.is_public,
+            created_at: profile.created_at,
+          },
+          vault: {
+            kits,
+            favourites,
+            progress,
+          },
+          photos: photos || [],
+          gallery_posts: galleryPosts || [],
+          stats: {
+            total_kits: vaultKitIds.length,
+            completed: Object.values(progress).filter(s => s === "complete").length,
+            in_progress: Object.values(progress).filter(s => s === "inprogress").length,
+            backlog: Object.values(progress).filter(s => s === "backlog").length,
+            gallery_posts: (galleryPosts || []).length,
+            photos: (photos || []).length,
+          },
+          is_owner: isOwner,
+        }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      } catch (err) {
+        return new Response(JSON.stringify({ ok: false, error: err.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+    }
+
+    // ── POST /api/hangar/photo — Upload a build photo ──
+    if (path === "/api/hangar/photo" && request.method === "POST") {
+      try {
+        const formData = await request.formData();
+        const userId = formData.get("user_id");
+        const kitId = formData.get("kit_id");
+        const caption = formData.get("caption") || "";
+        const file = formData.get("file");
+
+        if (!userId || !kitId || !file) {
+          return new Response(JSON.stringify({ ok: false, error: "Missing user_id, kit_id, or file" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+
+        // Check limit: max 5 photos per kit per user
+        const countResult = await env.DB.prepare("SELECT COUNT(*) as c FROM hangar_photos WHERE user_id = ? AND kit_id = ?").bind(userId, Number(kitId)).first();
+        if (countResult && countResult.c >= 5) {
+          return new Response(JSON.stringify({ ok: false, error: "Max 5 photos per kit" }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+
+        // Upload to R2
+        const ext = file.name?.split(".").pop()?.toLowerCase() || "jpg";
+        const timestamp = Date.now();
+        const r2Key = `hangar/${userId}/${kitId}/${timestamp}.${ext}`;
+        const arrayBuffer = await file.arrayBuffer();
+        await env.BUCKET.put(r2Key, arrayBuffer, { httpMetadata: { contentType: file.type || "image/jpeg" } });
+
+        const imageUrl = `https://pub-633dac494e3b4bdb808035bd3c437f27.r2.dev/${r2Key}`;
+        const now = Math.floor(Date.now() / 1000);
+
+        await env.DB.prepare(
+          "INSERT INTO hangar_photos (user_id, kit_id, image_url, caption, created_at) VALUES (?, ?, ?, ?, ?)"
+        ).bind(userId, Number(kitId), imageUrl, caption.trim().substring(0, 280), now).run();
+
+        return new Response(JSON.stringify({ ok: true, image_url: imageUrl }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      } catch (err) {
+        return new Response(JSON.stringify({ ok: false, error: err.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+    }
+
+    // ── DELETE /api/hangar/photo/:id — Delete a build photo ──
+    if (request.method === "DELETE" && url.pathname.match(/^\/api\/hangar\/photo\/\d+$/)) {
+      try {
+        const photoId = url.pathname.split("/").pop();
+        const { user_id } = await request.json();
+        if (!user_id) return new Response(JSON.stringify({ ok: false, error: "Missing user_id" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+        const photo = await env.DB.prepare("SELECT * FROM hangar_photos WHERE id = ?").bind(Number(photoId)).first();
+        if (!photo) return new Response(JSON.stringify({ ok: false, error: "Not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        if (photo.user_id !== user_id) return new Response(JSON.stringify({ ok: false, error: "Unauthorized" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+        // Delete from R2
+        const r2Key = photo.image_url.replace("https://pub-633dac494e3b4bdb808035bd3c437f27.r2.dev/", "");
+        if (r2Key) await env.BUCKET.delete(r2Key);
+
+        // Delete from D1
+        await env.DB.prepare("DELETE FROM hangar_photos WHERE id = ?").bind(Number(photoId)).run();
+
+        return new Response(JSON.stringify({ ok: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      } catch (err) {
+        return new Response(JSON.stringify({ ok: false, error: err.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+    }
+
+
     return new Response(JSON.stringify({ error: "Not found" }), {
       status: 404,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

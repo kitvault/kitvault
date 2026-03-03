@@ -25,9 +25,10 @@ import GradeDetail from "./components/GradeDetail.jsx";
 import KitDetail from "./components/KitDetail.jsx";
 import ToolPage from "./components/ToolPage.jsx";
 import Gallery from "./components/Gallery.jsx";
+import Hangar from "./components/Hangar.jsx";
 
 // SEO
-import useSEO, { SEO, kitSEO, gradeSEO, toolSEO } from "./hooks/useSEO.js";
+import useSEO, { SEO, kitSEO, gradeSEO, toolSEO, hangarSEO } from "./hooks/useSEO.js";
 
 // ─────────────────────────────────────────────────────────────
 // SPRITE ROSTER
@@ -356,6 +357,85 @@ export default function KitVault() {
   const ownedSprites = SPRITES.filter(s => ownedSpriteIds.includes(s.id));
   const paradeSprites = SPRITES.filter(s => paradeIds.includes(s.id));
 
+  // ── Hangar Profile ───────────────────────────────────────────
+  const [hangarProfile, setHangarProfile] = useState(null);
+  const [hangarUsername, setHangarUsername] = useState("");
+  const [hangarDisplayName, setHangarDisplayName] = useState("");
+  const [hangarBio, setHangarBio] = useState("");
+  const [hangarIsPublic, setHangarIsPublic] = useState(false);
+  const [hangarSaving, setHangarSaving] = useState(false);
+  const [hangarMsg, setHangarMsg] = useState("");
+  const [usernameAvailable, setUsernameAvailable] = useState(null);
+
+  const fetchHangarProfile = useCallback(async () => {
+    if (!isSignedIn || !user) return;
+    try {
+      const res = await fetch(`/api/hangar/profile?user_id=${user.id}`);
+      const data = await res.json();
+      if (data.ok && data.profile) {
+        setHangarProfile(data.profile);
+        setHangarUsername(data.profile.username || "");
+        setHangarDisplayName(data.profile.display_name || "");
+        setHangarBio(data.profile.bio || "");
+        setHangarIsPublic(!!data.profile.is_public);
+      }
+    } catch (_) { }
+  }, [isSignedIn, user]);
+
+  useEffect(() => { fetchHangarProfile(); }, [fetchHangarProfile]);
+
+  // Username availability check (debounced)
+  const usernameCheckTimer = useRef(null);
+  const checkUsername = (val) => {
+    setHangarUsername(val);
+    setUsernameAvailable(null);
+    setHangarMsg("");
+    if (usernameCheckTimer.current) clearTimeout(usernameCheckTimer.current);
+    const clean = val.trim().toLowerCase();
+    if (clean.length < 3) { setUsernameAvailable(null); return; }
+    if (!/^[a-z0-9_-]{3,24}$/.test(clean)) { setUsernameAvailable(false); setHangarMsg("Letters, numbers, _ and - only"); return; }
+    // Skip check if unchanged from saved profile
+    if (hangarProfile && clean === hangarProfile.username) { setUsernameAvailable(true); return; }
+    usernameCheckTimer.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/hangar/check-username?username=${clean}`);
+        const data = await res.json();
+        setUsernameAvailable(data.available);
+        if (!data.available) setHangarMsg("Username taken");
+      } catch (_) { }
+    }, 400);
+  };
+
+  const saveHangarProfile = async () => {
+    if (!user || !hangarUsername.trim()) return;
+    setHangarSaving(true);
+    setHangarMsg("");
+    try {
+      const res = await fetch("/api/hangar/profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: user.id,
+          username: hangarUsername.trim().toLowerCase(),
+          display_name: hangarDisplayName.trim(),
+          avatar_url: user.imageUrl || "",
+          bio: hangarBio.trim(),
+          is_public: hangarIsPublic,
+        }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setHangarMsg("✓ Saved");
+        fetchHangarProfile();
+      } else {
+        setHangarMsg(data.error || "Failed to save");
+      }
+    } catch (err) {
+      setHangarMsg("Network error");
+    }
+    setHangarSaving(false);
+  };
+
   // ── D1 sync ──────────────────────────────────────────────────
   const D1_API = "/api/progress";
 
@@ -495,6 +575,9 @@ export default function KitVault() {
     }
     if (p.startsWith("/tools/")) {
       return toolSEO(p.replace("/tools/", ""));
+    }
+    if (p.startsWith("/hangar/")) {
+      return hangarSEO({ username: p.replace("/hangar/", "") });
     }
     return SEO.home;
   }, [location.pathname, allKits]);
@@ -1069,6 +1152,11 @@ export default function KitVault() {
           {/* ===== ALL TOOL PAGES (single dynamic route) ===== */}
           <Route path="/tools/:toolSlug" element={<ToolPage />} />
 
+          {/* ===== PUBLIC HANGAR PROFILE ===== */}
+          <Route path="/hangar/:username" element={
+            <Hangar currentUserId={isSignedIn ? user?.id : null} />
+          } />
+
           {/* ===== ADMIN ===== */}
           <Route path="/admin" element={<AdminUpload />} />
 
@@ -1083,6 +1171,148 @@ export default function KitVault() {
                 <button className="modal-close" onClick={() => setShowSettings(false)}>✕</button>
               </div>
               <div className="settings-body">
+
+                {/* HANGAR PROFILE */}
+                {isSignedIn && (
+                  <div className="settings-section">
+                    <div className="settings-section-label">MY HANGAR</div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+
+                      {/* Username */}
+                      <div>
+                        <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.55rem", color: "var(--text-dim)", letterSpacing: "1px", marginBottom: 4 }}>USERNAME</div>
+                        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                          <span style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.7rem", color: "var(--text-dim)" }}>kitvault.io/hangar/</span>
+                          <input
+                            value={hangarUsername}
+                            onChange={e => checkUsername(e.target.value.replace(/[^a-zA-Z0-9_-]/g, ""))}
+                            maxLength={24}
+                            placeholder="your-username"
+                            style={{
+                              flex: 1, background: "rgba(0,0,0,0.3)", border: `1px solid ${usernameAvailable === true ? "rgba(0,255,136,0.4)" : usernameAvailable === false ? "rgba(255,60,60,0.4)" : "rgba(255,255,255,0.1)"}`,
+                              color: "var(--text)", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.7rem",
+                              padding: "8px 10px", letterSpacing: "0.5px", outline: "none",
+                            }}
+                          />
+                          {usernameAvailable === true && <span style={{ color: "#00ff88", fontSize: "0.7rem" }}>✓</span>}
+                          {usernameAvailable === false && <span style={{ color: "#ff3c3c", fontSize: "0.7rem" }}>✗</span>}
+                        </div>
+                      </div>
+
+                      {/* Display Name */}
+                      <div>
+                        <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.55rem", color: "var(--text-dim)", letterSpacing: "1px", marginBottom: 4 }}>DISPLAY NAME</div>
+                        <input
+                          value={hangarDisplayName}
+                          onChange={e => setHangarDisplayName(e.target.value)}
+                          maxLength={40}
+                          placeholder="How you want your name shown"
+                          style={{
+                            width: "100%", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.1)",
+                            color: "var(--text)", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.7rem",
+                            padding: "8px 10px", letterSpacing: "0.5px", outline: "none", boxSizing: "border-box",
+                          }}
+                        />
+                      </div>
+
+                      {/* Bio */}
+                      <div>
+                        <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.55rem", color: "var(--text-dim)", letterSpacing: "1px", marginBottom: 4 }}>BIO <span style={{ color: "var(--text-dim)", opacity: 0.5 }}>({280 - hangarBio.length} left)</span></div>
+                        <textarea
+                          value={hangarBio}
+                          onChange={e => setHangarBio(e.target.value.substring(0, 280))}
+                          maxLength={280}
+                          rows={3}
+                          placeholder="Tell people about your builds..."
+                          style={{
+                            width: "100%", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.1)",
+                            color: "var(--text)", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.65rem",
+                            padding: "8px 10px", letterSpacing: "0.3px", outline: "none", resize: "vertical",
+                            lineHeight: 1.6, boxSizing: "border-box",
+                          }}
+                        />
+                      </div>
+
+                      {/* Public/Private Toggle */}
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                        <div>
+                          <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.65rem", color: "var(--text)", letterSpacing: "0.5px" }}>
+                            {hangarIsPublic ? "🔓 PUBLIC" : "🔒 PRIVATE"}
+                          </div>
+                          <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.5rem", color: "var(--text-dim)", letterSpacing: "0.5px", marginTop: 2 }}>
+                            {hangarIsPublic ? "Anyone with the link can view your hangar" : "Only you can see your hangar"}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => setHangarIsPublic(p => !p)}
+                          style={{
+                            background: hangarIsPublic ? "rgba(0,255,136,0.1)" : "rgba(255,255,255,0.05)",
+                            border: `1px solid ${hangarIsPublic ? "rgba(0,255,136,0.3)" : "rgba(255,255,255,0.1)"}`,
+                            color: hangarIsPublic ? "#00ff88" : "var(--text-dim)",
+                            fontFamily: "'Share Tech Mono',monospace", fontSize: "0.6rem",
+                            padding: "6px 14px", cursor: "pointer", letterSpacing: "1px",
+                          }}
+                        >
+                          {hangarIsPublic ? "PUBLIC" : "PRIVATE"}
+                        </button>
+                      </div>
+
+                      {/* Save + View + Share */}
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                        <button
+                          onClick={saveHangarProfile}
+                          disabled={hangarSaving || !hangarUsername.trim() || hangarUsername.trim().length < 3 || usernameAvailable === false}
+                          style={{
+                            background: "rgba(0,170,255,0.1)", border: "1px solid rgba(0,170,255,0.3)",
+                            color: "#00aaff", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.65rem",
+                            padding: "8px 18px", cursor: "pointer", letterSpacing: "1px",
+                            opacity: (hangarSaving || !hangarUsername.trim() || hangarUsername.trim().length < 3 || usernameAvailable === false) ? 0.4 : 1,
+                          }}
+                        >
+                          {hangarSaving ? "SAVING..." : "💾 SAVE PROFILE"}
+                        </button>
+                        {hangarProfile?.username && (
+                          <>
+                            <button
+                              onClick={() => { setShowSettings(false); navigate(`/hangar/${hangarProfile.username}`); }}
+                              style={{
+                                background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
+                                color: "var(--text-dim)", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.65rem",
+                                padding: "8px 14px", cursor: "pointer", letterSpacing: "1px",
+                              }}
+                            >
+                              VIEW HANGAR →
+                            </button>
+                            <button
+                              onClick={() => {
+                                navigator.clipboard.writeText(`https://kitvault.io/hangar/${hangarProfile.username}`);
+                                setHangarMsg("✓ Link copied!");
+                                setTimeout(() => setHangarMsg(""), 2000);
+                              }}
+                              style={{
+                                background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
+                                color: "var(--text-dim)", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.65rem",
+                                padding: "8px 14px", cursor: "pointer", letterSpacing: "1px",
+                              }}
+                            >
+                              📋 COPY LINK
+                            </button>
+                          </>
+                        )}
+                      </div>
+
+                      {/* Status message */}
+                      {hangarMsg && (
+                        <div style={{
+                          fontFamily: "'Share Tech Mono',monospace", fontSize: "0.6rem", letterSpacing: "0.5px",
+                          color: hangarMsg.startsWith("✓") ? "#00ff88" : "#ff3c3c",
+                        }}>
+                          {hangarMsg}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {/* DONATE */}
                 <div className="settings-section">

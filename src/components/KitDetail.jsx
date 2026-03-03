@@ -365,6 +365,179 @@ function KitImage({ kit, isAdmin, adminKey, onKitUpdated }) {
 }
 
 // ─────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+// BuildPhotos — User's personal build photos for this kit
+// ─────────────────────────────────────────────────────────────
+function BuildPhotos({ kitId, isSignedIn, user }) {
+  const [photos, setPhotos] = useState([]);
+  const [uploading, setUploading] = useState(false);
+  const [viewPhoto, setViewPhoto] = useState(null);
+  const [dragOver, setDragOver] = useState(false);
+  const fileRef = useRef(null);
+  const MAX_PHOTOS = 5;
+
+  const fetchPhotos = useCallback(async () => {
+    if (!isSignedIn || !user) return;
+    try {
+      const res = await fetch(`/api/hangar/photos?user_id=${user.id}&kit_id=${kitId}`);
+      const data = await res.json();
+      if (Array.isArray(data)) setPhotos(data);
+    } catch (_) { }
+  }, [isSignedIn, user, kitId]);
+
+  useEffect(() => { fetchPhotos(); }, [fetchPhotos]);
+
+  const uploadPhoto = async (file) => {
+    if (!file || !user || uploading || photos.length >= MAX_PHOTOS) return;
+    if (!file.type.startsWith("image/")) return;
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("user_id", user.id);
+      fd.append("kit_id", kitId);
+      fd.append("file", file);
+      const res = await fetch("/api/hangar/photo", { method: "POST", body: fd });
+      const data = await res.json();
+      if (data.ok) fetchPhotos();
+    } catch (_) { }
+    setUploading(false);
+  };
+
+  const deletePhoto = async (photoId) => {
+    if (!user || !window.confirm("Delete this build photo?")) return;
+    try {
+      await fetch(`/api/hangar/photo/${photoId}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: user.id }),
+      });
+      setPhotos(prev => prev.filter(p => p.id !== photoId));
+      setViewPhoto(null);
+    } catch (_) { }
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setDragOver(false);
+    const file = e.dataTransfer?.files?.[0];
+    if (file) uploadPhoto(file);
+  };
+
+  if (!isSignedIn || !user) return null;
+
+  return (
+    <div style={{ marginTop: 28 }}>
+      <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.65rem", letterSpacing: "3px", color: "var(--accent, #00aaff)", marginBottom: 12 }}>
+        📷 MY BUILD PHOTOS
+        <span style={{ fontSize: "0.55rem", color: "var(--text-dim, #5a7a9f)", letterSpacing: "1px", marginLeft: 8 }}>
+          {photos.length}/{MAX_PHOTOS}
+        </span>
+      </div>
+
+      {/* Photo grid */}
+      {photos.length > 0 && (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))", gap: 8, marginBottom: 12 }}>
+          {photos.map(photo => (
+            <div key={photo.id} style={{ position: "relative", aspectRatio: "1", overflow: "hidden", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.06)", cursor: "pointer" }}>
+              <img
+                src={photo.image_url}
+                alt="Build photo"
+                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                loading="lazy"
+                onClick={() => setViewPhoto(photo)}
+              />
+              <button
+                onClick={(e) => { e.stopPropagation(); deletePhoto(photo.id); }}
+                style={{
+                  position: "absolute", top: 4, right: 4,
+                  background: "rgba(0,0,0,0.7)", border: "1px solid rgba(255,60,60,0.3)",
+                  color: "#ff3c3c", fontSize: "0.55rem", width: 20, height: 20,
+                  cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                  fontFamily: "'Share Tech Mono',monospace", padding: 0,
+                }}
+                title="Delete photo"
+              >
+                ✕
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Upload area */}
+      {photos.length < MAX_PHOTOS && (
+        <div
+          onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={handleDrop}
+          onClick={() => fileRef.current?.click()}
+          style={{
+            border: `1px dashed ${dragOver ? "rgba(0,170,255,0.5)" : "rgba(255,255,255,0.1)"}`,
+            background: dragOver ? "rgba(0,170,255,0.05)" : "rgba(0,0,0,0.15)",
+            padding: "20px", textAlign: "center", cursor: "pointer",
+            transition: "all 0.2s",
+          }}
+        >
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            style={{ display: "none" }}
+            onChange={e => { if (e.target.files?.[0]) uploadPhoto(e.target.files[0]); e.target.value = ""; }}
+          />
+          <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.6rem", color: "var(--text-dim, #5a7a9f)", letterSpacing: "1px" }}>
+            {uploading ? "UPLOADING..." : "📷 CLICK OR DRAG TO ADD A BUILD PHOTO"}
+          </div>
+          <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.45rem", color: "var(--text-dim, #5a7a9f)", opacity: 0.5, letterSpacing: "0.5px", marginTop: 4 }}>
+            JPG, PNG, WEBP
+          </div>
+        </div>
+      )}
+
+      {/* Fullscreen photo viewer */}
+      {viewPhoto && (
+        <div
+          onClick={() => setViewPhoto(null)}
+          style={{
+            position: "fixed", inset: 0, background: "rgba(0,0,0,0.9)",
+            zIndex: 10000, display: "flex", alignItems: "center", justifyContent: "center",
+            cursor: "pointer",
+          }}
+        >
+          <img
+            src={viewPhoto.image_url}
+            alt="Build photo"
+            style={{ maxWidth: "90vw", maxHeight: "90vh", objectFit: "contain" }}
+            onClick={e => e.stopPropagation()}
+          />
+          <button
+            onClick={() => setViewPhoto(null)}
+            style={{
+              position: "absolute", top: 20, right: 20,
+              background: "none", border: "none", color: "#fff",
+              fontSize: "1.5rem", cursor: "pointer",
+            }}
+          >
+            ✕
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); deletePhoto(viewPhoto.id); }}
+            style={{
+              position: "absolute", bottom: 30, left: "50%", transform: "translateX(-50%)",
+              background: "rgba(255,60,60,0.1)", border: "1px solid rgba(255,60,60,0.3)",
+              color: "#ff3c3c", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.6rem",
+              padding: "8px 18px", cursor: "pointer", letterSpacing: "1px",
+            }}
+          >
+            🗑 DELETE PHOTO
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
 // CommunityBuilds — Gallery images tagged with this kit
 // ─────────────────────────────────────────────────────────────
 const CB = {
@@ -949,6 +1122,9 @@ export default function KitDetail({
 
       {/* ── KIT IMAGE ───────────────────────────────────────── */}
       <KitImage kit={kit} isAdmin={isAdmin} adminKey={sessionStorage.getItem(ADMIN_KEY_STORAGE)} onKitUpdated={onKitUpdated} />
+
+      {/* ── MY BUILD PHOTOS ─────────────────────────────────── */}
+      <BuildPhotos kitId={kit.id} isSignedIn={isSignedIn} user={user} />
 
       {/* ── COMMUNITY BUILDS FROM GALLERY ────────────────────── */}
       <CommunityBuilds kitId={kit.id} kitName={kit.name} />
