@@ -173,7 +173,7 @@ function CustomizeModal({ onClose, ownedIds, paradeIds, xp, onPurchaseComplete, 
       <div style={{ background: "linear-gradient(160deg,#0a1628 0%,#070f1e 100%)", border: "1px solid rgba(0,170,255,0.3)", borderRadius: 2, width: "100%", maxWidth: 1100, maxHeight: "95vh", overflow: "hidden", display: "flex", flexDirection: "column", boxShadow: "0 0 80px rgba(0,170,255,0.15)", clipPath: "polygon(0 0,97% 0,100% 3%,100% 100%,3% 100%,0 97%)" }} onClick={e => e.stopPropagation()}>
         <div style={{ padding: "28px 40px 22px", borderBottom: "1px solid rgba(0,170,255,0.12)", display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(0,170,255,0.04)" }}>
           <div>
-            <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.75rem", color: "#00aaff", letterSpacing: "3px", marginBottom: 8 }}>◈ HANGAR CUSTOMIZATION</div>
+            <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.75rem", color: "#00aaff", letterSpacing: "3px", marginBottom: 8 }}>◈ ROSTER CUSTOMIZATION</div>
             <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "2rem", color: "#ffcc00", letterSpacing: "4px" }}>ROSTER</div>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
@@ -229,7 +229,7 @@ function CustomizeModal({ onClose, ownedIds, paradeIds, xp, onPurchaseComplete, 
                       </button>
                     </div>
                   ) : sprite.free ? (
-                    <button onClick={() => handleBuy(sprite)} disabled={isBuying} style={{ width: "100%", background: "rgba(0,255,136,0.1)", border: "1px solid rgba(0,255,136,0.3)", color: "#00ff88", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.68rem", padding: "12px", cursor: "pointer", letterSpacing: "1.5px" }}>✦ FREE — ADD TO HANGAR</button>
+                    <button onClick={() => handleBuy(sprite)} disabled={isBuying} style={{ width: "100%", background: "rgba(0,255,136,0.1)", border: "1px solid rgba(0,255,136,0.3)", color: "#00ff88", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.68rem", padding: "12px", cursor: "pointer", letterSpacing: "1.5px" }}>✦ FREE — ADD TO ROSTER</button>
                   ) : (
                     <button onClick={() => handleBuy(sprite)} disabled={!canAfford || isBuying} style={{ width: "100%", background: canAfford ? "rgba(255,204,0,0.08)" : "rgba(0,0,0,0.2)", border: `1px solid ${canAfford ? "rgba(255,204,0,0.35)" : "rgba(255,255,255,0.06)"}`, color: canAfford ? "#ffcc00" : "#2a3a5a", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.68rem", padding: "12px", cursor: canAfford ? "pointer" : "not-allowed", letterSpacing: "1.5px" }}>
                       {isBuying ? "UNLOCKING..." : canAfford ? `⭐ ${sprite.cost} XP — UNLOCK` : `⭐ ${sprite.cost} XP — NOT ENOUGH`}
@@ -252,7 +252,7 @@ function GuestCustomizeTeaser({ onClose }) {
         <div style={{ display: "flex", justifyContent: "center", gap: 16, marginBottom: 28, filter: "blur(2px) opacity(0.45)" }}>
           {SPRITES.slice(0, 4).map(s => <ChibiSprite key={s.id} sprite={s} size={40} />)}
         </div>
-        <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.5rem", color: "#00aaff", letterSpacing: "3px", marginBottom: 12 }}>◈ HANGAR CUSTOMIZATION</div>
+        <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.5rem", color: "#00aaff", letterSpacing: "3px", marginBottom: 12 }}>◈ ROSTER CUSTOMIZATION</div>
         <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "1rem", color: "#c8ddf5", letterSpacing: "3px", marginBottom: 8 }}>COLLECT <span style={{ color: "#ffcc00" }}>SPRITES</span></div>
         <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.5rem", color: "#3a5a7a", letterSpacing: "1.5px", lineHeight: 2.2, marginBottom: 28 }}>EARN XP BY POSTING TO THE GALLERY<br />AND COMMENTING · SPEND XP TO UNLOCK<br />SPRITES THAT PARADE ABOVE THE VAULT</div>
         <button onClick={onClose} style={{ background: "none", border: "none", color: "#1a3a5a", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.42rem", cursor: "pointer", letterSpacing: "1px" }}>DISMISS</button>
@@ -740,17 +740,17 @@ export default function KitVault() {
             {/* Mobile menu overlay */}
             {mobileMenuOpen && <div className="mobile-menu-overlay" onClick={closeMobileMenu} />}
 
-            {/* HANGAR + MY VAULT (desktop: inline here, mobile: drops to sub-row) */}
+            {/* ROSTER + MY VAULT (desktop: inline here, mobile: drops to sub-row) */}
             <div className="header-action-btns">
               <SignedIn>
                 <button onClick={() => setShowCustomize(true)} className="hangar-btn">
-                  ◈ HANGAR
+                  ◈ ROSTER
                   <span className="hangar-xp-badge">{xp} XP</span>
                 </button>
               </SignedIn>
               <SignedOut>
                 <button onClick={() => setShowCustomize(true)} className="hangar-btn locked">
-                  🔒 HANGAR
+                  🔒 ROSTER
                 </button>
               </SignedOut>
 

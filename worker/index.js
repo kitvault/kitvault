@@ -1055,7 +1055,7 @@ export default {
         }
 
         // Get user's vault progress (favourites + build status)
-        const progressRow = await env.DB.prepare("SELECT favourites, progress, pages FROM user_progress WHERE userId = ?").bind(profile.user_id).first();
+        const progressRow = await env.DB.prepare("SELECT favourites, progress, pages FROM user_progress WHERE user_id = ?").bind(profile.user_id).first();
         const favourites = progressRow?.favourites ? JSON.parse(progressRow.favourites) : [];
         const progress = progressRow?.progress ? JSON.parse(progressRow.progress) : {};
 
