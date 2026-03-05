@@ -740,7 +740,7 @@ export default function KitVault() {
             {/* Mobile menu overlay */}
             {mobileMenuOpen && <div className="mobile-menu-overlay" onClick={closeMobileMenu} />}
 
-            {/* ROSTER + MY VAULT (desktop: inline here, mobile: drops to sub-row) */}
+            {/* ROSTER + VAULT + HANGAR (desktop: inline here, mobile: drops to sub-row) */}
             <div className="header-action-btns">
               <SignedIn>
                 <button onClick={() => setShowCustomize(true)} className="hangar-btn">
@@ -756,8 +756,16 @@ export default function KitVault() {
 
               <SignedIn>
                 <button onClick={goVault} className={`vault-btn${location.pathname === "/vault" ? " active" : ""}`}>
-                  ⭐ MY VAULT
+                  ⭐ VAULT
                 </button>
+                {hangarProfile?.username && (
+                  <button
+                    onClick={() => navigate(`/hangar/${hangarProfile.username}`)}
+                    className={`vault-btn${location.pathname.startsWith("/hangar/") ? " active" : ""}`}
+                  >
+                    🏠 HANGAR
+                  </button>
+                )}
               </SignedIn>
             </div>
 
@@ -888,8 +896,6 @@ export default function KitVault() {
                   buildProgress[k.id] === "backlog" && !favourites.includes(k.id)
                 );
 
-                const hasHangar = !!hangarProfile?.username;
-
                 return (
                   <>
                     <div className="page-hero">
@@ -897,208 +903,6 @@ export default function KitVault() {
                       <div className="page-title">MY <span style={{ color: "var(--accent)" }}>VAULT</span></div>
                       <div className="page-sub">{vaultKits.length} KIT{vaultKits.length !== 1 ? "S" : ""} TRACKED</div>
                     </div>
-
-                    {/* ── MY HANGAR SECTION ── */}
-                    {isSignedIn && (
-                      <div style={{ padding: "0 40px 32px" }}>
-                        <div style={{
-                          background: "rgba(0,170,255,0.04)", border: "1px solid rgba(0,170,255,0.15)",
-                          padding: hasHangar ? "20px 24px" : "28px 28px",
-                        }}>
-                          {/* Section header */}
-                          <div style={{
-                            fontFamily: "'Share Tech Mono',monospace", fontSize: "0.75rem", letterSpacing: "2px",
-                            color: "#00aaff", marginBottom: hasHangar ? 12 : 16,
-                            display: "flex", alignItems: "center", gap: 8,
-                          }}>
-                            ◈ MY HANGAR
-                          </div>
-
-                          {!hasHangar ? (
-                            /* ── ONBOARDING / SETUP ── */
-                            <div>
-                              <div style={{
-                                fontFamily: "'Rajdhani',sans-serif", fontSize: "0.9rem", color: "var(--text)",
-                                lineHeight: 1.7, marginBottom: 20, maxWidth: 600,
-                              }}>
-                                Your Hangar is your builder profile — upload finished builds, works in progress, or your backlog.
-                                Choose to make it public or private, and get a unique URL to share with friends.
-                                All kits in your vault are automatically shown in your hangar.
-                              </div>
-
-                              {/* Username */}
-                              <div style={{ marginBottom: 12 }}>
-                                <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.55rem", color: "var(--text-dim)", letterSpacing: "1px", marginBottom: 4 }}>CHOOSE A USERNAME</div>
-                                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                                  <span style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.7rem", color: "var(--text-dim)" }}>kitvault.io/hangar/</span>
-                                  <input
-                                    value={hangarUsername}
-                                    onChange={e => checkUsername(e.target.value.replace(/[^a-zA-Z0-9_-]/g, ""))}
-                                    maxLength={24}
-                                    placeholder="your-username"
-                                    style={{
-                                      flex: 1, maxWidth: 240, background: "rgba(0,0,0,0.3)",
-                                      border: `1px solid ${usernameAvailable === true ? "rgba(0,255,136,0.4)" : usernameAvailable === false ? "rgba(255,60,60,0.4)" : "rgba(255,255,255,0.1)"}`,
-                                      color: "var(--text)", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.7rem",
-                                      padding: "8px 10px", letterSpacing: "0.5px", outline: "none",
-                                    }}
-                                  />
-                                  {usernameAvailable === true && <span style={{ color: "#00ff88", fontSize: "0.7rem" }}>✓</span>}
-                                  {usernameAvailable === false && <span style={{ color: "#ff3c3c", fontSize: "0.7rem" }}>✗</span>}
-                                </div>
-                              </div>
-
-                              {/* Display Name */}
-                              <div style={{ marginBottom: 12 }}>
-                                <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.55rem", color: "var(--text-dim)", letterSpacing: "1px", marginBottom: 4 }}>DISPLAY NAME</div>
-                                <input
-                                  value={hangarDisplayName}
-                                  onChange={e => setHangarDisplayName(e.target.value)}
-                                  maxLength={40}
-                                  placeholder="How you want your name shown"
-                                  style={{
-                                    maxWidth: 320, background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.1)",
-                                    color: "var(--text)", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.7rem",
-                                    padding: "8px 10px", letterSpacing: "0.5px", outline: "none", boxSizing: "border-box",
-                                  }}
-                                />
-                              </div>
-
-                              {/* Bio */}
-                              <div style={{ marginBottom: 12 }}>
-                                <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.55rem", color: "var(--text-dim)", letterSpacing: "1px", marginBottom: 4 }}>
-                                  BIO <span style={{ opacity: 0.5 }}>({280 - hangarBio.length} left)</span>
-                                </div>
-                                <textarea
-                                  value={hangarBio}
-                                  onChange={e => setHangarBio(e.target.value.substring(0, 280))}
-                                  maxLength={280}
-                                  rows={2}
-                                  placeholder="Tell people about your builds..."
-                                  style={{
-                                    width: "100%", maxWidth: 500, background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.1)",
-                                    color: "var(--text)", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.65rem",
-                                    padding: "8px 10px", letterSpacing: "0.3px", outline: "none", resize: "vertical",
-                                    lineHeight: 1.6, boxSizing: "border-box",
-                                  }}
-                                />
-                              </div>
-
-                              {/* Public/Private */}
-                              <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 16 }}>
-                                <button
-                                  onClick={() => setHangarIsPublic(p => !p)}
-                                  style={{
-                                    background: hangarIsPublic ? "rgba(0,255,136,0.1)" : "rgba(255,255,255,0.05)",
-                                    border: `1px solid ${hangarIsPublic ? "rgba(0,255,136,0.3)" : "rgba(255,255,255,0.1)"}`,
-                                    color: hangarIsPublic ? "#00ff88" : "var(--text-dim)",
-                                    fontFamily: "'Share Tech Mono',monospace", fontSize: "0.6rem",
-                                    padding: "6px 14px", cursor: "pointer", letterSpacing: "1px",
-                                  }}
-                                >
-                                  {hangarIsPublic ? "🔓 PUBLIC" : "🔒 PRIVATE"}
-                                </button>
-                                <span style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.5rem", color: "var(--text-dim)" }}>
-                                  {hangarIsPublic ? "Anyone with the link can view" : "Only you can see your hangar"}
-                                </span>
-                              </div>
-
-                              {/* Create button */}
-                              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                                <button
-                                  onClick={saveHangarProfile}
-                                  disabled={hangarSaving || !hangarUsername.trim() || hangarUsername.trim().length < 3 || usernameAvailable === false}
-                                  style={{
-                                    background: "rgba(0,170,255,0.15)", border: "1px solid rgba(0,170,255,0.4)",
-                                    color: "#00aaff", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.7rem",
-                                    padding: "10px 24px", cursor: "pointer", letterSpacing: "1.5px",
-                                    opacity: (hangarSaving || !hangarUsername.trim() || hangarUsername.trim().length < 3 || usernameAvailable === false) ? 0.4 : 1,
-                                  }}
-                                >
-                                  {hangarSaving ? "CREATING..." : "✦ CREATE MY HANGAR"}
-                                </button>
-                                {hangarMsg && (
-                                  <span style={{
-                                    fontFamily: "'Share Tech Mono',monospace", fontSize: "0.6rem",
-                                    color: hangarMsg.startsWith("✓") ? "#00ff88" : "#ff3c3c",
-                                  }}>{hangarMsg}</span>
-                                )}
-                              </div>
-                            </div>
-                          ) : (
-                            /* ── EXISTING HANGAR — COMPACT CONTROLS ── */
-                            <div>
-                              {/* Top row: profile info + actions */}
-                              <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
-                                <div style={{ flex: 1, minWidth: 200 }}>
-                                  <div style={{ fontFamily: "'Orbitron',sans-serif", fontSize: "1rem", fontWeight: 700, color: "var(--text)" }}>
-                                    {hangarProfile.display_name || hangarProfile.username}
-                                  </div>
-                                  <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.6rem", color: "var(--text-dim)", letterSpacing: "0.5px", marginTop: 2 }}>
-                                    kitvault.io/hangar/{hangarProfile.username}
-                                    <span style={{ marginLeft: 8, color: hangarIsPublic ? "#00ff88" : "var(--text-dim)" }}>
-                                      {hangarIsPublic ? "🔓 PUBLIC" : "🔒 PRIVATE"}
-                                    </span>
-                                  </div>
-                                </div>
-                                <div style={{ display: "flex", gap: 8 }}>
-                                  <button
-                                    onClick={() => navigate(`/hangar/${hangarProfile.username}`)}
-                                    style={{
-                                      background: "rgba(0,170,255,0.1)", border: "1px solid rgba(0,170,255,0.3)",
-                                      color: "#00aaff", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.6rem",
-                                      padding: "7px 14px", cursor: "pointer", letterSpacing: "1px",
-                                    }}
-                                  >
-                                    VIEW HANGAR →
-                                  </button>
-                                  <button
-                                    onClick={() => {
-                                      navigator.clipboard.writeText(`https://kitvault.io/hangar/${hangarProfile.username}`);
-                                      setHangarMsg("✓ Copied!");
-                                      setTimeout(() => setHangarMsg(""), 2000);
-                                    }}
-                                    style={{
-                                      background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
-                                      color: "var(--text-dim)", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.6rem",
-                                      padding: "7px 14px", cursor: "pointer", letterSpacing: "1px",
-                                    }}
-                                  >
-                                    📋 COPY LINK
-                                  </button>
-                                  <button
-                                    onClick={() => setShowSettings(true)}
-                                    style={{
-                                      background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
-                                      color: "var(--text-dim)", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.6rem",
-                                      padding: "7px 14px", cursor: "pointer", letterSpacing: "1px",
-                                    }}
-                                  >
-                                    ⚙ EDIT
-                                  </button>
-                                </div>
-                              </div>
-
-                              {/* Info line */}
-                              <div style={{
-                                fontFamily: "'Share Tech Mono',monospace", fontSize: "0.55rem", color: "var(--text-dim)",
-                                letterSpacing: "0.5px", marginTop: 10, lineHeight: 1.6,
-                              }}>
-                                Kits in your vault are automatically shown in your hangar. Upload build photos from any kit detail page.
-                              </div>
-
-                              {/* Status message */}
-                              {hangarMsg && (
-                                <div style={{
-                                  fontFamily: "'Share Tech Mono',monospace", fontSize: "0.6rem", marginTop: 8,
-                                  color: hangarMsg.startsWith("✓") ? "#00ff88" : "#ff3c3c",
-                                }}>{hangarMsg}</div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
                     {vaultKits.length === 0 ? (
                       <div className="vault-empty">
                         <span className="vault-empty-icon">⭐</span>

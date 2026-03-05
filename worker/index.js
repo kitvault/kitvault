@@ -939,6 +939,77 @@ export default {
     }
 
     // ══════════════════════════════════════════════════════════
+    // VAULT PROGRESS SYNC ENDPOINTS
+    // ══════════════════════════════════════════════════════════
+
+    // ── GET /api/progress?userId= — Load user's vault progress from D1 ──
+    if (path === "/api/progress" && request.method === "GET") {
+      try {
+        const userId = url.searchParams.get("userId");
+        if (!userId) return new Response(JSON.stringify({}), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+        const row = await env.DB.prepare(
+          "SELECT favourites, progress, pages FROM user_progress WHERE user_id = ?"
+        ).bind(userId).first();
+
+        if (!row) return new Response(JSON.stringify({}), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+        return new Response(JSON.stringify({
+          favourites: row.favourites ? JSON.parse(row.favourites) : [],
+          progress: row.progress ? JSON.parse(row.progress) : {},
+          pages: row.pages ? JSON.parse(row.pages) : {},
+        }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      } catch (err) {
+        return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+    }
+
+    // ── POST /api/progress — Save/sync user's vault progress to D1 ──
+    if (path === "/api/progress" && request.method === "POST") {
+      try {
+        const body = await request.json();
+        const userId = body.userId;
+        if (!userId) return new Response(JSON.stringify({ ok: false, error: "Missing userId" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+        const now = Math.floor(Date.now() / 1000);
+
+        // Get existing row or create default
+        const existing = await env.DB.prepare(
+          "SELECT favourites, progress, pages FROM user_progress WHERE user_id = ?"
+        ).bind(userId).first();
+
+        const currentFavourites = existing?.favourites ? JSON.parse(existing.favourites) : [];
+        const currentProgress = existing?.progress ? JSON.parse(existing.progress) : {};
+        const currentPages = existing?.pages ? JSON.parse(existing.pages) : {};
+
+        // Merge incoming data (only update fields that were sent)
+        const newFavourites = body.favourites !== undefined ? body.favourites : currentFavourites;
+        const newProgress = body.progress !== undefined ? body.progress : currentProgress;
+        const newPages = body.pages !== undefined ? body.pages : currentPages;
+
+        await env.DB.prepare(`
+          INSERT INTO user_progress (user_id, favourites, progress, pages, updated_at)
+          VALUES (?, ?, ?, ?, ?)
+          ON CONFLICT(user_id) DO UPDATE SET
+            favourites = excluded.favourites,
+            progress = excluded.progress,
+            pages = excluded.pages,
+            updated_at = excluded.updated_at
+        `).bind(
+          userId,
+          JSON.stringify(newFavourites),
+          JSON.stringify(newProgress),
+          JSON.stringify(newPages),
+          now
+        ).run();
+
+        return new Response(JSON.stringify({ ok: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      } catch (err) {
+        return new Response(JSON.stringify({ ok: false, error: err.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+    }
+
+    // ══════════════════════════════════════════════════════════
     // HANGAR / PROFILE ENDPOINTS
     // ══════════════════════════════════════════════════════════
 
