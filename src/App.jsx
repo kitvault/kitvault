@@ -1040,6 +1040,38 @@ export default function KitVault() {
       <div className="app">
 
         {/* CLERK DOWN BANNER */}
+        {currentTheme === "cat" && (
+          <style>{`
+            [data-theme="cat"] .kit-card,
+            [data-theme="cat"] .manual-item,
+            [data-theme="cat"] .settings-modal,
+            [data-theme="cat"] .settings-section,
+            [data-theme="cat"] .nav-dropdown,
+            [data-theme="cat"] .resource-card,
+            [data-theme="cat"] .disclaimer-card,
+            [data-theme="cat"] .disclaimer-block,
+            [data-theme="cat"] .donate-block,
+            [data-theme="cat"] .affiliate-banner,
+            [data-theme="cat"] .vault-empty,
+            [data-theme="cat"] .controls,
+            [data-theme="cat"] .section-header,
+            [data-theme="cat"] .page-hero,
+            [data-theme="cat"] .comment-item,
+            [data-theme="cat"] .bandai-badge,
+            [data-theme="cat"] .modal-overlay .settings-body,
+            [data-theme="cat"] .xp-slim {
+              background-color: rgba(60, 40, 30, 0.95) !important;
+            }
+            [data-theme="cat"] .card-body,
+            [data-theme="cat"] .pdf-dropdown-inner,
+            [data-theme="cat"] .pdf-dropdown-header {
+              background-color: rgba(70, 45, 35, 0.97) !important;
+            }
+            [data-theme="cat"] .hero {
+              background-color: rgba(50, 30, 20, 0.9) !important;
+            }
+          `}</style>
+        )}
         {clerkFailed && !fallbackUserId && (
           <div style={{
             background: "rgba(255,170,0,0.08)", borderBottom: "1px solid rgba(255,170,0,0.25)",
@@ -1180,23 +1212,26 @@ export default function KitVault() {
               {effectiveSignedIn && (
                 <>
                   <button onClick={goVault} className={`vault-btn${location.pathname === "/vault" ? " active" : ""}`}>
-                    ⭐ VAULT
+                    VAULT
                   </button>
                   {hangarProfile?.username && (
                     <button
                       onClick={() => navigate(`/hangar/${hangarProfile.username}`)}
                       className={`vault-btn${location.pathname.startsWith("/hangar/") ? " active" : ""}`}
                     >
-                      🏠 HANGAR
+                      HANGAR
                     </button>
                   )}
                 </>
               )}
+              <a className="vault-btn" href="https://discord.gg/NGXB3bYW8a" target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none", color: "#7289da", borderColor: "rgba(114,137,218,0.3)" }}>
+                DISCORD
+              </a>
             </div>
 
             {/* THEME DROPDOWN */}
             <div className={`nav-item theme-picker${openNav === "theme" ? " open" : ""}`}>
-              <button className="theme-toggle-btn" onClick={() => toggleNav("theme")} title="Change Theme">🎨</button>
+              <button className="theme-toggle-btn" onClick={() => toggleNav("theme")} title="Change Theme" style={{ fontSize: "0.6rem", letterSpacing: "1px" }}>THEME</button>
               <div className="nav-dropdown theme-dropdown">
                 <div className="nav-dropdown-header">◈ THEME</div>
                 {[
@@ -1253,400 +1288,400 @@ export default function KitVault() {
         )}
 
         <ErrorBoundary>
-        <Routes>
+          <Routes>
 
-          {/* ===== HOME PAGE ===== */}
-          <Route path="/" element={
-            <>
-              <section className="hero">
-                <div className="hero-tag">GUNDAM MANUAL ARCHIVE</div>
-                <h1><span className="a1">KIT</span><span className="a2">VAULT</span></h1>
-                <p className="hero-sub">YOUR COMPLETE GUNPLA MANUAL DATABASE</p>
-              </section>
+            {/* ===== HOME PAGE ===== */}
+            <Route path="/" element={
+              <>
+                <section className="hero">
+                  <div className="hero-tag">GUNDAM MANUAL ARCHIVE</div>
+                  <h1><span className="a1">KIT</span><span className="a2">VAULT</span></h1>
+                  <p className="hero-sub">YOUR COMPLETE GUNPLA MANUAL DATABASE</p>
+                </section>
 
-              <div className="controls">
-                <div className="controls-row">
-                  <div className="search-wrap">
-                    <span className="search-icon">⌕</span>
-                    <input className="search-input" placeholder="Search for Kits" value={search} onChange={e => setSearch(e.target.value)} />
-                  </div>
-                </div>
-                <div className="controls-row">
-                  <span className="controls-label">GRADE</span>
-                  {GRADES.map(g => {
-                    const c = GRADE_COLORS[g];
-                    const isActive = gradeFilter === g;
-                    const accent = g === "ALL" ? "var(--accent)" : c?.accent || "var(--accent)";
-                    return (
-                      <button
-                        key={g}
-                        className={`filter-btn ${isActive ? "active" : ""}`}
-                        style={isActive ? { borderColor: accent, color: accent, background: `${c?.bg || "rgba(0,170,255,0.08)"}`, boxShadow: `0 0 12px ${accent}33` } : {}}
-                        onClick={() => setGradeFilter(g)}
-                      >{g}</button>
-                    );
-                  })}
-                  <div className="filter-divider" />
-                  <span className="controls-label">SORT</span>
-                  <button className={`sort-btn ${sortOrder === "az" ? "active" : ""}`} onClick={() => setSortOrder(s => s === "az" ? "default" : "az")}>A→Z</button>
-                  <button className={`sort-btn ${sortOrder === "za" ? "active" : ""}`} onClick={() => setSortOrder(s => s === "za" ? "default" : "za")}>Z→A</button>
-                </div>
-              </div>
-
-              <div className="section-header">
-                <span className="section-title">KIT LIBRARY</span>
-                <div className="section-line" />
-                <span className="section-count">{filtered.length} RESULTS</span>
-              </div>
-
-              <div className="kit-grid">
-                {kitsLoading ? (
-                  <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: "60px 20px" }}>
-                    <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.75rem", color: "var(--text-dim)", letterSpacing: "2px" }}>
-                      LOADING KITS...
+                <div className="controls">
+                  <div className="controls-row">
+                    <div className="search-wrap">
+                      <span className="search-icon">⌕</span>
+                      <input className="search-input" placeholder="Search for Kits" value={search} onChange={e => setSearch(e.target.value)} />
                     </div>
                   </div>
-                ) : filtered.length === 0 ? (
-                  <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: "60px 20px" }}>
-                    <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.75rem", color: "var(--text-dim)", letterSpacing: "2px" }}>
-                      NO KITS FOUND
-                    </div>
-                  </div>
-                ) : (
-                  filtered.map(kit => renderKitCard(kit))
-                )}
-              </div>
-            </>
-          } />
-
-          {/* ===== KIT DETAIL PAGE ===== */}
-          <Route path="/kit/:slug" element={
-            <KitDetail
-              allKits={allKits} isSignedIn={effectiveSignedIn} user={user || { id: effectiveUserId }}
-              favourites={favourites} buildProgress={buildProgress}
-              pageProgress={pageProgress} toggleFavourite={toggleFavourite}
-              setBuildStatus={setBuildStatus} setManualPage={setManualPage}
-              openManualId={openManualId} toggleManual={toggleManual}
-              setOpenManualId={setOpenManualId} goHome={goHome}
-              onKitUpdated={fetchD1Kits}
-            />
-          } />
-
-          {/* ===== MY VAULT PAGE ===== */}
-          <Route path="/vault" element={
-            <>
-              {(() => {
-                const vaultKits = allKits.filter(k =>
-                  favourites.includes(k.id) ||
-                  buildProgress[k.id] === "inprogress" ||
-                  buildProgress[k.id] === "complete" ||
-                  buildProgress[k.id] === "backlog"
-                );
-                const favOnly = vaultKits.filter(k => favourites.includes(k.id));
-                const inProgress = vaultKits.filter(k => buildProgress[k.id] === "inprogress");
-                const complete = vaultKits.filter(k => buildProgress[k.id] === "complete");
-                const backlog = vaultKits.filter(k =>
-                  buildProgress[k.id] === "backlog" && !favourites.includes(k.id)
-                );
-
-                return (
-                  <>
-                    <div className="page-hero">
-                      <div className="page-tag">PERSONAL COLLECTION</div>
-                      <div className="page-title">MY <span style={{ color: "var(--accent)" }}>VAULT</span></div>
-                      <div className="page-sub">{vaultKits.length} KIT{vaultKits.length !== 1 ? "S" : ""} TRACKED</div>
-                    </div>
-
-                    {/* Backup auth setup prompt */}
-                    {effectiveSignedIn && !hasBackupAuth && (
-                      <div style={{ maxWidth: 800, margin: "0 auto 12px", padding: "0 40px" }}>
-                        <BackupAuthSetup onRegister={handleRegisterBackup} hasBackupAuth={hasBackupAuth} backupAuthEmail={backupAuthEmail} />
-                      </div>
-                    )}
-                    {vaultKits.length === 0 ? (
-                      <div className="vault-empty">
-                        <span className="vault-empty-icon">⭐</span>
-                        NOTHING IN YOUR VAULT YET<br />
-                        <span style={{ fontSize: "0.7rem", opacity: 0.5 }}>STAR A KIT OR SET A BUILD STATUS TO ADD IT HERE</span>
-                      </div>
-                    ) : (
-                      <div style={{ padding: "0 40px 60px" }}>
-                        {favOnly.length > 0 && (
-                          <>
-                            <div className="section-header" style={{ padding: "0 0 20px", marginBottom: "4px" }}>
-                              <span className="section-title" style={{ color: "var(--gold)" }}>⭐ FAVORITES</span>
-                              <div className="section-line" />
-                              <span className="section-count">{favOnly.length} KIT{favOnly.length !== 1 ? "S" : ""}</span>
-                            </div>
-                            <div className="vault-grid" style={{ padding: "0 0 32px" }}>{favOnly.map(k => renderKitCard(k, { showBacklog: true, showRemove: true }))}</div>
-                          </>
-                        )}
-                        {inProgress.length > 0 && (
-                          <>
-                            <div className="section-header" style={{ padding: "0 0 20px", marginBottom: "4px" }}>
-                              <span className="section-title" style={{ color: "var(--gold)" }}>⚙ IN PROGRESS</span>
-                              <div className="section-line" />
-                              <span className="section-count">{inProgress.length} KIT{inProgress.length !== 1 ? "S" : ""}</span>
-                            </div>
-                            <div className="vault-grid" style={{ padding: "0 0 32px" }}>{inProgress.map(k => renderKitCard(k, { showBacklog: true, showRemove: true }))}</div>
-                          </>
-                        )}
-                        {complete.length > 0 && (
-                          <>
-                            <div className="section-header" style={{ padding: "0 0 20px", marginBottom: "4px" }}>
-                              <span className="section-title" style={{ color: "var(--green)" }}>✓ COMPLETED</span>
-                              <div className="section-line" />
-                              <span className="section-count">{complete.length} KIT{complete.length !== 1 ? "S" : ""}</span>
-                            </div>
-                            <div className="vault-grid" style={{ padding: "0 0 32px" }}>{complete.map(k => renderKitCard(k, { showBacklog: true, showRemove: true }))}</div>
-                          </>
-                        )}
-                        {backlog.length > 0 && (
-                          <>
-                            <div className="section-header" style={{ padding: "0 0 20px", marginBottom: "4px" }}>
-                              <span className="section-title" style={{ color: "var(--text-dim)" }}>◻ BACKLOG</span>
-                              <div className="section-line" />
-                              <span className="section-count">{backlog.length} KIT{backlog.length !== 1 ? "S" : ""}</span>
-                            </div>
-                            <div className="vault-grid" style={{ padding: "0 0 32px" }}>{backlog.map(k => renderKitCard(k, { showBacklog: true, showRemove: true }))}</div>
-                          </>
-                        )}
-                      </div>
-                    )}
-                  </>
-                );
-              })()}
-            </>
-          } />
-
-          {/* ===== GRADE DETAIL PAGE ===== */}
-          <Route path="/grade/:gradeSlug" element={<GradeDetail setGradeFilter={setGradeFilter} />} />
-
-          {/* ===== RESOURCES PAGE ===== */}
-          <Route path="/resources" element={
-            <>
-              <div className="page-hero">
-                <div className="page-tag">GUIDES & LINKS</div>
-                <div className="page-title">RESOURCES</div>
-                <div className="page-sub">EVERYTHING YOU NEED TO BUILD BETTER</div>
-              </div>
-              <div className="resources-page">
-
-                {/* COMMUNITY */}
-                <div className="resources-section">
-                  <div className="resources-section-title">◈ COMMUNITY</div>
-                  <div className="resources-grid">
-                    {[
-                      { icon: "📖", label: "Gunpla Wiki", sub: "The definitive beginner resource. Grades explained, tool guides, technique breakdowns, FAQs. Best place to start if you're new.", tag: "WIKI", href: "https://www.reddit.com/r/Gunpla/wiki/", color: "#00aaff" },
-                      { icon: "💬", label: "r/Gunpla", sub: "The largest Gunpla community on the internet. Share your builds, ask questions, browse WIPs, and get feedback from thousands of builders worldwide.", tag: "REDDIT", href: "https://www.reddit.com/r/Gunpla/", color: "#ff6600" },
-                      { icon: "🌐", label: "Gundam Base Online", sub: "Bandai's official Gunpla storefront and news hub. Best place to track new kit announcements, P-Bandai exclusives, and limited releases straight from the source.", tag: "OFFICIAL", href: "https://p-bandai.com/", color: "#00ffcc" },
-                    ].map(r => (
-                      <a key={r.label} className="resource-card" href={r.href} target="_blank" rel="noopener noreferrer" style={{ "--rc-color": r.color }}>
-                        <span className="resource-card-icon">{r.icon}</span>
-                        <span className="resource-card-body">
-                          <span className="resource-card-label">{r.label}</span>
-                          <span className="resource-card-sub">{r.sub}</span>
-                          <span className="resource-card-tag">{r.tag}</span>
-                        </span>
-                      </a>
-                    ))}
+                  <div className="controls-row">
+                    <span className="controls-label">GRADE</span>
+                    {GRADES.map(g => {
+                      const c = GRADE_COLORS[g];
+                      const isActive = gradeFilter === g;
+                      const accent = g === "ALL" ? "var(--accent)" : c?.accent || "var(--accent)";
+                      return (
+                        <button
+                          key={g}
+                          className={`filter-btn ${isActive ? "active" : ""}`}
+                          style={isActive ? { borderColor: accent, color: accent, background: `${c?.bg || "rgba(0,170,255,0.08)"}`, boxShadow: `0 0 12px ${accent}33` } : {}}
+                          onClick={() => setGradeFilter(g)}
+                        >{g}</button>
+                      );
+                    })}
+                    <div className="filter-divider" />
+                    <span className="controls-label">SORT</span>
+                    <button className={`sort-btn ${sortOrder === "az" ? "active" : ""}`} onClick={() => setSortOrder(s => s === "az" ? "default" : "az")}>A→Z</button>
+                    <button className={`sort-btn ${sortOrder === "za" ? "active" : ""}`} onClick={() => setSortOrder(s => s === "za" ? "default" : "za")}>Z→A</button>
                   </div>
                 </div>
 
-                {/* WHERE TO BUY */}
-                <div className="resources-section">
-                  <div className="resources-section-title">◈ WHERE TO BUY</div>
-                  <div className="resources-grid">
-                    {[
-                      { icon: "🛒", label: "Hobbylink Japan (HLJ)", sub: "The go-to import retailer. Widest selection of kits at Japanese retail prices, ships worldwide. Great for pre-orders and hard-to-find kits.", tag: "IMPORT", href: "https://www.hlj.com", color: "#ff2244" },
-                      { icon: "🛒", label: "Gundam Planet", sub: "US-based Gunpla specialist with fast domestic shipping. Good stock on current HG and MG releases, no import wait times.", tag: "US", href: "https://www.gundamplanet.com", color: "#00aaff" },
-                    ].map(r => (
-                      <a key={r.label} className="resource-card" href={r.href} target="_blank" rel="noopener noreferrer" style={{ "--rc-color": r.color }}>
-                        <span className="resource-card-icon">{r.icon}</span>
-                        <span className="resource-card-body">
-                          <span className="resource-card-label">{r.label}</span>
-                          <span className="resource-card-sub">{r.sub}</span>
-                          <span className="resource-card-tag">{r.tag}</span>
-                        </span>
-                      </a>
-                    ))}
-                  </div>
+                <div className="section-header">
+                  <span className="section-title">KIT LIBRARY</span>
+                  <div className="section-line" />
+                  <span className="section-count">{filtered.length} RESULTS</span>
                 </div>
 
-                {/* KIT REVIEWS */}
-                <div className="resources-section">
-                  <div className="resources-section-title">◈ KIT REVIEWS & DATABASE</div>
-                  <div className="resources-grid">
-                    {[
-                      { icon: "🔗", label: "Dalong.net Kit Reviews", sub: "Comprehensive Japanese kit review database with photos, runner breakdowns, and assembly notes on thousands of kits. Essential for research before buying.", tag: "DATABASE", href: "http://www.dalong.net", color: "#ffcc00" },
-                    ].map(r => (
-                      <a key={r.label} className="resource-card" href={r.href} target="_blank" rel="noopener noreferrer" style={{ "--rc-color": r.color }}>
-                        <span className="resource-card-icon">{r.icon}</span>
-                        <span className="resource-card-body">
-                          <span className="resource-card-label">{r.label}</span>
-                          <span className="resource-card-sub">{r.sub}</span>
-                          <span className="resource-card-tag">{r.tag}</span>
-                        </span>
-                      </a>
-                    ))}
-                  </div>
-                </div>
-
-              </div>
-            </>
-          } />
-
-          {/* ===== GALLERY PAGE ===== */}
-          <Route path="/gallery" element={<Gallery allKits={allKits} effectiveUser={effectiveSignedIn ? { id: effectiveUserId, email: fallbackEmail, fullName: user?.fullName, firstName: user?.firstName, username: user?.username, imageUrl: user?.imageUrl } : null} effectiveSignedIn={effectiveSignedIn} />} />
-
-          {/* ===== SUPPORT / DONATE PAGE ===== */}
-          <Route path="/support" element={
-            <>
-              <div className="page-hero">
-                <div className="page-tag">100% OPTIONAL · 100% APPRECIATED</div>
-                <div className="page-title">TIP <span style={{ color: "var(--gold, #ffcc00)" }}>JAR</span></div>
-                <div className="page-sub">HELP KEEP THE LIGHTS ON</div>
-              </div>
-              <div style={{ padding: "0 40px 60px", maxWidth: 1000, margin: "0 auto" }}>
-
-                {/* The pitch — single column, conversational */}
-                <div style={{ maxWidth: 620, margin: "0 auto 40px", fontFamily: "'Share Tech Mono',monospace" }}>
-                  <div style={{ fontSize: "0.75rem", color: "#c8ddf5", lineHeight: 2.2, letterSpacing: "0.3px", marginBottom: 24 }}>
-                    KitVault started because I was sick of googling manual scans and landing on dead links
-                    or sites that looked like they hadn't been updated since the Wing Zero Ver.Ka dropped.
-                    So I built this. One person, no team, no budget. Just a dude with too many nub marks on his
-                    desk and a Cloudflare account.
-                  </div>
-                  <div style={{ fontSize: "0.75rem", color: "#9ab0cc", lineHeight: 2.2, letterSpacing: "0.3px", marginBottom: 24 }}>
-                    Storing 500+ PDFs, running the database, and keeping page loads fast enough that you're not
-                    waiting longer than a PG inner frame takes to assemble... that all costs money every month.
-                    If KitVault has ever saved you from squinting at a blurry Instagram photo of step 14,
-                    tossing a couple bucks my way would genuinely help.
-                  </div>
-                  <div style={{ fontSize: "0.68rem", color: "var(--text-dim,#5a7a9f)", lineHeight: 2, letterSpacing: "0.3px", borderTop: "1px solid var(--border,#1a2f50)", paddingTop: 20 }}>
-                    There's no paywall, no "premium tier," no pop-up begging you on every page.
-                    This tip jar exists, the link lives in the footer, and I'll never bug you about it.
-                    If you drop something in here though, know that it's going straight into keeping this thing alive.
-                  </div>
-                </div>
-
-                {/* Ko-fi widget — centered, clean */}
-                <div style={{ maxWidth: 420, margin: "0 auto", background: "#fff", borderRadius: 8, overflow: "hidden" }}>
-                  <iframe
-                    id="kofiframe"
-                    src="https://ko-fi.com/kitvault1/?hidefeed=true&widget=true&embed=true&preview=true"
-                    style={{ border: "none", width: "100%", padding: 4, background: "#fff", minHeight: 500 }}
-                    title="Support KitVault on Ko-fi"
-                  />
-                </div>
-
-                {/* FAQ — compact, below widget */}
-                <div style={{ maxWidth: 620, margin: "40px auto 0", fontFamily: "'Share Tech Mono',monospace" }}>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
-                    <div>
-                      <div style={{ fontSize: "0.6rem", color: "var(--accent,#00aaff)", letterSpacing: "2px", marginBottom: 8 }}>WHERE DOES IT GO?</div>
-                      <div style={{ fontSize: "0.62rem", color: "#5a7a9f", lineHeight: 2 }}>
-                        Server bills, domain renewal, R2 storage for PDFs, and Cloudflare Workers. The boring stuff that keeps the site loading fast.
+                <div className="kit-grid">
+                  {kitsLoading ? (
+                    <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: "60px 20px" }}>
+                      <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.75rem", color: "var(--text-dim)", letterSpacing: "2px" }}>
+                        LOADING KITS...
                       </div>
                     </div>
-                    <div>
-                      <div style={{ fontSize: "0.6rem", color: "var(--accent,#00aaff)", letterSpacing: "2px", marginBottom: 8 }}>WHAT DO I GET?</div>
-                      <div style={{ fontSize: "0.62rem", color: "#5a7a9f", lineHeight: 2 }}>
-                        Nothing tangible. The site stays free for everyone regardless. But you get to feel good about it, and that's worth at least $3.
+                  ) : filtered.length === 0 ? (
+                    <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: "60px 20px" }}>
+                      <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.75rem", color: "var(--text-dim)", letterSpacing: "2px" }}>
+                        NO KITS FOUND
+                      </div>
+                    </div>
+                  ) : (
+                    filtered.map(kit => renderKitCard(kit))
+                  )}
+                </div>
+              </>
+            } />
+
+            {/* ===== KIT DETAIL PAGE ===== */}
+            <Route path="/kit/:slug" element={
+              <KitDetail
+                allKits={allKits} isSignedIn={effectiveSignedIn} user={user || { id: effectiveUserId }}
+                favourites={favourites} buildProgress={buildProgress}
+                pageProgress={pageProgress} toggleFavourite={toggleFavourite}
+                setBuildStatus={setBuildStatus} setManualPage={setManualPage}
+                openManualId={openManualId} toggleManual={toggleManual}
+                setOpenManualId={setOpenManualId} goHome={goHome}
+                onKitUpdated={fetchD1Kits}
+              />
+            } />
+
+            {/* ===== MY VAULT PAGE ===== */}
+            <Route path="/vault" element={
+              <>
+                {(() => {
+                  const vaultKits = allKits.filter(k =>
+                    favourites.includes(k.id) ||
+                    buildProgress[k.id] === "inprogress" ||
+                    buildProgress[k.id] === "complete" ||
+                    buildProgress[k.id] === "backlog"
+                  );
+                  const favOnly = vaultKits.filter(k => favourites.includes(k.id));
+                  const inProgress = vaultKits.filter(k => buildProgress[k.id] === "inprogress");
+                  const complete = vaultKits.filter(k => buildProgress[k.id] === "complete");
+                  const backlog = vaultKits.filter(k =>
+                    buildProgress[k.id] === "backlog" && !favourites.includes(k.id)
+                  );
+
+                  return (
+                    <>
+                      <div className="page-hero">
+                        <div className="page-tag">PERSONAL COLLECTION</div>
+                        <div className="page-title">MY <span style={{ color: "var(--accent)" }}>VAULT</span></div>
+                        <div className="page-sub">{vaultKits.length} KIT{vaultKits.length !== 1 ? "S" : ""} TRACKED</div>
+                      </div>
+
+                      {/* Backup auth setup prompt */}
+                      {effectiveSignedIn && !hasBackupAuth && (
+                        <div style={{ maxWidth: 800, margin: "0 auto 12px", padding: "0 40px" }}>
+                          <BackupAuthSetup onRegister={handleRegisterBackup} hasBackupAuth={hasBackupAuth} backupAuthEmail={backupAuthEmail} />
+                        </div>
+                      )}
+                      {vaultKits.length === 0 ? (
+                        <div className="vault-empty">
+                          <span className="vault-empty-icon">⭐</span>
+                          NOTHING IN YOUR VAULT YET<br />
+                          <span style={{ fontSize: "0.7rem", opacity: 0.5 }}>STAR A KIT OR SET A BUILD STATUS TO ADD IT HERE</span>
+                        </div>
+                      ) : (
+                        <div style={{ padding: "0 40px 60px" }}>
+                          {favOnly.length > 0 && (
+                            <>
+                              <div className="section-header" style={{ padding: "0 0 20px", marginBottom: "4px" }}>
+                                <span className="section-title" style={{ color: "var(--gold)" }}>⭐ FAVORITES</span>
+                                <div className="section-line" />
+                                <span className="section-count">{favOnly.length} KIT{favOnly.length !== 1 ? "S" : ""}</span>
+                              </div>
+                              <div className="vault-grid" style={{ padding: "0 0 32px" }}>{favOnly.map(k => renderKitCard(k, { showBacklog: true, showRemove: true }))}</div>
+                            </>
+                          )}
+                          {inProgress.length > 0 && (
+                            <>
+                              <div className="section-header" style={{ padding: "0 0 20px", marginBottom: "4px" }}>
+                                <span className="section-title" style={{ color: "var(--gold)" }}>⚙ IN PROGRESS</span>
+                                <div className="section-line" />
+                                <span className="section-count">{inProgress.length} KIT{inProgress.length !== 1 ? "S" : ""}</span>
+                              </div>
+                              <div className="vault-grid" style={{ padding: "0 0 32px" }}>{inProgress.map(k => renderKitCard(k, { showBacklog: true, showRemove: true }))}</div>
+                            </>
+                          )}
+                          {complete.length > 0 && (
+                            <>
+                              <div className="section-header" style={{ padding: "0 0 20px", marginBottom: "4px" }}>
+                                <span className="section-title" style={{ color: "var(--green)" }}>✓ COMPLETED</span>
+                                <div className="section-line" />
+                                <span className="section-count">{complete.length} KIT{complete.length !== 1 ? "S" : ""}</span>
+                              </div>
+                              <div className="vault-grid" style={{ padding: "0 0 32px" }}>{complete.map(k => renderKitCard(k, { showBacklog: true, showRemove: true }))}</div>
+                            </>
+                          )}
+                          {backlog.length > 0 && (
+                            <>
+                              <div className="section-header" style={{ padding: "0 0 20px", marginBottom: "4px" }}>
+                                <span className="section-title" style={{ color: "var(--text-dim)" }}>◻ BACKLOG</span>
+                                <div className="section-line" />
+                                <span className="section-count">{backlog.length} KIT{backlog.length !== 1 ? "S" : ""}</span>
+                              </div>
+                              <div className="vault-grid" style={{ padding: "0 0 32px" }}>{backlog.map(k => renderKitCard(k, { showBacklog: true, showRemove: true }))}</div>
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
+              </>
+            } />
+
+            {/* ===== GRADE DETAIL PAGE ===== */}
+            <Route path="/grade/:gradeSlug" element={<GradeDetail setGradeFilter={setGradeFilter} />} />
+
+            {/* ===== RESOURCES PAGE ===== */}
+            <Route path="/resources" element={
+              <>
+                <div className="page-hero">
+                  <div className="page-tag">GUIDES & LINKS</div>
+                  <div className="page-title">RESOURCES</div>
+                  <div className="page-sub">EVERYTHING YOU NEED TO BUILD BETTER</div>
+                </div>
+                <div className="resources-page">
+
+                  {/* COMMUNITY */}
+                  <div className="resources-section">
+                    <div className="resources-section-title">◈ COMMUNITY</div>
+                    <div className="resources-grid">
+                      {[
+                        { icon: "📖", label: "Gunpla Wiki", sub: "The definitive beginner resource. Grades explained, tool guides, technique breakdowns, FAQs. Best place to start if you're new.", tag: "WIKI", href: "https://www.reddit.com/r/Gunpla/wiki/", color: "#00aaff" },
+                        { icon: "💬", label: "r/Gunpla", sub: "The largest Gunpla community on the internet. Share your builds, ask questions, browse WIPs, and get feedback from thousands of builders worldwide.", tag: "REDDIT", href: "https://www.reddit.com/r/Gunpla/", color: "#ff6600" },
+                        { icon: "🌐", label: "Gundam Base Online", sub: "Bandai's official Gunpla storefront and news hub. Best place to track new kit announcements, P-Bandai exclusives, and limited releases straight from the source.", tag: "OFFICIAL", href: "https://p-bandai.com/", color: "#00ffcc" },
+                      ].map(r => (
+                        <a key={r.label} className="resource-card" href={r.href} target="_blank" rel="noopener noreferrer" style={{ "--rc-color": r.color }}>
+                          <span className="resource-card-icon">{r.icon}</span>
+                          <span className="resource-card-body">
+                            <span className="resource-card-label">{r.label}</span>
+                            <span className="resource-card-sub">{r.sub}</span>
+                            <span className="resource-card-tag">{r.tag}</span>
+                          </span>
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* WHERE TO BUY */}
+                  <div className="resources-section">
+                    <div className="resources-section-title">◈ WHERE TO BUY</div>
+                    <div className="resources-grid">
+                      {[
+                        { icon: "🛒", label: "Hobbylink Japan (HLJ)", sub: "The go-to import retailer. Widest selection of kits at Japanese retail prices, ships worldwide. Great for pre-orders and hard-to-find kits.", tag: "IMPORT", href: "https://www.hlj.com", color: "#ff2244" },
+                        { icon: "🛒", label: "Gundam Planet", sub: "US-based Gunpla specialist with fast domestic shipping. Good stock on current HG and MG releases, no import wait times.", tag: "US", href: "https://www.gundamplanet.com", color: "#00aaff" },
+                      ].map(r => (
+                        <a key={r.label} className="resource-card" href={r.href} target="_blank" rel="noopener noreferrer" style={{ "--rc-color": r.color }}>
+                          <span className="resource-card-icon">{r.icon}</span>
+                          <span className="resource-card-body">
+                            <span className="resource-card-label">{r.label}</span>
+                            <span className="resource-card-sub">{r.sub}</span>
+                            <span className="resource-card-tag">{r.tag}</span>
+                          </span>
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* KIT REVIEWS */}
+                  <div className="resources-section">
+                    <div className="resources-section-title">◈ KIT REVIEWS & DATABASE</div>
+                    <div className="resources-grid">
+                      {[
+                        { icon: "🔗", label: "Dalong.net Kit Reviews", sub: "Comprehensive Japanese kit review database with photos, runner breakdowns, and assembly notes on thousands of kits. Essential for research before buying.", tag: "DATABASE", href: "http://www.dalong.net", color: "#ffcc00" },
+                      ].map(r => (
+                        <a key={r.label} className="resource-card" href={r.href} target="_blank" rel="noopener noreferrer" style={{ "--rc-color": r.color }}>
+                          <span className="resource-card-icon">{r.icon}</span>
+                          <span className="resource-card-body">
+                            <span className="resource-card-label">{r.label}</span>
+                            <span className="resource-card-sub">{r.sub}</span>
+                            <span className="resource-card-tag">{r.tag}</span>
+                          </span>
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+
+                </div>
+              </>
+            } />
+
+            {/* ===== GALLERY PAGE ===== */}
+            <Route path="/gallery" element={<Gallery allKits={allKits} effectiveUser={effectiveSignedIn ? { id: effectiveUserId, email: fallbackEmail, fullName: user?.fullName, firstName: user?.firstName, username: user?.username, imageUrl: user?.imageUrl } : null} effectiveSignedIn={effectiveSignedIn} />} />
+
+            {/* ===== SUPPORT / DONATE PAGE ===== */}
+            <Route path="/support" element={
+              <>
+                <div className="page-hero">
+                  <div className="page-tag">100% OPTIONAL · 100% APPRECIATED</div>
+                  <div className="page-title">TIP <span style={{ color: "var(--gold, #ffcc00)" }}>JAR</span></div>
+                  <div className="page-sub">HELP KEEP THE LIGHTS ON</div>
+                </div>
+                <div style={{ padding: "0 40px 60px", maxWidth: 1000, margin: "0 auto" }}>
+
+                  {/* The pitch — single column, conversational */}
+                  <div style={{ maxWidth: 620, margin: "0 auto 40px", fontFamily: "'Share Tech Mono',monospace" }}>
+                    <div style={{ fontSize: "0.75rem", color: "#c8ddf5", lineHeight: 2.2, letterSpacing: "0.3px", marginBottom: 24 }}>
+                      KitVault started because I was sick of googling manual scans and landing on dead links
+                      or sites that looked like they hadn't been updated since the Wing Zero Ver.Ka dropped.
+                      So I built this. One person, no team, no budget. Just a dude with too many nub marks on his
+                      desk and a Cloudflare account.
+                    </div>
+                    <div style={{ fontSize: "0.75rem", color: "#9ab0cc", lineHeight: 2.2, letterSpacing: "0.3px", marginBottom: 24 }}>
+                      Storing 500+ PDFs, running the database, and keeping page loads fast enough that you're not
+                      waiting longer than a PG inner frame takes to assemble... that all costs money every month.
+                      If KitVault has ever saved you from squinting at a blurry Instagram photo of step 14,
+                      tossing a couple bucks my way would genuinely help.
+                    </div>
+                    <div style={{ fontSize: "0.68rem", color: "var(--text-dim,#5a7a9f)", lineHeight: 2, letterSpacing: "0.3px", borderTop: "1px solid var(--border,#1a2f50)", paddingTop: 20 }}>
+                      There's no paywall, no "premium tier," no pop-up begging you on every page.
+                      This tip jar exists, the link lives in the footer, and I'll never bug you about it.
+                      If you drop something in here though, know that it's going straight into keeping this thing alive.
+                    </div>
+                  </div>
+
+                  {/* Ko-fi widget — centered, clean */}
+                  <div style={{ maxWidth: 420, margin: "0 auto", background: "#fff", borderRadius: 8, overflow: "hidden" }}>
+                    <iframe
+                      id="kofiframe"
+                      src="https://ko-fi.com/kitvault1/?hidefeed=true&widget=true&embed=true&preview=true"
+                      style={{ border: "none", width: "100%", padding: 4, background: "#fff", minHeight: 500 }}
+                      title="Support KitVault on Ko-fi"
+                    />
+                  </div>
+
+                  {/* FAQ — compact, below widget */}
+                  <div style={{ maxWidth: 620, margin: "40px auto 0", fontFamily: "'Share Tech Mono',monospace" }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+                      <div>
+                        <div style={{ fontSize: "0.6rem", color: "var(--accent,#00aaff)", letterSpacing: "2px", marginBottom: 8 }}>WHERE DOES IT GO?</div>
+                        <div style={{ fontSize: "0.62rem", color: "#5a7a9f", lineHeight: 2 }}>
+                          Server bills, domain renewal, R2 storage for PDFs, and Cloudflare Workers. The boring stuff that keeps the site loading fast.
+                        </div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: "0.6rem", color: "var(--accent,#00aaff)", letterSpacing: "2px", marginBottom: 8 }}>WHAT DO I GET?</div>
+                        <div style={{ fontSize: "0.62rem", color: "#5a7a9f", lineHeight: 2 }}>
+                          Nothing tangible. The site stays free for everyone regardless. But you get to feel good about it, and that's worth at least $3.
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
 
-                <style>{`@media(max-width:768px){[data-support-grid]{grid-template-columns:1fr !important;}}`}</style>
+                  <style>{`@media(max-width:768px){[data-support-grid]{grid-template-columns:1fr !important;}}`}</style>
+                </div>
+              </>
+            } />
+
+            {/* ===== DISCLAIMER PAGE ===== */}
+            <Route path="/disclaimer" element={
+              <>
+                <div className="page-hero">
+                  <div className="page-tag">LEGAL NOTICE</div>
+                  <div className="page-title">DISCLAIMER</div>
+                  <div className="page-sub">PLEASE READ BEFORE USING THIS SITE</div>
+                </div>
+                <div className="page">
+                  <div className="bandai-badge">
+                    <div className="bandai-name">BANDAI NAMCO ENTERTAINMENT</div>
+                    <div className="bandai-sub">© SOTSU · SUNRISE. ALL GUNDAM IP AND TRADEMARKS BELONG TO THEIR RESPECTIVE OWNERS.</div>
+                  </div>
+                  <div className="disclaimer-grid">
+                    <div className="disclaimer-card" style={{ "--dc": "#ffcc00" }}>
+                      <div className="disclaimer-card-icon">🛡️</div>
+                      <div className="disclaimer-card-title">FAN PROJECT</div>
+                      <div className="disclaimer-card-text">KitVault.io is an unofficial, non-commercial fan-made website created out of love for the Gunpla hobby. It is not affiliated with, endorsed by, or connected to Bandai Namco Entertainment, Sotsu, or Sunrise in any way.</div>
+                    </div>
+                    <div className="disclaimer-card" style={{ "--dc": "#00aaff" }}>
+                      <div className="disclaimer-card-icon">📄</div>
+                      <div className="disclaimer-card-title">MANUAL CONTENT</div>
+                      <div className="disclaimer-card-text">All assembly manuals hosted on this site are the intellectual property of Bandai Namco Entertainment. They are provided here solely as a convenience resource for hobbyists who have already purchased these kits.</div>
+                    </div>
+                    <div className="disclaimer-card" style={{ "--dc": "#00ffcc" }}>
+                      <div className="disclaimer-card-icon">🔗</div>
+                      <div className="disclaimer-card-title">AFFILIATE LINKS</div>
+                      <div className="disclaimer-card-text">This site participates in the Amazon Associates affiliate program. Links to Amazon products may earn a small commission at no extra cost to you. This helps cover server costs and keeps the site free for everyone.</div>
+                    </div>
+                    <div className="disclaimer-card" style={{ "--dc": "#ff6600" }}>
+                      <div className="disclaimer-card-icon">💛</div>
+                      <div className="disclaimer-card-title">NON-PROFIT</div>
+                      <div className="disclaimer-card-text">Any revenue generated through affiliate links or donations is used solely to cover hosting and maintenance costs. This project is run by a hobbyist for hobbyists. Not for profit.</div>
+                    </div>
+                  </div>
+                  <div className="disclaimer-block">
+                    <div className="disclaimer-block-title">INTELLECTUAL PROPERTY NOTICE</div>
+                    <p><span className="hl">Gundam</span>, all associated mobile suit names, series titles, logos, and imagery are registered trademarks of <span className="hl-gold">Bandai Namco Entertainment Inc.</span>, <span className="hl-gold">Sotsu Co., Ltd.</span>, and <span className="hl-gold">Sunrise Inc.</span> All rights are reserved by their respective owners.</p>
+                    <p>The assembly manuals available on this site are reproduced for informational and archival purposes only. If you are a rights holder and wish for any content to be removed, please contact us and it will be taken down promptly.</p>
+                  </div>
+                  <div className="disclaimer-block">
+                    <div className="disclaimer-block-title">AMAZON ASSOCIATES DISCLOSURE</div>
+                    <p>KitVault.io is a participant in the <span className="hl">Amazon Services LLC Associates Program</span>, an affiliate advertising program designed to provide a means for sites to earn advertising fees by advertising and linking to Amazon.com.</p>
+                    <p>As an Amazon Associate, we earn from qualifying purchases. This does <span className="hl">not</span> increase the price you pay. Affiliate commissions help us keep this resource free and maintained for the community.</p>
+                  </div>
+                  <div className="disclaimer-block">
+                    <div className="disclaimer-block-title">FAIR USE & INTENT</div>
+                    <p>KitVault.io operates under the belief that hosting assembly manuals for kits that hobbyists have legitimately purchased constitutes fair use. We do not sell, redistribute for profit, or claim ownership over any Bandai intellectual property.</p>
+                    <p>The goal is to make the hobby more accessible, especially for international builders who got kits with Japanese-only manuals, or anyone who's misplaced their instructions.</p>
+                  </div>
+                </div>
+              </>
+            } />
+
+            {/* ===== ALL TOOL PAGES (single dynamic route) ===== */}
+            <Route path="/tools/:toolSlug" element={<ToolPage />} />
+
+            {/* ===== PUBLIC HANGAR PROFILE ===== */}
+            <Route path="/hangar/:username" element={
+              <Hangar currentUserId={effectiveSignedIn ? effectiveUserId : null} />
+            } />
+
+            {/* ===== ADMIN ===== */}
+            <Route path="/admin" element={<AdminUpload />} />
+
+            {/* ===== 404 CATCH-ALL ===== */}
+            <Route path="*" element={
+              <div style={{ textAlign: "center", padding: "120px 20px" }}>
+                <div style={{ fontFamily: "'Orbitron',sans-serif", fontSize: "3rem", color: "var(--accent, #00aaff)", marginBottom: 16 }}>404</div>
+                <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.8rem", color: "var(--text-dim)", letterSpacing: "2px", marginBottom: 24 }}>PAGE NOT FOUND</div>
+                <button
+                  onClick={goHome}
+                  style={{
+                    background: "rgba(0,170,255,0.1)", border: "1px solid rgba(0,170,255,0.3)",
+                    color: "#00aaff", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.65rem",
+                    padding: "10px 24px", cursor: "pointer", letterSpacing: "1.5px",
+                  }}
+                >
+                  ← BACK TO KITVAULT
+                </button>
               </div>
-            </>
-          } />
+            } />
 
-          {/* ===== DISCLAIMER PAGE ===== */}
-          <Route path="/disclaimer" element={
-            <>
-              <div className="page-hero">
-                <div className="page-tag">LEGAL NOTICE</div>
-                <div className="page-title">DISCLAIMER</div>
-                <div className="page-sub">PLEASE READ BEFORE USING THIS SITE</div>
-              </div>
-              <div className="page">
-                <div className="bandai-badge">
-                  <div className="bandai-name">BANDAI NAMCO ENTERTAINMENT</div>
-                  <div className="bandai-sub">© SOTSU · SUNRISE. ALL GUNDAM IP AND TRADEMARKS BELONG TO THEIR RESPECTIVE OWNERS.</div>
-                </div>
-                <div className="disclaimer-grid">
-                  <div className="disclaimer-card" style={{ "--dc": "#ffcc00" }}>
-                    <div className="disclaimer-card-icon">🛡️</div>
-                    <div className="disclaimer-card-title">FAN PROJECT</div>
-                    <div className="disclaimer-card-text">KitVault.io is an unofficial, non-commercial fan-made website created out of love for the Gunpla hobby. It is not affiliated with, endorsed by, or connected to Bandai Namco Entertainment, Sotsu, or Sunrise in any way.</div>
-                  </div>
-                  <div className="disclaimer-card" style={{ "--dc": "#00aaff" }}>
-                    <div className="disclaimer-card-icon">📄</div>
-                    <div className="disclaimer-card-title">MANUAL CONTENT</div>
-                    <div className="disclaimer-card-text">All assembly manuals hosted on this site are the intellectual property of Bandai Namco Entertainment. They are provided here solely as a convenience resource for hobbyists who have already purchased these kits.</div>
-                  </div>
-                  <div className="disclaimer-card" style={{ "--dc": "#00ffcc" }}>
-                    <div className="disclaimer-card-icon">🔗</div>
-                    <div className="disclaimer-card-title">AFFILIATE LINKS</div>
-                    <div className="disclaimer-card-text">This site participates in the Amazon Associates affiliate program. Links to Amazon products may earn a small commission at no extra cost to you. This helps cover server costs and keeps the site free for everyone.</div>
-                  </div>
-                  <div className="disclaimer-card" style={{ "--dc": "#ff6600" }}>
-                    <div className="disclaimer-card-icon">💛</div>
-                    <div className="disclaimer-card-title">NON-PROFIT</div>
-                    <div className="disclaimer-card-text">Any revenue generated through affiliate links or donations is used solely to cover hosting and maintenance costs. This project is run by a hobbyist for hobbyists. Not for profit.</div>
-                  </div>
-                </div>
-                <div className="disclaimer-block">
-                  <div className="disclaimer-block-title">INTELLECTUAL PROPERTY NOTICE</div>
-                  <p><span className="hl">Gundam</span>, all associated mobile suit names, series titles, logos, and imagery are registered trademarks of <span className="hl-gold">Bandai Namco Entertainment Inc.</span>, <span className="hl-gold">Sotsu Co., Ltd.</span>, and <span className="hl-gold">Sunrise Inc.</span> All rights are reserved by their respective owners.</p>
-                  <p>The assembly manuals available on this site are reproduced for informational and archival purposes only. If you are a rights holder and wish for any content to be removed, please contact us and it will be taken down promptly.</p>
-                </div>
-                <div className="disclaimer-block">
-                  <div className="disclaimer-block-title">AMAZON ASSOCIATES DISCLOSURE</div>
-                  <p>KitVault.io is a participant in the <span className="hl">Amazon Services LLC Associates Program</span>, an affiliate advertising program designed to provide a means for sites to earn advertising fees by advertising and linking to Amazon.com.</p>
-                  <p>As an Amazon Associate, we earn from qualifying purchases. This does <span className="hl">not</span> increase the price you pay. Affiliate commissions help us keep this resource free and maintained for the community.</p>
-                </div>
-                <div className="disclaimer-block">
-                  <div className="disclaimer-block-title">FAIR USE & INTENT</div>
-                  <p>KitVault.io operates under the belief that hosting assembly manuals for kits that hobbyists have legitimately purchased constitutes fair use. We do not sell, redistribute for profit, or claim ownership over any Bandai intellectual property.</p>
-                  <p>The goal is to make the hobby more accessible, especially for international builders who got kits with Japanese-only manuals, or anyone who's misplaced their instructions.</p>
-                </div>
-              </div>
-            </>
-          } />
-
-          {/* ===== ALL TOOL PAGES (single dynamic route) ===== */}
-          <Route path="/tools/:toolSlug" element={<ToolPage />} />
-
-          {/* ===== PUBLIC HANGAR PROFILE ===== */}
-          <Route path="/hangar/:username" element={
-            <Hangar currentUserId={effectiveSignedIn ? effectiveUserId : null} />
-          } />
-
-          {/* ===== ADMIN ===== */}
-          <Route path="/admin" element={<AdminUpload />} />
-
-          {/* ===== 404 CATCH-ALL ===== */}
-          <Route path="*" element={
-            <div style={{ textAlign: "center", padding: "120px 20px" }}>
-              <div style={{ fontFamily: "'Orbitron',sans-serif", fontSize: "3rem", color: "var(--accent, #00aaff)", marginBottom: 16 }}>404</div>
-              <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.8rem", color: "var(--text-dim)", letterSpacing: "2px", marginBottom: 24 }}>PAGE NOT FOUND</div>
-              <button
-                onClick={goHome}
-                style={{
-                  background: "rgba(0,170,255,0.1)", border: "1px solid rgba(0,170,255,0.3)",
-                  color: "#00aaff", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.65rem",
-                  padding: "10px 24px", cursor: "pointer", letterSpacing: "1.5px",
-                }}
-              >
-                ← BACK TO KITVAULT
-              </button>
-            </div>
-          } />
-
-        </Routes>
+          </Routes>
         </ErrorBoundary>
 
         {/* SETTINGS MODAL */}
