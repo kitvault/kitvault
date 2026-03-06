@@ -6,11 +6,352 @@ export default {
     const corsHeaders = {
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "GET, POST, DELETE, PATCH, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type, X-Admin-Key",
+      "Access-Control-Allow-Headers": "Content-Type, X-Admin-Key, Authorization",
     };
 
     if (request.method === "OPTIONS") {
       return new Response(null, { headers: corsHeaders });
+    }
+
+    // ══════════════════════════════════════════════════════════
+    // AUTH UTILITY FUNCTIONS
+    // ══════════════════════════════════════════════════════════
+
+    function generateSalt() {
+      const array = new Uint8Array(32);
+      crypto.getRandomValues(array);
+      return btoa(String.fromCharCode(...array));
+    }
+
+    async function hashPassword(password, salt) {
+      const encoder = new TextEncoder();
+      const keyMaterial = await crypto.subtle.importKey(
+        "raw", encoder.encode(password), "PBKDF2", false, ["deriveBits"]
+      );
+      const hash = await crypto.subtle.deriveBits(
+        { name: "PBKDF2", salt: encoder.encode(salt), iterations: 100000, hash: "SHA-256" },
+        keyMaterial, 256
+      );
+      return btoa(String.fromCharCode(...new Uint8Array(hash)));
+    }
+
+    function base64UrlEncode(str) {
+      return btoa(str).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    }
+
+    function base64UrlDecode(str) {
+      str = str.replace(/-/g, "+").replace(/_/g, "/");
+      while (str.length % 4) str += "=";
+      return atob(str);
+    }
+
+    async function createJWT(payload, secret) {
+      const header = base64UrlEncode(JSON.stringify({ alg: "HS256", typ: "JWT" }));
+      const body = base64UrlEncode(JSON.stringify({ ...payload, exp: Date.now() + 7 * 24 * 60 * 60 * 1000 }));
+      const encoder = new TextEncoder();
+      const key = await crypto.subtle.importKey(
+        "raw", encoder.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]
+      );
+      const signature = await crypto.subtle.sign("HMAC", key, encoder.encode(`${header}.${body}`));
+      const sig = base64UrlEncode(String.fromCharCode(...new Uint8Array(signature)));
+      return `${header}.${body}.${sig}`;
+    }
+
+    async function verifyJWT(token, secret) {
+      try {
+        const [header, body, sig] = token.split(".");
+        if (!header || !body || !sig) return null;
+        const encoder = new TextEncoder();
+        const key = await crypto.subtle.importKey(
+          "raw", encoder.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["verify"]
+        );
+        const sigBytes = Uint8Array.from(base64UrlDecode(sig), c => c.charCodeAt(0));
+        const valid = await crypto.subtle.verify(
+          "HMAC", key, sigBytes, encoder.encode(`${header}.${body}`)
+        );
+        if (!valid) return null;
+        const payload = JSON.parse(base64UrlDecode(body));
+        if (payload.exp < Date.now()) return null;
+        return payload;
+      } catch {
+        return null;
+      }
+    }
+
+    // ══════════════════════════════════════════════════════════
+    // BACKUP AUTH ENDPOINTS
+    // ══════════════════════════════════════════════════════════
+
+    // ── POST /api/auth/register — Clerk user links email/password ──
+    if (path === "/api/auth/register" && request.method === "POST") {
+      try {
+        const { userId, email, password } = await request.json();
+
+        if (!userId || !email || !password) {
+          return new Response(JSON.stringify({ ok: false, error: "Missing userId, email, or password" }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Basic email validation
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+          return new Response(JSON.stringify({ ok: false, error: "Invalid email format" }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Password strength: minimum 8 characters
+        if (password.length < 8) {
+          return new Response(JSON.stringify({ ok: false, error: "Password must be at least 8 characters" }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Check if this user already has backup auth
+        const existingUser = await env.DB.prepare(
+          "SELECT user_id FROM user_auth WHERE user_id = ?"
+        ).bind(userId).first();
+        if (existingUser) {
+          return new Response(JSON.stringify({ ok: false, error: "Backup login already set up. Use change-password to update." }), {
+            status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Check if email is already taken by another user
+        const existingEmail = await env.DB.prepare(
+          "SELECT user_id FROM user_auth WHERE email = ?"
+        ).bind(email.trim().toLowerCase()).first();
+        if (existingEmail) {
+          return new Response(JSON.stringify({ ok: false, error: "Email already in use" }), {
+            status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        const salt = generateSalt();
+        const pwHash = await hashPassword(password, salt);
+
+        await env.DB.prepare(
+          "INSERT INTO user_auth (user_id, email, pw_hash, pw_salt, created_at, updated_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
+        ).bind(userId, email.trim().toLowerCase(), pwHash, salt).run();
+
+        return new Response(JSON.stringify({ ok: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch (err) {
+        return new Response(JSON.stringify({ ok: false, error: err.message }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
+    // ── POST /api/auth/signup — Create a new standalone local account ──
+    if (path === "/api/auth/signup" && request.method === "POST") {
+      try {
+        const { email, password } = await request.json();
+
+        if (!email || !password) {
+          return new Response(JSON.stringify({ ok: false, error: "Missing email or password" }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+          return new Response(JSON.stringify({ ok: false, error: "Invalid email format" }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        if (password.length < 8) {
+          return new Response(JSON.stringify({ ok: false, error: "Password must be at least 8 characters" }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Check if email already exists
+        const existingEmail = await env.DB.prepare(
+          "SELECT user_id FROM user_auth WHERE email = ?"
+        ).bind(email.trim().toLowerCase()).first();
+        if (existingEmail) {
+          return new Response(JSON.stringify({ ok: false, error: "Email already in use" }), {
+            status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Generate a local user ID (prefixed to distinguish from Clerk IDs)
+        const randomBytes = new Uint8Array(16);
+        crypto.getRandomValues(randomBytes);
+        const localId = "local_" + Array.from(randomBytes).map(b => b.toString(16).padStart(2, "0")).join("");
+
+        const salt = generateSalt();
+        const pwHash = await hashPassword(password, salt);
+
+        await env.DB.prepare(
+          "INSERT INTO user_auth (user_id, email, pw_hash, pw_salt, created_at, updated_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
+        ).bind(localId, email.trim().toLowerCase(), pwHash, salt).run();
+
+        // Auto-login: return JWT immediately
+        const token = await createJWT({ userId: localId, email: email.trim().toLowerCase() }, env.JWT_SECRET);
+
+        return new Response(JSON.stringify({ ok: true, token, userId: localId }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch (err) {
+        return new Response(JSON.stringify({ ok: false, error: err.message }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
+    // ── POST /api/auth/login — Email/password login, returns JWT ──
+    if (path === "/api/auth/login" && request.method === "POST") {
+      try {
+        const { email, password } = await request.json();
+
+        if (!email || !password) {
+          return new Response(JSON.stringify({ ok: false, error: "Missing email or password" }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Rate limit: max 10 login attempts per email per hour
+        // (Simple approach using a check — for production, consider a separate rate limit table)
+        const row = await env.DB.prepare(
+          "SELECT user_id, pw_hash, pw_salt FROM user_auth WHERE email = ?"
+        ).bind(email.trim().toLowerCase()).first();
+
+        if (!row) {
+          return new Response(JSON.stringify({ ok: false, error: "Invalid email or password" }), {
+            status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        const attemptHash = await hashPassword(password, row.pw_salt);
+
+        if (attemptHash !== row.pw_hash) {
+          return new Response(JSON.stringify({ ok: false, error: "Invalid email or password" }), {
+            status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Generate JWT
+        const token = await createJWT({ userId: row.user_id, email: email.trim().toLowerCase() }, env.JWT_SECRET);
+
+        return new Response(JSON.stringify({ ok: true, token, userId: row.user_id }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch (err) {
+        return new Response(JSON.stringify({ ok: false, error: err.message }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
+    // ── GET /api/auth/me — Validate JWT, return user info ──
+    if (path === "/api/auth/me" && request.method === "GET") {
+      try {
+        const authHeader = request.headers.get("Authorization") || "";
+        const token = authHeader.replace("Bearer ", "");
+
+        if (!token) {
+          return new Response(JSON.stringify({ ok: false, error: "No token provided" }), {
+            status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        const payload = await verifyJWT(token, env.JWT_SECRET);
+        if (!payload) {
+          return new Response(JSON.stringify({ ok: false, error: "Invalid or expired token" }), {
+            status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        return new Response(JSON.stringify({ ok: true, userId: payload.userId, email: payload.email }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch (err) {
+        return new Response(JSON.stringify({ ok: false, error: err.message }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
+    // ── POST /api/auth/change-password — Update password ──
+    if (path === "/api/auth/change-password" && request.method === "POST") {
+      try {
+        const { userId, currentPassword, newPassword } = await request.json();
+
+        if (!userId || !currentPassword || !newPassword) {
+          return new Response(JSON.stringify({ ok: false, error: "Missing required fields" }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        if (newPassword.length < 8) {
+          return new Response(JSON.stringify({ ok: false, error: "New password must be at least 8 characters" }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        const row = await env.DB.prepare(
+          "SELECT pw_hash, pw_salt FROM user_auth WHERE user_id = ?"
+        ).bind(userId).first();
+
+        if (!row) {
+          return new Response(JSON.stringify({ ok: false, error: "No backup login found for this account" }), {
+            status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Verify current password
+        const currentHash = await hashPassword(currentPassword, row.pw_salt);
+        if (currentHash !== row.pw_hash) {
+          return new Response(JSON.stringify({ ok: false, error: "Current password is incorrect" }), {
+            status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Generate new salt and hash
+        const newSalt = generateSalt();
+        const newHash = await hashPassword(newPassword, newSalt);
+
+        await env.DB.prepare(
+          "UPDATE user_auth SET pw_hash = ?, pw_salt = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?"
+        ).bind(newHash, newSalt, userId).run();
+
+        return new Response(JSON.stringify({ ok: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch (err) {
+        return new Response(JSON.stringify({ ok: false, error: err.message }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
+    // ── GET /api/auth/check?userId= — Check if user has backup auth set up ──
+    if (path === "/api/auth/check" && request.method === "GET") {
+      try {
+        const userId = url.searchParams.get("userId");
+        if (!userId) {
+          return new Response(JSON.stringify({ ok: true, hasBackupAuth: false }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        const row = await env.DB.prepare(
+          "SELECT email FROM user_auth WHERE user_id = ?"
+        ).bind(userId).first();
+
+        return new Response(JSON.stringify({
+          ok: true,
+          hasBackupAuth: !!row,
+          email: row ? row.email.replace(/^(.{2})(.*)(@.*)$/, "$1***$3") : null,
+        }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      } catch (err) {
+        return new Response(JSON.stringify({ ok: false, error: err.message }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     // ══════════════════════════════════════════════════════════

@@ -275,36 +275,71 @@ function useDebounce(fn, delay) {
 // ─────────────────────────────────────────────────────────────
 // FALLBACK LOGIN MODAL — email/password login when Clerk is down
 // ─────────────────────────────────────────────────────────────
-function FallbackLoginModal({ onClose, onLogin, clerkFailed }) {
+function FallbackLoginModal({ onClose, onLogin, onSignup, clerkFailed }) {
+  const [mode, setMode] = useState("login"); // "login" or "signup"
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const resetFields = () => { setEmail(""); setPassword(""); setConfirmPassword(""); setError(""); };
+
   const handleSubmit = async () => {
+    setError("");
     if (!email || !password) { setError("Enter both email and password"); return; }
-    setLoading(true); setError("");
-    const result = await onLogin(email, password);
-    if (result.ok) {
-      onClose();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) { setError("Invalid email format"); return; }
+    if (password.length < 8) { setError("Password must be at least 8 characters"); return; }
+
+    if (mode === "signup") {
+      if (password !== confirmPassword) { setError("Passwords don't match"); return; }
+      setLoading(true);
+      const result = await onSignup(email, password);
+      if (result.ok) { onClose(); } else { setError(result.error); }
+      setLoading(false);
     } else {
-      setError(result.error);
+      setLoading(true);
+      const result = await onLogin(email, password);
+      if (result.ok) { onClose(); } else { setError(result.error); }
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,5,18,0.92)", backdropFilter: "blur(8px)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={onClose}>
-      <div style={{ background: "linear-gradient(160deg,#0a1628 0%,#070f1e 100%)", border: "1px solid rgba(0,170,255,0.3)", borderRadius: 2, width: "100%", maxWidth: 420, padding: "36px 32px", boxShadow: "0 0 80px rgba(0,170,255,0.15)", clipPath: "polygon(0 0,96% 0,100% 4%,100% 100%,4% 100%,0 96%)" }} onClick={e => e.stopPropagation()}>
+      <div style={{ background: "linear-gradient(160deg,#0a1628 0%,#070f1e 100%)", border: "1px solid rgba(0,170,255,0.3)", borderRadius: 2, width: "100%", maxWidth: 420, padding: "36px 32px", boxShadow: "0 0 80px rgba(0,170,255,0.15)", clipPath: "polygon(0 0,96% 0,100% 4%,100% 100%,4% 100%,0 96%)", position: "relative" }} onClick={e => e.stopPropagation()}>
 
         {clerkFailed && (
           <div style={{ background: "rgba(255,170,0,0.08)", border: "1px solid rgba(255,170,0,0.3)", padding: "10px 14px", marginBottom: 20, fontFamily: "'Share Tech Mono',monospace", fontSize: "0.6rem", color: "#ffaa00", letterSpacing: "0.5px", lineHeight: 1.8 }}>
-            ⚠ Our primary sign-in service is temporarily unavailable. Use your backup login below.
+            ⚠ Our primary sign-in service is temporarily unavailable. Use your backup login or create a new account below.
           </div>
         )}
 
-        <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.65rem", color: "#00aaff", letterSpacing: "3px", marginBottom: 8 }}>◈ BACKUP LOGIN</div>
-        <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "1.2rem", color: "#c8ddf5", letterSpacing: "3px", marginBottom: 24 }}>SIGN IN</div>
+        <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.65rem", color: "#00aaff", letterSpacing: "3px", marginBottom: 8 }}>◈ KITVAULT ACCOUNT</div>
+
+        {/* Tab switcher */}
+        <div style={{ display: "flex", gap: 0, marginBottom: 24, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+          <button
+            onClick={() => { setMode("login"); resetFields(); }}
+            style={{
+              flex: 1, background: mode === "login" ? "rgba(0,170,255,0.08)" : "transparent",
+              border: "none", borderBottom: mode === "login" ? "2px solid #00aaff" : "2px solid transparent",
+              color: mode === "login" ? "#00aaff" : "#3a5a7a",
+              fontFamily: "'Share Tech Mono',monospace", fontSize: "0.7rem", padding: "10px 0",
+              cursor: "pointer", letterSpacing: "2px", transition: "all 0.2s",
+            }}
+          >SIGN IN</button>
+          <button
+            onClick={() => { setMode("signup"); resetFields(); }}
+            style={{
+              flex: 1, background: mode === "signup" ? "rgba(0,255,136,0.06)" : "transparent",
+              border: "none", borderBottom: mode === "signup" ? "2px solid #00ff88" : "2px solid transparent",
+              color: mode === "signup" ? "#00ff88" : "#3a5a7a",
+              fontFamily: "'Share Tech Mono',monospace", fontSize: "0.7rem", padding: "10px 0",
+              cursor: "pointer", letterSpacing: "2px", transition: "all 0.2s",
+            }}
+          >SIGN UP</button>
+        </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <div>
@@ -312,19 +347,31 @@ function FallbackLoginModal({ onClose, onLogin, clerkFailed }) {
             <input
               type="email" value={email} onChange={e => setEmail(e.target.value)}
               placeholder="your@email.com"
-              onKeyDown={e => e.key === "Enter" && handleSubmit()}
+              onKeyDown={e => e.key === "Enter" && (mode === "login" || confirmPassword) && handleSubmit()}
               style={{ width: "100%", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.1)", color: "#c8ddf5", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.7rem", padding: "10px 12px", letterSpacing: "0.5px", outline: "none", boxSizing: "border-box" }}
             />
           </div>
           <div>
-            <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.55rem", color: "var(--text-dim,#5a7a9f)", letterSpacing: "1px", marginBottom: 4 }}>PASSWORD</div>
+            <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.55rem", color: "var(--text-dim,#5a7a9f)", letterSpacing: "1px", marginBottom: 4 }}>PASSWORD{mode === "signup" ? " (8+ CHARACTERS)" : ""}</div>
             <input
               type="password" value={password} onChange={e => setPassword(e.target.value)}
               placeholder="••••••••"
-              onKeyDown={e => e.key === "Enter" && handleSubmit()}
+              onKeyDown={e => e.key === "Enter" && mode === "login" && handleSubmit()}
               style={{ width: "100%", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.1)", color: "#c8ddf5", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.7rem", padding: "10px 12px", letterSpacing: "0.5px", outline: "none", boxSizing: "border-box" }}
             />
           </div>
+
+          {mode === "signup" && (
+            <div>
+              <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.55rem", color: "var(--text-dim,#5a7a9f)", letterSpacing: "1px", marginBottom: 4 }}>CONFIRM PASSWORD</div>
+              <input
+                type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)}
+                placeholder="••••••••"
+                onKeyDown={e => e.key === "Enter" && handleSubmit()}
+                style={{ width: "100%", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.1)", color: "#c8ddf5", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.7rem", padding: "10px 12px", letterSpacing: "0.5px", outline: "none", boxSizing: "border-box" }}
+              />
+            </div>
+          )}
 
           {error && (
             <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.6rem", color: "#ff3c3c", letterSpacing: "0.5px" }}>{error}</div>
@@ -332,14 +379,23 @@ function FallbackLoginModal({ onClose, onLogin, clerkFailed }) {
 
           <button
             onClick={handleSubmit} disabled={loading}
-            style={{ width: "100%", background: "rgba(0,170,255,0.1)", border: "1px solid rgba(0,170,255,0.3)", color: "#00aaff", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.7rem", padding: "12px", cursor: loading ? "wait" : "pointer", letterSpacing: "2px", marginTop: 4 }}
+            style={{
+              width: "100%",
+              background: mode === "signup" ? "rgba(0,255,136,0.1)" : "rgba(0,170,255,0.1)",
+              border: `1px solid ${mode === "signup" ? "rgba(0,255,136,0.3)" : "rgba(0,170,255,0.3)"}`,
+              color: mode === "signup" ? "#00ff88" : "#00aaff",
+              fontFamily: "'Share Tech Mono',monospace", fontSize: "0.7rem", padding: "12px",
+              cursor: loading ? "wait" : "pointer", letterSpacing: "2px", marginTop: 4,
+            }}
           >
-            {loading ? "SIGNING IN..." : "SIGN IN →"}
+            {loading ? (mode === "signup" ? "CREATING ACCOUNT..." : "SIGNING IN...") : (mode === "signup" ? "CREATE ACCOUNT →" : "SIGN IN →")}
           </button>
 
-          <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.5rem", color: "var(--text-dim,#5a7a9f)", letterSpacing: "0.5px", lineHeight: 1.8, textAlign: "center", marginTop: 8 }}>
-            This uses your backup login credentials.<br />
-            Set these up in your Vault settings while signed in.
+          <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.5rem", color: "var(--text-dim,#5a7a9f)", letterSpacing: "0.5px", lineHeight: 1.8, textAlign: "center", marginTop: 4 }}>
+            {mode === "login"
+              ? "Don't have an account? Click SIGN UP above."
+              : "Already have an account? Click SIGN IN above."
+            }
           </div>
         </div>
 
@@ -549,6 +605,25 @@ export default function KitVault() {
       return { ok: true };
     }
     return { ok: false, error: data.error || "Registration failed" };
+  };
+
+  // Signup — create a new standalone local account
+  const handleFallbackSignup = async (email, password) => {
+    const res = await fetch("/api/auth/signup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      setFallbackToken(data.token);
+      setFallbackUserId(data.userId);
+      setFallbackEmail(email);
+      setHasBackupAuth(true);
+      setBackupAuthEmail(email.replace(/^(.{2})(.*)(@.*)$/, "$1***$3"));
+      return { ok: true };
+    }
+    return { ok: false, error: data.error || "Signup failed" };
   };
   const [openNav, setOpenNav] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -1782,6 +1857,7 @@ export default function KitVault() {
           <FallbackLoginModal
             onClose={() => setShowFallbackLogin(false)}
             onLogin={handleFallbackLogin}
+            onSignup={handleFallbackSignup}
             clerkFailed={clerkFailed}
           />
         )}
