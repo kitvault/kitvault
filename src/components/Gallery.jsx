@@ -89,8 +89,7 @@ function timeAgo(ts) {
 }
 
 // ─── Upload Modal ────────────────────────────────────────────
-function UploadModal({ allKits, onClose, onUploaded }) {
-  const { user } = useUser();
+function UploadModal({ allKits, onClose, onUploaded, user }) {
   const [gradeFilter, setGradeFilter] = useState("ALL");
   const [kitSearch, setKitSearch] = useState("");
   const [selectedKit, setSelectedKit] = useState(null);
@@ -145,7 +144,7 @@ function UploadModal({ allKits, onClose, onUploaded }) {
       formData.append("kit_scale", selectedKit.scale);
       formData.append("caption", caption.trim());
       formData.append("user_id", user.id);
-      formData.append("username", user.fullName || user.firstName || user.username || "Builder");
+      formData.append("username", user.fullName || user.firstName || user.username || user.email || "Builder");
       formData.append("avatar_url", user.imageUrl || "");
       files.forEach(f => formData.append("images", f));
 
@@ -258,8 +257,7 @@ function UploadModal({ allKits, onClose, onUploaded }) {
 }
 
 // ─── Post Detail Modal ───────────────────────────────────────
-function PostDetail({ post, onClose, onRefresh, userLikes, toggleLike }) {
-  const { user, isSignedIn } = useUser();
+function PostDetail({ post, onClose, onRefresh, userLikes, toggleLike, user, isSignedIn }) {
   const isAdmin = !!sessionStorage.getItem(ADMIN_KEY_STORAGE);
   const images = post.images || [];
   const [imgIdx, setImgIdx] = useState(0);
@@ -287,7 +285,7 @@ function PostDetail({ post, onClose, onRefresh, userLikes, toggleLike }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           user_id: user.id,
-          username: user.fullName || user.firstName || user.username || "Builder",
+          username: user.fullName || user.firstName || user.username || user.email || "Builder",
           avatar_url: user.imageUrl || "",
           body: commentBody.trim(),
         }),
@@ -433,6 +431,7 @@ function PostDetail({ post, onClose, onRefresh, userLikes, toggleLike }) {
           onClose={() => setShowEdit(false)}
           onSaved={() => { setShowEdit(false); onRefresh(); onClose(); }}
           onDeleted={() => { onRefresh(); onClose(); }}
+          user={user}
         />
       )}
     </div>
@@ -440,8 +439,7 @@ function PostDetail({ post, onClose, onRefresh, userLikes, toggleLike }) {
 }
 
 // ─── Edit Post Modal (Admin) ──────────────────────────────────
-function EditPostModal({ post, onClose, onSaved, onDeleted }) {
-  const { user } = useUser();
+function EditPostModal({ post, onClose, onSaved, onDeleted, user }) {
   const isAdmin = !!sessionStorage.getItem(ADMIN_KEY_STORAGE);
   const [kitName, setKitName] = useState(post.kit_name || "");
   const [caption, setCaption] = useState(post.caption || "");
@@ -558,8 +556,11 @@ function EditPostModal({ post, onClose, onSaved, onDeleted }) {
 }
 
 // ─── Gallery Main ────────────────────────────────────────────
-export default function Gallery({ allKits }) {
-  const { user, isSignedIn } = useUser();
+export default function Gallery({ allKits, effectiveUser, effectiveSignedIn: signedInProp }) {
+  const { user: clerkUser, isSignedIn: clerkSignedIn } = useUser();
+  // Use props if provided (supports fallback auth), otherwise fall back to Clerk
+  const user = effectiveUser || clerkUser;
+  const isSignedIn = signedInProp !== undefined ? signedInProp : clerkSignedIn;
   const isAdmin = !!sessionStorage.getItem(ADMIN_KEY_STORAGE);
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -584,7 +585,7 @@ export default function Gallery({ allKits }) {
       const data = await res.json();
       if (Array.isArray(data)) setUserLikes(new Set(data));
     } catch (_) {}
-  }, [user]);
+  }, [user?.id]);
 
   useEffect(() => { fetchPosts(); }, [fetchPosts]);
   useEffect(() => { fetchLikes(); }, [fetchLikes]);
@@ -696,8 +697,8 @@ export default function Gallery({ allKits }) {
         )}
       </div>
 
-      {showUpload && <UploadModal allKits={allKits} onClose={() => setShowUpload(false)} onUploaded={fetchPosts} />}
-      {selectedPost && <PostDetail post={selectedPost} onClose={() => setSelectedPost(null)} onRefresh={fetchPosts} userLikes={userLikes} toggleLike={toggleLike} />}
+      {showUpload && <UploadModal allKits={allKits} onClose={() => setShowUpload(false)} onUploaded={fetchPosts} user={user} />}
+      {selectedPost && <PostDetail post={selectedPost} onClose={() => setSelectedPost(null)} onRefresh={fetchPosts} userLikes={userLikes} toggleLike={toggleLike} user={user} isSignedIn={isSignedIn} />}
     </>
   );
 }

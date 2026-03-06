@@ -5,7 +5,7 @@
 // All data lives in src/data/.
 // ─────────────────────────────────────────────────────────────
 
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { SignedIn, SignedOut, SignInButton, UserButton, useUser } from "@clerk/clerk-react";
 import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
 
@@ -16,7 +16,6 @@ import "./styles/app.css";
 import {
   VERSION, GRADE_COLORS, GRADES,
   slugify, xpColors,
-  GRADE_DATA, GRADE_ORDER,
 } from "./data/grades.js";
 
 // Components — each in its own file
@@ -512,6 +511,47 @@ function BackupAuthSetup({ onRegister, hasBackupAuth, backupAuthEmail, compact =
 }
 
 // ─────────────────────────────────────────────────────────────
+// ERROR BOUNDARY — catches render crashes, shows recovery UI
+// ─────────────────────────────────────────────────────────────
+
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, info) {
+    console.error("[KitVault] Render error:", error, info);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ textAlign: "center", padding: "120px 20px", fontFamily: "'Share Tech Mono',monospace" }}>
+          <div style={{ fontSize: "2rem", color: "#ff6600", marginBottom: 16 }}>⚠</div>
+          <div style={{ fontSize: "0.9rem", color: "#c8ddf5", letterSpacing: "2px", marginBottom: 12 }}>SOMETHING WENT WRONG</div>
+          <div style={{ fontSize: "0.6rem", color: "#5a7a9f", letterSpacing: "1px", marginBottom: 24, maxWidth: 400, margin: "0 auto 24px" }}>
+            An unexpected error occurred. Try refreshing the page.
+          </div>
+          <button
+            onClick={() => { this.setState({ hasError: false, error: null }); window.location.href = "/"; }}
+            style={{
+              background: "rgba(0,170,255,0.1)", border: "1px solid rgba(0,170,255,0.3)",
+              color: "#00aaff", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.65rem",
+              padding: "10px 24px", cursor: "pointer", letterSpacing: "1.5px",
+            }}
+          >
+            ↻ RELOAD KITVAULT
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
 // KITVAULT APP — main component (routes + shared state)
 // ─────────────────────────────────────────────────────────────
 export default function KitVault() {
@@ -647,9 +687,14 @@ export default function KitVault() {
   }, []);
 
   // ── Theme persistence ──────────────────────────────────────
+  const [currentTheme, setCurrentTheme] = useState(() => {
+    return (typeof document !== "undefined" && document.documentElement.getAttribute("data-theme")) || localStorage.getItem("kv-theme") || "dark";
+  });
   useEffect(() => {
-    const saved = localStorage.getItem("kv-theme");
-    if (saved) document.documentElement.setAttribute("data-theme", saved);
+    document.documentElement.setAttribute("data-theme", currentTheme);
+    localStorage.setItem("kv-theme", currentTheme);
+  }, [currentTheme]);
+  useEffect(() => {
     // Ensure Google Fonts load (Firefox fallback if CSS @import fails in Vite bundle)
     if (!document.querySelector('link[href*="fonts.googleapis.com/css2?family=Rajdhani"]')) {
       const link = document.createElement("link");
@@ -670,11 +715,13 @@ export default function KitVault() {
 
   // ── D1 kits — merged with static list ────────────────────
   const [d1Kits, setD1Kits] = useState([]);
+  const [kitsLoading, setKitsLoading] = useState(true);
   const fetchD1Kits = useCallback(() => {
     fetch("/api/kits")
       .then(r => r.json())
       .then(data => { if (Array.isArray(data)) setD1Kits(data); })
-      .catch(() => { });
+      .catch(() => { })
+      .finally(() => setKitsLoading(false));
   }, []);
   useEffect(() => { fetchD1Kits(); }, [fetchD1Kits]);
   // All kits now come from D1 only
@@ -1158,9 +1205,8 @@ export default function KitVault() {
                   { id: "neko", label: "Cyber Pink", icon: "🌸", sub: "Digital rose glow" },
                   { id: "cat", label: "Cat Mode", icon: "🐱", sub: "Meow! Cats everywhere" },
                 ].map(t => (
-                  <div key={t.id} className={`nav-dd-item${(document.documentElement.getAttribute("data-theme") || "dark") === t.id ? " active-theme" : ""}`} onClick={() => {
-                    document.documentElement.setAttribute("data-theme", t.id);
-                    localStorage.setItem("kv-theme", t.id);
+                  <div key={t.id} className={`nav-dd-item${currentTheme === t.id ? " active-theme" : ""}`} onClick={() => {
+                    setCurrentTheme(t.id);
                     closeNav();
                   }}>
                     <span className="nav-dd-icon">{t.icon}</span>
@@ -1206,6 +1252,7 @@ export default function KitVault() {
           <MarqueeStrip ownedSprites={paradeSprites} />
         )}
 
+        <ErrorBoundary>
         <Routes>
 
           {/* ===== HOME PAGE ===== */}
@@ -1253,7 +1300,21 @@ export default function KitVault() {
               </div>
 
               <div className="kit-grid">
-                {filtered.map(kit => renderKitCard(kit))}
+                {kitsLoading ? (
+                  <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: "60px 20px" }}>
+                    <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.75rem", color: "var(--text-dim)", letterSpacing: "2px" }}>
+                      LOADING KITS...
+                    </div>
+                  </div>
+                ) : filtered.length === 0 ? (
+                  <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: "60px 20px" }}>
+                    <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.75rem", color: "var(--text-dim)", letterSpacing: "2px" }}>
+                      NO KITS FOUND
+                    </div>
+                  </div>
+                ) : (
+                  filtered.map(kit => renderKitCard(kit))
+                )}
               </div>
             </>
           } />
@@ -1436,7 +1497,7 @@ export default function KitVault() {
           } />
 
           {/* ===== GALLERY PAGE ===== */}
-          <Route path="/gallery" element={<Gallery allKits={allKits} />} />
+          <Route path="/gallery" element={<Gallery allKits={allKits} effectiveUser={effectiveSignedIn ? { id: effectiveUserId, email: fallbackEmail, fullName: user?.fullName, firstName: user?.firstName, username: user?.username, imageUrl: user?.imageUrl } : null} effectiveSignedIn={effectiveSignedIn} />} />
 
           {/* ===== SUPPORT / DONATE PAGE ===== */}
           <Route path="/support" element={
@@ -1567,7 +1628,26 @@ export default function KitVault() {
           {/* ===== ADMIN ===== */}
           <Route path="/admin" element={<AdminUpload />} />
 
+          {/* ===== 404 CATCH-ALL ===== */}
+          <Route path="*" element={
+            <div style={{ textAlign: "center", padding: "120px 20px" }}>
+              <div style={{ fontFamily: "'Orbitron',sans-serif", fontSize: "3rem", color: "var(--accent, #00aaff)", marginBottom: 16 }}>404</div>
+              <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.8rem", color: "var(--text-dim)", letterSpacing: "2px", marginBottom: 24 }}>PAGE NOT FOUND</div>
+              <button
+                onClick={goHome}
+                style={{
+                  background: "rgba(0,170,255,0.1)", border: "1px solid rgba(0,170,255,0.3)",
+                  color: "#00aaff", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.65rem",
+                  padding: "10px 24px", cursor: "pointer", letterSpacing: "1.5px",
+                }}
+              >
+                ← BACK TO KITVAULT
+              </button>
+            </div>
+          } />
+
         </Routes>
+        </ErrorBoundary>
 
         {/* SETTINGS MODAL */}
         {showSettings && (
