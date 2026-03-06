@@ -273,14 +273,286 @@ function useDebounce(fn, delay) {
 }
 
 // ─────────────────────────────────────────────────────────────
+// FALLBACK LOGIN MODAL — email/password login when Clerk is down
+// ─────────────────────────────────────────────────────────────
+function FallbackLoginModal({ onClose, onLogin, clerkFailed }) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!email || !password) { setError("Enter both email and password"); return; }
+    setLoading(true); setError("");
+    const result = await onLogin(email, password);
+    if (result.ok) {
+      onClose();
+    } else {
+      setError(result.error);
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,5,18,0.92)", backdropFilter: "blur(8px)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={onClose}>
+      <div style={{ background: "linear-gradient(160deg,#0a1628 0%,#070f1e 100%)", border: "1px solid rgba(0,170,255,0.3)", borderRadius: 2, width: "100%", maxWidth: 420, padding: "36px 32px", boxShadow: "0 0 80px rgba(0,170,255,0.15)", clipPath: "polygon(0 0,96% 0,100% 4%,100% 100%,4% 100%,0 96%)" }} onClick={e => e.stopPropagation()}>
+
+        {clerkFailed && (
+          <div style={{ background: "rgba(255,170,0,0.08)", border: "1px solid rgba(255,170,0,0.3)", padding: "10px 14px", marginBottom: 20, fontFamily: "'Share Tech Mono',monospace", fontSize: "0.6rem", color: "#ffaa00", letterSpacing: "0.5px", lineHeight: 1.8 }}>
+            ⚠ Our primary sign-in service is temporarily unavailable. Use your backup login below.
+          </div>
+        )}
+
+        <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.65rem", color: "#00aaff", letterSpacing: "3px", marginBottom: 8 }}>◈ BACKUP LOGIN</div>
+        <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "1.2rem", color: "#c8ddf5", letterSpacing: "3px", marginBottom: 24 }}>SIGN IN</div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <div>
+            <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.55rem", color: "var(--text-dim,#5a7a9f)", letterSpacing: "1px", marginBottom: 4 }}>EMAIL</div>
+            <input
+              type="email" value={email} onChange={e => setEmail(e.target.value)}
+              placeholder="your@email.com"
+              onKeyDown={e => e.key === "Enter" && handleSubmit()}
+              style={{ width: "100%", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.1)", color: "#c8ddf5", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.7rem", padding: "10px 12px", letterSpacing: "0.5px", outline: "none", boxSizing: "border-box" }}
+            />
+          </div>
+          <div>
+            <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.55rem", color: "var(--text-dim,#5a7a9f)", letterSpacing: "1px", marginBottom: 4 }}>PASSWORD</div>
+            <input
+              type="password" value={password} onChange={e => setPassword(e.target.value)}
+              placeholder="••••••••"
+              onKeyDown={e => e.key === "Enter" && handleSubmit()}
+              style={{ width: "100%", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.1)", color: "#c8ddf5", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.7rem", padding: "10px 12px", letterSpacing: "0.5px", outline: "none", boxSizing: "border-box" }}
+            />
+          </div>
+
+          {error && (
+            <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.6rem", color: "#ff3c3c", letterSpacing: "0.5px" }}>{error}</div>
+          )}
+
+          <button
+            onClick={handleSubmit} disabled={loading}
+            style={{ width: "100%", background: "rgba(0,170,255,0.1)", border: "1px solid rgba(0,170,255,0.3)", color: "#00aaff", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.7rem", padding: "12px", cursor: loading ? "wait" : "pointer", letterSpacing: "2px", marginTop: 4 }}
+          >
+            {loading ? "SIGNING IN..." : "SIGN IN →"}
+          </button>
+
+          <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.5rem", color: "var(--text-dim,#5a7a9f)", letterSpacing: "0.5px", lineHeight: 1.8, textAlign: "center", marginTop: 8 }}>
+            This uses your backup login credentials.<br />
+            Set these up in your Vault settings while signed in.
+          </div>
+        </div>
+
+        <button onClick={onClose} style={{ position: "absolute", top: 16, right: 16, background: "none", border: "1px solid rgba(255,255,255,0.1)", color: "#5a7a9f", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.8rem", width: 32, height: 32, cursor: "pointer" }}>✕</button>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// BACKUP AUTH SETUP — shown on Vault page and Settings modal
+// ─────────────────────────────────────────────────────────────
+function BackupAuthSetup({ onRegister, hasBackupAuth, backupAuthEmail, compact = false }) {
+  const [expanded, setExpanded] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  if (hasBackupAuth) {
+    return (
+      <div style={{ display: "flex", alignItems: "center", gap: 10, fontFamily: "'Share Tech Mono',monospace", fontSize: "0.65rem" }}>
+        <span style={{ color: "#00ff88", letterSpacing: "1px" }}>✓ BACKUP LOGIN ACTIVE</span>
+        <span style={{ color: "var(--text-dim,#5a7a9f)", letterSpacing: "0.5px" }}>{backupAuthEmail}</span>
+      </div>
+    );
+  }
+
+  if (!expanded) {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          <button
+            onClick={() => setExpanded(true)}
+            style={{ background: "rgba(255,170,0,0.08)", border: "1px solid rgba(255,170,0,0.3)", color: "#ffaa00", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.6rem", padding: "8px 14px", cursor: "pointer", letterSpacing: "1px" }}
+          >
+            🔑 SET UP BACKUP LOGIN
+          </button>
+          {!compact && (
+            <span style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.5rem", color: "var(--text-dim,#5a7a9f)", letterSpacing: "0.5px" }}>
+              Access your vault even if our sign-in provider is down
+            </span>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  const handleRegister = async () => {
+    setError(""); setSuccess("");
+    if (!email || !password) { setError("Email and password required"); return; }
+    if (password.length < 8) { setError("Password must be at least 8 characters"); return; }
+    if (password !== confirmPassword) { setError("Passwords don't match"); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setError("Invalid email format"); return; }
+
+    setLoading(true);
+    const result = await onRegister(email, password);
+    if (result.ok) {
+      setSuccess("✓ Backup login created!");
+      setEmail(""); setPassword(""); setConfirmPassword("");
+      setTimeout(() => setExpanded(false), 2000);
+    } else {
+      setError(result.error);
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 12, background: "rgba(255,170,0,0.04)", border: "1px solid rgba(255,170,0,0.15)", padding: "16px 14px" }}>
+      <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.6rem", color: "#ffaa00", letterSpacing: "1.5px" }}>🔑 SET UP BACKUP LOGIN</div>
+      <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.5rem", color: "var(--text-dim,#5a7a9f)", letterSpacing: "0.5px", lineHeight: 1.8 }}>
+        Add an email and password so you can log in even if our primary sign-in service goes down. This links to your existing account.
+      </div>
+
+      <div>
+        <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.5rem", color: "var(--text-dim,#5a7a9f)", letterSpacing: "1px", marginBottom: 3 }}>EMAIL</div>
+        <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="your@email.com"
+          style={{ width: "100%", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.1)", color: "#c8ddf5", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.65rem", padding: "8px 10px", outline: "none", boxSizing: "border-box" }}
+        />
+      </div>
+      <div>
+        <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.5rem", color: "var(--text-dim,#5a7a9f)", letterSpacing: "1px", marginBottom: 3 }}>PASSWORD (8+ CHARACTERS)</div>
+        <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••"
+          style={{ width: "100%", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.1)", color: "#c8ddf5", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.65rem", padding: "8px 10px", outline: "none", boxSizing: "border-box" }}
+        />
+      </div>
+      <div>
+        <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.5rem", color: "var(--text-dim,#5a7a9f)", letterSpacing: "1px", marginBottom: 3 }}>CONFIRM PASSWORD</div>
+        <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="••••••••"
+          onKeyDown={e => e.key === "Enter" && handleRegister()}
+          style={{ width: "100%", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.1)", color: "#c8ddf5", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.65rem", padding: "8px 10px", outline: "none", boxSizing: "border-box" }}
+        />
+      </div>
+
+      {error && <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.55rem", color: "#ff3c3c" }}>{error}</div>}
+      {success && <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.55rem", color: "#00ff88" }}>{success}</div>}
+
+      <div style={{ display: "flex", gap: 8 }}>
+        <button onClick={handleRegister} disabled={loading}
+          style={{ background: "rgba(0,170,255,0.1)", border: "1px solid rgba(0,170,255,0.3)", color: "#00aaff", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.6rem", padding: "8px 16px", cursor: loading ? "wait" : "pointer", letterSpacing: "1px" }}
+        >
+          {loading ? "SAVING..." : "✦ CREATE BACKUP LOGIN"}
+        </button>
+        <button onClick={() => { setExpanded(false); setError(""); }}
+          style={{ background: "none", border: "1px solid rgba(255,255,255,0.08)", color: "var(--text-dim,#5a7a9f)", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.6rem", padding: "8px 12px", cursor: "pointer", letterSpacing: "1px" }}
+        >
+          CANCEL
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
 // KITVAULT APP — main component (routes + shared state)
 // ─────────────────────────────────────────────────────────────
 export default function KitVault() {
   const { user, isSignedIn } = useUser();
   const navigate = useNavigate();
   const location = useLocation();
+
+  // ── Fallback Auth State ─────────────────────────────────────
+  const [clerkFailed, setClerkFailed] = useState(false);
+  const [fallbackToken, setFallbackToken] = useState(null);
+  const [fallbackUserId, setFallbackUserId] = useState(null);
+  const [fallbackEmail, setFallbackEmail] = useState(null);
+  const [hasBackupAuth, setHasBackupAuth] = useState(false);
+  const [backupAuthEmail, setBackupAuthEmail] = useState(null);
+
+  // Detect if Clerk failed to load (check after 5 seconds)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const clerkLoaded = document.querySelector("[data-clerk-loaded]") ||
+        document.querySelector(".cl-userButtonBox") ||
+        document.querySelector(".cl-signInButton") ||
+        isSignedIn;
+      if (!clerkLoaded && !isSignedIn) {
+        setClerkFailed(true);
+      }
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [isSignedIn]);
+
+  // When Clerk signs in, clear fallback state
+  useEffect(() => {
+    if (isSignedIn) {
+      setClerkFailed(false);
+      setFallbackToken(null);
+      setFallbackUserId(null);
+      setFallbackEmail(null);
+    }
+  }, [isSignedIn]);
+
+  // Effective auth — works with either Clerk or fallback
+  const effectiveUserId = isSignedIn ? user?.id : fallbackUserId;
+  const effectiveSignedIn = isSignedIn || !!fallbackUserId;
+
+  // Check if current user has backup auth set up
+  useEffect(() => {
+    if (!effectiveUserId) return;
+    fetch(`/api/auth/check?userId=${effectiveUserId}`)
+      .then(r => r.json())
+      .then(data => {
+        setHasBackupAuth(data.hasBackupAuth || false);
+        setBackupAuthEmail(data.email || null);
+      })
+      .catch(() => { });
+  }, [effectiveUserId]);
+
+  // Fallback login handler
+  const handleFallbackLogin = async (email, password) => {
+    const res = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      setFallbackToken(data.token);
+      setFallbackUserId(data.userId);
+      setFallbackEmail(email);
+      return { ok: true };
+    }
+    return { ok: false, error: data.error || "Login failed" };
+  };
+
+  // Fallback logout
+  const handleFallbackLogout = () => {
+    setFallbackToken(null);
+    setFallbackUserId(null);
+    setFallbackEmail(null);
+  };
+
+  // Register backup auth
+  const handleRegisterBackup = async (email, password) => {
+    const res = await fetch("/api/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: effectiveUserId, email, password }),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      setHasBackupAuth(true);
+      setBackupAuthEmail(email.replace(/^(.{2})(.*)(@.*)$/, "$1***$3"));
+      return { ok: true };
+    }
+    return { ok: false, error: data.error || "Registration failed" };
+  };
   const [openNav, setOpenNav] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showFallbackLogin, setShowFallbackLogin] = useState(false);
   const toggleNav = (name) => setOpenNav(prev => prev === name ? null : name);
   const closeNav = () => setOpenNav(null);
   const closeMobileMenu = () => { setMobileMenuOpen(false); closeNav(); };
@@ -340,19 +612,19 @@ export default function KitVault() {
   const [showCustomize, setShowCustomize] = useState(false);
 
   const fetchXpAndSprites = useCallback(async () => {
-    if (!isSignedIn || !user) return;
+    if (!effectiveSignedIn || !effectiveUserId) return;
     try {
-      const res = await fetch(`/api/xp?user_id=${user.id}`);
+      const res = await fetch(`/api/xp?user_id=${effectiveUserId}`);
       const data = await res.json();
       setXp(data.xp || 0);
       setOwnedSpriteIds(data.sprites || []);
       setParadeIds(data.parade || data.sprites || []);
     } catch (_) { }
-  }, [isSignedIn, user]);
+  }, [effectiveSignedIn, effectiveUserId]);
 
   useEffect(() => { fetchXpAndSprites(); }, [fetchXpAndSprites]);
 
-  useEffect(() => { if (user?.id) window.__kvUserId = user.id; }, [user]);
+  useEffect(() => { if (effectiveUserId) window.__kvUserId = effectiveUserId; }, [effectiveUserId]);
 
   const ownedSprites = SPRITES.filter(s => ownedSpriteIds.includes(s.id));
   const paradeSprites = SPRITES.filter(s => paradeIds.includes(s.id));
@@ -368,9 +640,9 @@ export default function KitVault() {
   const [usernameAvailable, setUsernameAvailable] = useState(null);
 
   const fetchHangarProfile = useCallback(async () => {
-    if (!isSignedIn || !user) return;
+    if (!effectiveSignedIn || !effectiveUserId) return;
     try {
-      const res = await fetch(`/api/hangar/profile?user_id=${user.id}`);
+      const res = await fetch(`/api/hangar/profile?user_id=${effectiveUserId}`);
       const data = await res.json();
       if (data.ok && data.profile) {
         setHangarProfile(data.profile);
@@ -380,7 +652,7 @@ export default function KitVault() {
         setHangarIsPublic(!!data.profile.is_public);
       }
     } catch (_) { }
-  }, [isSignedIn, user]);
+  }, [effectiveSignedIn, effectiveUserId]);
 
   useEffect(() => { fetchHangarProfile(); }, [fetchHangarProfile]);
 
@@ -407,7 +679,7 @@ export default function KitVault() {
   };
 
   const saveHangarProfile = async () => {
-    if (!user || !hangarUsername.trim()) return;
+    if (!effectiveUserId || !hangarUsername.trim()) return;
     setHangarSaving(true);
     setHangarMsg("");
     try {
@@ -415,10 +687,10 @@ export default function KitVault() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          user_id: user.id,
+          user_id: effectiveUserId,
           username: hangarUsername.trim().toLowerCase(),
           display_name: hangarDisplayName.trim(),
-          avatar_url: user.imageUrl || "",
+          avatar_url: user?.imageUrl || "",
           bio: hangarBio.trim(),
           is_public: hangarIsPublic,
         }),
@@ -440,35 +712,35 @@ export default function KitVault() {
   const D1_API = "/api/progress";
 
   const syncToD1 = useCallback(async (payload) => {
-    if (!isSignedIn || !user) return;
+    if (!effectiveSignedIn || !effectiveUserId) return;
     try {
       await fetch(D1_API, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: user.id, ...payload }),
+        body: JSON.stringify({ userId: effectiveUserId, ...payload }),
       });
     } catch (_) { /* silent fallback to localStorage */ }
-  }, [isSignedIn, user]);
+  }, [effectiveSignedIn, effectiveUserId]);
 
   const syncToD1Debounced = useDebounce(syncToD1, 500);
 
   const loadFromD1 = useCallback(async () => {
-    if (!isSignedIn || !user) return;
+    if (!effectiveSignedIn || !effectiveUserId) return;
     try {
-      const res = await fetch(`${D1_API}?userId=${user.id}`);
+      const res = await fetch(`${D1_API}?userId=${effectiveUserId}`);
       if (!res.ok) return;
       const data = await res.json();
       if (data.favourites) { setFavourites(data.favourites); localStorage.setItem("kv_favourites", JSON.stringify(data.favourites)); }
       if (data.progress) { setBuildProgress(data.progress); localStorage.setItem("kv_progress", JSON.stringify(data.progress)); }
       if (data.pages) { setPageProgress(data.pages); localStorage.setItem("kv_pages", JSON.stringify(data.pages)); }
     } catch (_) { /* silent fallback to localStorage */ }
-  }, [isSignedIn, user]);
+  }, [effectiveSignedIn, effectiveUserId]);
 
   useEffect(() => { loadFromD1(); }, [loadFromD1]);
 
   const toggleFavourite = (e, kitId) => {
     e.stopPropagation();
-    if (!isSignedIn) return;
+    if (!effectiveSignedIn) return;
     setFavourites(prev => {
       const next = prev.includes(kitId) ? prev.filter(id => id !== kitId) : [...prev, kitId];
       localStorage.setItem("kv_favourites", JSON.stringify(next));
@@ -478,7 +750,7 @@ export default function KitVault() {
   };
 
   const setBuildStatus = (kitId, status) => {
-    if (!isSignedIn) return;
+    if (!effectiveSignedIn) return;
     setBuildProgress(prev => {
       const next = { ...prev };
       if (prev[kitId] === status) {
@@ -495,7 +767,7 @@ export default function KitVault() {
   // Remove kit from vault entirely (clear status + unfavourite)
   const removeFromVault = (e, kitId) => {
     e.stopPropagation();
-    if (!isSignedIn) return;
+    if (!effectiveSignedIn) return;
     setBuildProgress(prev => {
       const next = { ...prev };
       delete next[kitId];
@@ -512,7 +784,7 @@ export default function KitVault() {
   };
 
   const setManualPage = (kitId, manualId, currentPage, totalPages) => {
-    if (!isSignedIn) return;
+    if (!effectiveSignedIn) return;
     setPageProgress(prev => {
       const key = `${kitId}-${manualId}`;
       const next = { ...prev, [key]: { current: currentPage, total: totalPages } };
@@ -608,7 +880,7 @@ export default function KitVault() {
                 <span className="build-badge" style={{ background: "rgba(90,122,159,0.15)", border: "1px solid rgba(90,122,159,0.4)", color: "var(--text-dim)", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.55rem", padding: "2px 8px", letterSpacing: "1px" }}>BACKLOG</span>
               )}
               <span className="manual-count">{kit.manuals.length} MANUAL{kit.manuals.length !== 1 ? "S" : ""}</span>
-              {isSignedIn && (
+              {effectiveSignedIn && (
                 <button className="fav-btn" onClick={e => toggleFavourite(e, kit.id)} title={isFav ? "Remove from favourites" : "Add to favourites"}>
                   {isFav ? "⭐" : "☆"}
                 </button>
@@ -617,7 +889,7 @@ export default function KitVault() {
           </div>
           <div className="card-title">{kit.name}</div>
           <div className="card-series">{kit.series}</div>
-          {isSignedIn && pct !== null && (() => {
+          {effectiveSignedIn && pct !== null && (() => {
             const colors = xpColors(pct);
             return (
               <div className="xp-slim" style={colors}>
@@ -644,6 +916,27 @@ export default function KitVault() {
     <>
       <div className="grid-bg" />
       <div className="app">
+
+        {/* CLERK DOWN BANNER */}
+        {clerkFailed && !fallbackUserId && (
+          <div style={{
+            background: "rgba(255,170,0,0.08)", borderBottom: "1px solid rgba(255,170,0,0.25)",
+            padding: "8px 20px", display: "flex", alignItems: "center", justifyContent: "center", gap: 12,
+            fontFamily: "'Share Tech Mono',monospace", fontSize: "0.55rem", letterSpacing: "0.5px",
+          }}>
+            <span style={{ color: "#ffaa00" }}>⚠ Sign-in service temporarily unavailable</span>
+            <button
+              onClick={() => setShowFallbackLogin(true)}
+              style={{
+                background: "rgba(0,170,255,0.1)", border: "1px solid rgba(0,170,255,0.3)",
+                color: "#00aaff", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.55rem",
+                padding: "4px 12px", cursor: "pointer", letterSpacing: "1px",
+              }}
+            >
+              USE BACKUP LOGIN →
+            </button>
+          </div>
+        )}
 
         {/* HEADER */}
         <header className="header" style={{ position: "relative" }} onClick={e => { if (!e.target.closest('.nav-item')) closeNav(); }}>
@@ -748,25 +1041,35 @@ export default function KitVault() {
                   <span className="hangar-xp-badge">{xp} XP</span>
                 </button>
               </SignedIn>
+              {!isSignedIn && fallbackUserId && (
+                <button onClick={() => setShowCustomize(true)} className="hangar-btn">
+                  ◈ ROSTER
+                  <span className="hangar-xp-badge">{xp} XP</span>
+                </button>
+              )}
               <SignedOut>
-                <button onClick={() => setShowCustomize(true)} className="hangar-btn locked">
-                  🔒 ROSTER
-                </button>
-              </SignedOut>
-
-              <SignedIn>
-                <button onClick={goVault} className={`vault-btn${location.pathname === "/vault" ? " active" : ""}`}>
-                  ⭐ VAULT
-                </button>
-                {hangarProfile?.username && (
-                  <button
-                    onClick={() => navigate(`/hangar/${hangarProfile.username}`)}
-                    className={`vault-btn${location.pathname.startsWith("/hangar/") ? " active" : ""}`}
-                  >
-                    🏠 HANGAR
+                {!fallbackUserId && (
+                  <button onClick={() => setShowCustomize(true)} className="hangar-btn locked">
+                    🔒 ROSTER
                   </button>
                 )}
-              </SignedIn>
+              </SignedOut>
+
+              {effectiveSignedIn && (
+                <>
+                  <button onClick={goVault} className={`vault-btn${location.pathname === "/vault" ? " active" : ""}`}>
+                    ⭐ VAULT
+                  </button>
+                  {hangarProfile?.username && (
+                    <button
+                      onClick={() => navigate(`/hangar/${hangarProfile.username}`)}
+                      className={`vault-btn${location.pathname.startsWith("/hangar/") ? " active" : ""}`}
+                    >
+                      🏠 HANGAR
+                    </button>
+                  )}
+                </>
+              )}
             </div>
 
             {/* THEME DROPDOWN */}
@@ -800,9 +1103,20 @@ export default function KitVault() {
                 <UserButton afterSignOutUrl="/" />
               </SignedIn>
               <SignedOut>
-                <SignInButton mode="modal">
-                  <button className="auth-btn">LOG IN</button>
-                </SignInButton>
+                {fallbackUserId ? (
+                  <button className="auth-btn" onClick={handleFallbackLogout} style={{ fontSize: "0.55rem" }}>LOG OUT</button>
+                ) : (
+                  <>
+                    {!clerkFailed && (
+                      <SignInButton mode="modal">
+                        <button className="auth-btn">LOG IN</button>
+                      </SignInButton>
+                    )}
+                    <button className="auth-btn" onClick={() => setShowFallbackLogin(true)} style={clerkFailed ? { background: "rgba(0,170,255,0.15)", borderColor: "rgba(0,170,255,0.4)", color: "#00aaff" } : { fontSize: "0.5rem", opacity: 0.7 }}>
+                      {clerkFailed ? "LOG IN" : "EMAIL LOGIN"}
+                    </button>
+                  </>
+                )}
               </SignedOut>
             </div>
             <button className={`cog-btn ${showSettings ? "active" : ""}`} onClick={() => setShowSettings(true)} title="Settings">⚙</button>
@@ -813,6 +1127,9 @@ export default function KitVault() {
         <SignedIn>
           <MarqueeStrip ownedSprites={paradeSprites} />
         </SignedIn>
+        {!isSignedIn && fallbackUserId && (
+          <MarqueeStrip ownedSprites={paradeSprites} />
+        )}
 
         <Routes>
 
@@ -869,7 +1186,7 @@ export default function KitVault() {
           {/* ===== KIT DETAIL PAGE ===== */}
           <Route path="/kit/:slug" element={
             <KitDetail
-              allKits={allKits} isSignedIn={isSignedIn} user={user}
+              allKits={allKits} isSignedIn={effectiveSignedIn} user={user || { id: effectiveUserId }}
               favourites={favourites} buildProgress={buildProgress}
               pageProgress={pageProgress} toggleFavourite={toggleFavourite}
               setBuildStatus={setBuildStatus} setManualPage={setManualPage}
@@ -903,6 +1220,13 @@ export default function KitVault() {
                       <div className="page-title">MY <span style={{ color: "var(--accent)" }}>VAULT</span></div>
                       <div className="page-sub">{vaultKits.length} KIT{vaultKits.length !== 1 ? "S" : ""} TRACKED</div>
                     </div>
+
+                    {/* Backup auth setup prompt */}
+                    {effectiveSignedIn && !hasBackupAuth && (
+                      <div style={{ maxWidth: 800, margin: "0 auto 12px", padding: "0 40px" }}>
+                        <BackupAuthSetup onRegister={handleRegisterBackup} hasBackupAuth={hasBackupAuth} backupAuthEmail={backupAuthEmail} />
+                      </div>
+                    )}
                     {vaultKits.length === 0 ? (
                       <div className="vault-empty">
                         <span className="vault-empty-icon">⭐</span>
@@ -1162,7 +1486,7 @@ export default function KitVault() {
 
           {/* ===== PUBLIC HANGAR PROFILE ===== */}
           <Route path="/hangar/:username" element={
-            <Hangar currentUserId={isSignedIn ? user?.id : null} />
+            <Hangar currentUserId={effectiveSignedIn ? effectiveUserId : null} />
           } />
 
           {/* ===== ADMIN ===== */}
@@ -1181,7 +1505,7 @@ export default function KitVault() {
               <div className="settings-body">
 
                 {/* HANGAR PROFILE */}
-                {isSignedIn && (
+                {effectiveSignedIn && (
                   <div className="settings-section">
                     <div className="settings-section-label">MY HANGAR</div>
                     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -1322,7 +1646,15 @@ export default function KitVault() {
                   </div>
                 )}
 
-                {/* DONATE */}
+                {/* BACKUP LOGIN */}
+                {effectiveSignedIn && (
+                  <div className="settings-section">
+                    <div className="settings-section-label">BACKUP LOGIN</div>
+                    <BackupAuthSetup onRegister={handleRegisterBackup} hasBackupAuth={hasBackupAuth} backupAuthEmail={backupAuthEmail} compact={true} />
+                  </div>
+                )}
+
+                {/* SUPPORT KITVAULT */}
                 <div className="settings-section">
                   <div className="settings-section-label">SUPPORT KITVAULT</div>
                   <div className="donate-block">
@@ -1418,13 +1750,13 @@ export default function KitVault() {
         >↑</button>
 
         {/* CUSTOMIZE MODALS */}
-        {showCustomize && isSignedIn && (
+        {showCustomize && effectiveSignedIn && (
           <CustomizeModal
             onClose={() => setShowCustomize(false)}
             ownedIds={ownedSpriteIds}
             paradeIds={paradeIds}
             xp={xp}
-            userId={user?.id}
+            userId={effectiveUserId}
             onPurchaseComplete={(spriteId, newXp, removedId) => {
               if (removedId) {
                 setOwnedSpriteIds(prev => prev.filter(id => id !== removedId));
@@ -1441,8 +1773,17 @@ export default function KitVault() {
             }}
           />
         )}
-        {showCustomize && !isSignedIn && (
+        {showCustomize && !effectiveSignedIn && (
           <GuestCustomizeTeaser onClose={() => setShowCustomize(false)} />
+        )}
+
+        {/* FALLBACK LOGIN MODAL */}
+        {showFallbackLogin && (
+          <FallbackLoginModal
+            onClose={() => setShowFallbackLogin(false)}
+            onLogin={handleFallbackLogin}
+            clerkFailed={clerkFailed}
+          />
         )}
 
       </div>
