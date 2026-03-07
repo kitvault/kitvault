@@ -913,21 +913,21 @@
   .kit-card:hover { border-color: var(--border-bright); transform: translateY(-3px); box-shadow: 0 8px 30px rgba(0,0,0,0.5), var(--glow); }
   .kit-card:hover::before { opacity: 1; }
   .card-grade-banner { height: 4px; background: var(--card-accent, var(--accent)); opacity: 0.7; }
-  .card-body { padding: 20px; }
-  .card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+  .card-body { padding: 24px; }
+  .card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
   .grade-badge {
-    font-family: 'Orbitron', monospace; font-size: 0.65rem; font-weight: 700;
-    padding: 4px 10px; letter-spacing: 2px;
+    font-family: 'Orbitron', monospace; font-size: 0.72rem; font-weight: 700;
+    padding: 5px 12px; letter-spacing: 2px;
     background: var(--card-accent-bg, rgba(0,170,255,0.1));
     border: 1px solid var(--card-accent, var(--accent));
     color: var(--card-accent, var(--accent));
   }
-  .manual-count { font-family: 'Share Tech Mono', monospace; font-size: 0.65rem; color: var(--text-dim); letter-spacing: 1px; }
-  .card-title { font-family: 'Rajdhani', sans-serif; font-size: 1.25rem; font-weight: 700; color: var(--text-bright); margin-bottom: 6px; line-height: 1.2; }
-  .card-series { font-family: 'Share Tech Mono', monospace; font-size: 0.7rem; color: var(--text-dim); letter-spacing: 1px; margin-bottom: 16px; }
-  .card-footer { display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--border); padding-top: 12px; }
-  .card-scale { font-family: 'Share Tech Mono', monospace; font-size: 0.65rem; color: var(--accent3); letter-spacing: 1px; }
-  .card-arrow { color: var(--card-accent, var(--accent)); font-size: 1rem; transition: transform 0.2s; }
+  .manual-count { font-family: 'Share Tech Mono', monospace; font-size: 0.7rem; color: var(--text-dim); letter-spacing: 1px; }
+  .card-title { font-family: 'Rajdhani', sans-serif; font-size: 1.45rem; font-weight: 700; color: var(--text-bright); margin-bottom: 6px; line-height: 1.2; }
+  .card-series { font-family: 'Share Tech Mono', monospace; font-size: 0.75rem; color: var(--text-dim); letter-spacing: 1px; margin-bottom: 18px; }
+  .card-footer { display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--border); padding-top: 14px; }
+  .card-scale { font-family: 'Share Tech Mono', monospace; font-size: 0.7rem; color: var(--accent3); letter-spacing: 1px; }
+  .card-arrow { color: var(--card-accent, var(--accent)); font-size: 1.15rem; transition: transform 0.2s; }
   .kit-card:hover .card-arrow { transform: translateX(4px); }
 
   /* KIT DETAIL */
@@ -1515,7 +1515,7 @@
   .vault-progress-pct { display: none; }
 
   /* MY VAULT PAGE */
-  .vault-grid { padding: 0 40px 60px; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+  .vault-grid { padding: 0 40px 60px; display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 24px; }
   .vault-empty {
     padding: 80px 40px; text-align: center;
     font-family: 'Share Tech Mono', monospace; color: var(--text-dim);
@@ -1523,8 +1523,8 @@
   }
   .vault-empty-icon { font-size: 3rem; opacity: 0.3; display: block; margin-bottom: 16px; }
   .kit-card .build-badge {
-    font-family: 'Share Tech Mono', monospace; font-size: 0.55rem;
-    padding: 3px 8px; letter-spacing: 1px; border-radius: 0;
+    font-family: 'Share Tech Mono', monospace; font-size: 0.62rem;
+    padding: 4px 10px; letter-spacing: 1px; border-radius: 0;
     border: 1px solid; margin-left: 6px;
   }
   .build-badge.inprogress { border-color: var(--gold); color: var(--gold); }
@@ -1880,34 +1880,38 @@
   .kit-notes-btn {
     background: var(--bg3); border: 1px solid var(--border);
     color: var(--text-dim); font-family: 'Share Tech Mono', monospace;
-    font-size: 0.58rem; letter-spacing: 1px; padding: 3px 9px;
+    font-size: 0.68rem; letter-spacing: 1px; padding: 5px 12px;
     cursor: pointer; transition: all 0.2s; line-height: 1;
   }
   .kit-notes-btn:hover {
     background: var(--card-hover-bg); border-color: var(--accent);
-    color: var(--accent);
+    color: var(--accent); transform: scale(1.08);
   }
   .kit-notes-btn.has-note {
     border-color: var(--accent); color: var(--accent);
     background: var(--card-hover-bg);
   }
+  .kit-notes-btn.has-note:hover {
+    transform: scale(1.12);
+    box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 40%, transparent);
+  }
 
   /* ── KIT NOTES PANEL ── */
   .kit-notes-panel {
     background: var(--bg2); border: 1px solid var(--border-bright);
-    padding: 12px 14px; margin-bottom: 10px;
+    padding: 14px 16px; margin-bottom: 12px;
     clip-path: polygon(0 0, 95% 0, 100% 8%, 100% 100%, 5% 100%, 0 92%);
   }
   .kit-notes-label {
-    font-family: 'Share Tech Mono', monospace; font-size: 0.5rem;
-    color: var(--accent); letter-spacing: 2px; margin-bottom: 8px;
+    font-family: 'Share Tech Mono', monospace; font-size: 0.62rem;
+    color: var(--accent); letter-spacing: 2px; margin-bottom: 10px;
     display: flex; justify-content: space-between; align-items: center;
   }
   .kit-notes-textarea {
     width: 100%; background: var(--bg3); border: 1px solid var(--border);
     color: var(--text); font-family: 'Share Tech Mono', monospace;
-    font-size: 0.6rem; letter-spacing: 0.5px; line-height: 1.7;
-    padding: 8px 10px; resize: vertical; min-height: 90px;
+    font-size: 0.72rem; letter-spacing: 0.5px; line-height: 1.8;
+    padding: 10px 12px; resize: vertical; min-height: 110px;
     outline: none; transition: border-color 0.2s; box-sizing: border-box;
   }
   .kit-notes-textarea:focus { border-color: var(--accent); }
@@ -1915,14 +1919,14 @@
   .kit-notes-save {
     background: var(--card-hover-bg); border: 1px solid var(--accent);
     color: var(--accent); font-family: 'Share Tech Mono', monospace;
-    font-size: 0.58rem; letter-spacing: 1px; padding: 5px 14px;
+    font-size: 0.68rem; letter-spacing: 1px; padding: 7px 18px;
     cursor: pointer; transition: all 0.15s;
   }
   .kit-notes-save:hover { opacity: 0.85; }
   .kit-notes-cancel {
     background: var(--bg3); border: 1px solid var(--border);
     color: var(--text-dim); font-family: 'Share Tech Mono', monospace;
-    font-size: 0.58rem; letter-spacing: 1px; padding: 5px 14px;
+    font-size: 0.68rem; letter-spacing: 1px; padding: 7px 18px;
     cursor: pointer; transition: all 0.15s;
   }
   .kit-notes-cancel:hover { border-color: var(--border-bright); color: var(--text); }
@@ -1949,7 +1953,7 @@
   .kit-tag-menu-btn {
     background: var(--bg3); border: 1px solid var(--border);
     color: var(--text-dim); font-family: 'Share Tech Mono', monospace;
-    font-size: 0.6rem; letter-spacing: 2px; padding: 3px 9px;
+    font-size: 0.68rem; letter-spacing: 2px; padding: 5px 10px;
     cursor: pointer; transition: all 0.2s; line-height: 1;
   }
   .kit-tag-menu-btn:hover {
@@ -1964,7 +1968,7 @@
     clip-path: polygon(0 0, 95% 0, 100% 8%, 100% 100%, 5% 100%, 0 92%);
   }
   .kit-tag-popover-label {
-    font-family: 'Share Tech Mono', monospace; font-size: 0.5rem;
+    font-family: 'Share Tech Mono', monospace; font-size: 0.6rem;
     color: var(--accent); letter-spacing: 2px; margin-bottom: 10px;
   }
   .kit-tag-popover-options {
@@ -1973,7 +1977,7 @@
   .kit-tag-option {
     background: var(--bg3); border: 1px solid var(--border);
     color: var(--text-dim); font-family: 'Share Tech Mono', monospace;
-    font-size: 0.58rem; letter-spacing: 1px; padding: 5px 10px;
+    font-size: 0.66rem; letter-spacing: 1px; padding: 6px 12px;
     cursor: pointer; transition: all 0.15s;
   }
   .kit-tag-option:hover {
@@ -1990,8 +1994,8 @@
     display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 12px;
   }
   .kit-tag-pill {
-    font-family: 'Share Tech Mono', monospace; font-size: 0.5rem;
-    letter-spacing: 1px; padding: 2px 8px;
+    font-family: 'Share Tech Mono', monospace; font-size: 0.6rem;
+    letter-spacing: 1px; padding: 3px 10px;
     background: var(--card-hover-bg); border: 1px solid var(--border-bright);
     color: var(--accent);
   }
