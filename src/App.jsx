@@ -1014,13 +1014,6 @@ export default function KitVault() {
         {showRemove && (
           <button className="vault-remove-btn" onClick={e => removeFromVault(e, kit.id)} title="Remove from vault">🗑</button>
         )}
-        {showTags && effectiveSignedIn && (
-          <button
-            className="kit-tag-menu-btn"
-            onClick={e => { e.stopPropagation(); setOpenTagsId(isTagsOpen ? null : kit.id); }}
-            title="Tag this kit"
-          >•••</button>
-        )}
         <div className="card-grade-banner" style={{ background: c.accent }} />
         <div className="card-body">
           <div className="card-top">
@@ -1088,7 +1081,16 @@ export default function KitVault() {
 
           <div className="card-footer">
             <span className="card-scale">SCALE {kit.scale}</span>
-            <span className="card-arrow">→</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              {showTags && effectiveSignedIn && (
+                <button
+                  className="kit-tag-menu-btn"
+                  onClick={e => { e.stopPropagation(); setOpenTagsId(isTagsOpen ? null : kit.id); }}
+                  title="Tag this kit"
+                >•••</button>
+              )}
+              <span className="card-arrow">→</span>
+            </div>
           </div>
         </div>
       </div>
