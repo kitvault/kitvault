@@ -222,35 +222,15 @@
     background-repeat: repeat;
   }
 
-  /* Hero section — big cats */
+  /* Hero section */
   [data-theme="cat"] .hero { position: relative; overflow: hidden; }
-  [data-theme="cat"] .hero::before {
-    content: '😺 🐱 😸 🐈'; position: absolute; top: 15px; right: 30px;
-    font-size: 1.8rem; opacity: 0.12; letter-spacing: 8px; pointer-events: none;
-    animation: catBounce 3s ease-in-out infinite;
-  }
-  [data-theme="cat"] .hero::after {
-    content: '🐈‍⬛ 😻 🐾 🐱'; position: absolute; bottom: 15px; left: 30px;
-    font-size: 1.8rem; opacity: 0.12; letter-spacing: 8px; pointer-events: none;
-    animation: catBounce 3s ease-in-out infinite 1.5s;
-  }
-  @keyframes catBounce {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-6px); }
-  }
 
-  /* Hero tag line gets a cat */
-  [data-theme="cat"] .hero-tag::before { content: '🐱 '; opacity: 0.6; }
-  [data-theme="cat"] .hero-tag::after { content: ' 🐱'; opacity: 0.6; background: none; height: auto; width: auto; }
+  /* Hero tag line */
 
-  /* Section headers — different cats for variety */
-  [data-theme="cat"] .section-header::after {
-    content: ' 🐾😺'; font-size: 0.7rem; opacity: 0.5;
-  }
+  /* Section headers */
 
   /* Kit cards — paw prints on hover */
   [data-theme="cat"] .kit-card { position: relative; transition: all 0.3s; z-index: 1; }
-  /* Ensure all page content sits above the sticker bomb background */
   [data-theme="cat"] .page-hero,
   [data-theme="cat"] .hero,
   [data-theme="cat"] .controls,
@@ -261,79 +241,27 @@
   [data-theme="cat"] footer {
     position: relative; z-index: 1;
   }
-  [data-theme="cat"] .kit-card::after {
-    content: '🐾'; position: absolute; top: 8px; right: 10px;
-    font-size: 0.8rem; opacity: 0; transition: opacity 0.3s; pointer-events: none;
-  }
-  [data-theme="cat"] .kit-card:hover::after { opacity: 0.5; }
+  /* Ensure all page content sits above the sticker bomb background */
 
-  /* Search input placeholder cat */
-  [data-theme="cat"] .search-input::placeholder { color: var(--text-dim); }
-
-  /* Filter buttons — cat paw on active */
-  [data-theme="cat"] .filter-btn.active::before { content: '🐾 '; font-size: 0.55rem; }
-
-  /* Controls label */
-  [data-theme="cat"] .controls-label::after { content: ' 😸'; font-size: 0.6rem; opacity: 0.4; }
-
-  /* Footer — line of cats */
+  /* Footer */
   [data-theme="cat"] .footer { position: relative; overflow: hidden; }
-  [data-theme="cat"] .footer::before {
-    content: '🐱 😺 🐈 😸 🐈‍⬛ 😻 🐾 😽 🙀 😺 🐱 🐈 😸 🐈‍⬛ 😻 🐾 😽';
-    position: absolute; top: -1px; left: 0; right: 0;
-    font-size: 0.65rem; opacity: 0.15; letter-spacing: 4px;
-    text-align: center; pointer-events: none;
-    overflow: hidden; white-space: nowrap;
-  }
-  [data-theme="cat"] .footer::after {
-    content: '😸 Made with love by cats 🐱'; 
-    display: block; text-align: center;
-    font-family: 'Share Tech Mono', monospace; font-size: 0.45rem;
-    color: var(--text-dim); letter-spacing: 2px;
-    margin-top: 8px; opacity: 0.4;
-  }
 
-  /* Logo area — cat face */
-  [data-theme="cat"] .logo-sub::after {
-    content: ' 🐱'; font-size: 0.55rem; margin-left: 4px; opacity: 0.5;
-  }
-  [data-theme="cat"] .logo-icon::after {
-    content: '🐾'; position: absolute; bottom: -2px; right: -2px;
-    font-size: 0.4rem; opacity: 0.6;
-  }
+  /* Logo area */
   [data-theme="cat"] .logo-icon { position: relative; }
 
-  /* Grade page hero — cats */
+  /* Grade page hero */
   [data-theme="cat"] .grade-page-hero { position: relative; }
-  [data-theme="cat"] .grade-page-hero::before {
-    content: '😺🐈😸'; position: absolute; top: 12px; right: 20px;
-    font-size: 1.2rem; opacity: 0.1; letter-spacing: 6px; pointer-events: none;
-  }
 
-  /* Page titles get a cat */
-  [data-theme="cat"] .page-title::after {
-    content: ' 🐱'; font-size: 0.8em; opacity: 0.4;
-  }
+  /* Page titles */
 
   /* Nav dropdown headers */
-  [data-theme="cat"] .nav-dropdown-header::after {
-    content: ' 😺'; font-size: 0.6rem; opacity: 0.5;
-  }
 
   /* Back button */
-  [data-theme="cat"] .back-btn::before { content: '🐾 '; font-size: 0.5rem; opacity: 0.5; }
 
-  /* Stat boxes on home page */
-  [data-theme="cat"] .stat::after {
-    content: '🐱'; position: absolute; bottom: 2px; right: 6px;
-    font-size: 0.5rem; opacity: 0.15; pointer-events: none;
-  }
+  /* Stat boxes */
   [data-theme="cat"] .stat { position: relative; }
 
   /* Settings modal header */
-  [data-theme="cat"] .settings-header::after {
-    content: ' 😸'; font-size: 0.7rem; opacity: 0.4;
-  }
 
   /* Cog button becomes a cat on hover */
   [data-theme="cat"] .cog-btn:hover { border-color: #f4a940; color: #f4a940; }
@@ -345,10 +273,6 @@
   [data-theme="cat"] ::-webkit-scrollbar-thumb:hover { background: rgba(244,169,64,0.5); }
 
   /* Manual list items */
-  [data-theme="cat"] .manual-item-row::after {
-    content: '🐾'; position: absolute; top: 8px; right: 8px;
-    font-size: 0.5rem; opacity: 0.15; pointer-events: none;
-  }
   [data-theme="cat"] .manual-item-row { position: relative; }
 
   /* Marquee strip — cats love watching things move */
@@ -356,17 +280,11 @@
     content: ''; /* no interference with sprite parade */
   }
 
-  /* Card arrows become paw */
-  [data-theme="cat"] .card-arrow::before { content: '🐾'; font-size: 0.6rem; margin-right: 4px; opacity: 0.3; }
+  /* Card arrows */
 
   /* XP header in customize modal */
-  [data-theme="cat"] .xp-header::after {
-    content: ' 😻'; font-size: 0.7rem; opacity: 0.4;
-  }
 
-  /* Hangar button gets extra cute */
-  [data-theme="cat"] .hangar-btn::before { content: '🐾 '; font-size: 0.5rem; opacity: 0.6; }
-  [data-theme="cat"] .vault-btn::after { content: ' 😺'; font-size: 0.5rem; opacity: 0.5; margin-left: 4px; }
+  /* Button styles */
 
   body {
     background: var(--bg);
