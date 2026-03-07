@@ -716,6 +716,7 @@ export default function KitVault() {
     try { return JSON.parse(localStorage.getItem("kv_tags") || "{}"); } catch { return {}; }
   });
   const [openTagsId, setOpenTagsId] = useState(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
   // ── D1 kits — merged with static list ────────────────────
   const [d1Kits, setD1Kits] = useState([]);
@@ -1011,9 +1012,6 @@ export default function KitVault() {
         style={{ "--card-accent": c.accent, "--card-accent-bg": c.bg, position: "relative" }}
         onClick={() => { if (isTagsOpen) { setOpenTagsId(null); return; } goKit(kit); }}
       >
-        {showRemove && (
-          <button className="vault-remove-btn" onClick={e => removeFromVault(e, kit.id)} title="Remove from vault">🗑</button>
-        )}
         <div className="card-grade-banner" style={{ background: c.accent }} />
         <div className="card-body">
           <div className="card-top">
@@ -1025,11 +1023,6 @@ export default function KitVault() {
                 <span className="build-badge" style={{ background: "rgba(90,122,159,0.15)", border: "1px solid rgba(90,122,159,0.4)", color: "var(--text-dim)", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.55rem", padding: "2px 8px", letterSpacing: "1px" }}>BACKLOG</span>
               )}
               <span className="manual-count">{kit.manuals.length} MANUAL{kit.manuals.length !== 1 ? "S" : ""}</span>
-              {effectiveSignedIn && (
-                <button className="fav-btn" onClick={e => toggleFavourite(e, kit.id)} title={isFav ? "Remove from favourites" : "Add to favourites"}>
-                  {isFav ? "⭐" : "☆"}
-                </button>
-              )}
             </div>
           </div>
           <div className="card-title">{kit.name}</div>
@@ -1081,13 +1074,21 @@ export default function KitVault() {
 
           <div className="card-footer">
             <span className="card-scale">SCALE {kit.scale}</span>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
               {showTags && effectiveSignedIn && (
                 <button
                   className="kit-tag-menu-btn"
                   onClick={e => { e.stopPropagation(); setOpenTagsId(isTagsOpen ? null : kit.id); }}
                   title="Tag this kit"
                 >•••</button>
+              )}
+              {effectiveSignedIn && (
+                <button className="fav-btn" onClick={e => toggleFavourite(e, kit.id)} title={isFav ? "Remove from favourites" : "Add to favourites"}>
+                  {isFav ? "⭐" : "☆"}
+                </button>
+              )}
+              {showRemove && (
+                <button className="vault-remove-btn" onClick={e => { e.stopPropagation(); setConfirmDeleteId(kit.id); }} title="Remove from vault">🗑</button>
               )}
               <span className="card-arrow">→</span>
             </div>
@@ -2039,6 +2040,48 @@ export default function KitVault() {
             clerkFailed={clerkFailed}
           />
         )}
+
+        {/* CONFIRM DELETE MODAL */}
+        {confirmDeleteId && (() => {
+          const kit = allKits.find(k => k.id === confirmDeleteId);
+          return (
+            <div
+              style={{ position: "fixed", inset: 0, background: "rgba(0,5,18,0.88)", backdropFilter: "blur(6px)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
+              onClick={() => setConfirmDeleteId(null)}
+            >
+              <div
+                style={{ background: "var(--bg2)", border: "1px solid rgba(255,34,68,0.35)", maxWidth: 380, width: "100%", padding: "32px 28px", clipPath: "polygon(0 0, 95% 0, 100% 5%, 100% 100%, 5% 100%, 0 95%)" }}
+                onClick={e => e.stopPropagation()}
+              >
+                <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.5rem", color: "#ff2244", letterSpacing: "3px", marginBottom: 14 }}>⚠ CONFIRM REMOVAL</div>
+                <div style={{ fontFamily: "'Rajdhani',sans-serif", fontSize: "1.1rem", fontWeight: 700, color: "var(--text-bright)", marginBottom: 6, lineHeight: 1.3 }}>
+                  {kit?.name || "This kit"}
+                </div>
+                <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.65rem", color: "var(--text-dim)", letterSpacing: "0.5px", marginBottom: 24, lineHeight: 1.8 }}>
+                  Are you sure you want to remove this kit from your vault? Your build status and tags will be lost.
+                </div>
+                <div style={{ display: "flex", gap: 10 }}>
+                  <button
+                    onClick={e => { removeFromVault(e, confirmDeleteId); setConfirmDeleteId(null); }}
+                    style={{ flex: 1, background: "rgba(255,34,68,0.1)", border: "1px solid rgba(255,34,68,0.4)", color: "#ff2244", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.65rem", padding: "10px", cursor: "pointer", letterSpacing: "1.5px", transition: "all 0.2s" }}
+                    onMouseEnter={e => e.currentTarget.style.background = "rgba(255,34,68,0.18)"}
+                    onMouseLeave={e => e.currentTarget.style.background = "rgba(255,34,68,0.1)"}
+                  >
+                    🗑 YES, REMOVE
+                  </button>
+                  <button
+                    onClick={() => setConfirmDeleteId(null)}
+                    style={{ flex: 1, background: "var(--bg3)", border: "1px solid var(--border)", color: "var(--text-dim)", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.65rem", padding: "10px", cursor: "pointer", letterSpacing: "1.5px", transition: "all 0.2s" }}
+                    onMouseEnter={e => e.currentTarget.style.borderColor = "var(--border-bright)"}
+                    onMouseLeave={e => e.currentTarget.style.borderColor = "var(--border)"}
+                  >
+                    CANCEL
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
       </div>
     </>
