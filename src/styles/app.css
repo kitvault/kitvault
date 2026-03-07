@@ -1876,6 +1876,14 @@
   .back-to-top.visible { opacity: 1; pointer-events: all; }
   .back-to-top:hover { background: rgba(0,170,255,0.12); border-color: var(--accent); box-shadow: var(--glow); }
 
+  /* ── VAULT COLLAPSIBLE SECTIONS ── */
+  .vault-section-header { user-select: none; }
+  .vault-section-header:hover .section-title { opacity: 0.85; }
+  .section-collapse-arrow {
+    font-size: 0.55rem; color: var(--text-dim); margin-left: 8px;
+    transition: transform 0.2s; display: inline-block; flex-shrink: 0;
+  }
+
   /* ── VAULT REMOVE BUTTON ── */
   .vault-remove-btn {
     background: none; border: 1px solid rgba(255,34,68,0.2);

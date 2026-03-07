@@ -216,26 +216,39 @@ export default function Hangar({ currentUserId }) {
   };
 
   // ── Section renderer ──
-  const Section = ({ title, icon, kits: sectionKits, color }) => {
+  const Section = ({ title, icon, kits: sectionKits, color, sectionKey }) => {
+    const [collapsed, setCollapsed] = useState(false);
     if (sectionKits.length === 0) return null;
     return (
       <div style={{ marginBottom: 40 }}>
-        <div style={{
-          fontFamily: "'Share Tech Mono',monospace", fontSize: "0.85rem", letterSpacing: "2px",
-          color: color || "var(--text-dim)", marginBottom: 16, display: "flex", alignItems: "center", gap: 8,
-        }}>
+        <div
+          onClick={() => setCollapsed(v => !v)}
+          style={{
+            fontFamily: "'Share Tech Mono',monospace", fontSize: "0.85rem", letterSpacing: "2px",
+            color: color || "var(--text-dim)", marginBottom: collapsed ? 0 : 16,
+            display: "flex", alignItems: "center", gap: 8, cursor: "pointer",
+            userSelect: "none",
+          }}
+        >
           {icon} {title}
           <span style={{ fontSize: "0.65rem", color: "var(--text-dim)", letterSpacing: "1px" }}>
             {sectionKits.length} KIT{sectionKits.length !== 1 ? "S" : ""}
           </span>
+          <span style={{
+            marginLeft: "auto", fontSize: "0.6rem", color: "var(--text-dim)",
+            transition: "transform 0.2s", display: "inline-block",
+            transform: collapsed ? "rotate(-90deg)" : "rotate(0deg)",
+          }}>▼</span>
         </div>
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
-          gap: 16,
-        }}>
-          {sectionKits.map(kit => <KitCard key={kit.id} kit={kit} />)}
-        </div>
+        {!collapsed && (
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+            gap: 16,
+          }}>
+            {sectionKits.map(kit => <KitCard key={kit.id} kit={kit} />)}
+          </div>
+        )}
       </div>
     );
   };

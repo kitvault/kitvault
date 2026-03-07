@@ -717,6 +717,8 @@ export default function KitVault() {
   });
   const [openTagsId, setOpenTagsId] = useState(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const [collapsedSections, setCollapsedSections] = useState({});
+  const toggleSection = (key) => setCollapsedSections(prev => ({ ...prev, [key]: !prev[key] }));
 
   // ── D1 kits — merged with static list ────────────────────
   const [d1Kits, setD1Kits] = useState([]);
@@ -1022,7 +1024,6 @@ export default function KitVault() {
               {showBacklog && (!progress || progress === "backlog") && (
                 <span className="build-badge" style={{ background: "rgba(90,122,159,0.15)", border: "1px solid rgba(90,122,159,0.4)", color: "var(--text-dim)", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.55rem", padding: "2px 8px", letterSpacing: "1px" }}>BACKLOG</span>
               )}
-              <span className="manual-count">{kit.manuals.length} MANUAL{kit.manuals.length !== 1 ? "S" : ""}</span>
             </div>
           </div>
           <div className="card-title">{kit.name}</div>
@@ -1472,42 +1473,46 @@ export default function KitVault() {
                         <div style={{ padding: "0 40px 60px" }}>
                           {favOnly.length > 0 && (
                             <>
-                              <div className="section-header" style={{ padding: "0 0 20px", marginBottom: "4px" }}>
+                              <div className="section-header vault-section-header" style={{ padding: "0 0 20px", marginBottom: "4px", cursor: "pointer" }} onClick={() => toggleSection("fav")}>
                                 <span className="section-title" style={{ color: "var(--gold)" }}>⭐ FAVORITES</span>
                                 <div className="section-line" />
                                 <span className="section-count">{favOnly.length} KIT{favOnly.length !== 1 ? "S" : ""}</span>
+                                <span className="section-collapse-arrow">{collapsedSections["fav"] ? "▶" : "▼"}</span>
                               </div>
-                              <div className="vault-grid" style={{ padding: "0 0 32px" }}>{favOnly.map(k => renderKitCard(k, { showBacklog: true, showRemove: true, showTags: true }))}</div>
+                              {!collapsedSections["fav"] && <div className="vault-grid" style={{ padding: "0 0 32px" }}>{favOnly.map(k => renderKitCard(k, { showBacklog: true, showRemove: true, showTags: true }))}</div>}
                             </>
                           )}
                           {inProgress.length > 0 && (
                             <>
-                              <div className="section-header" style={{ padding: "0 0 20px", marginBottom: "4px" }}>
+                              <div className="section-header vault-section-header" style={{ padding: "0 0 20px", marginBottom: "4px", cursor: "pointer" }} onClick={() => toggleSection("inprogress")}>
                                 <span className="section-title" style={{ color: "var(--gold)" }}>⚙ IN PROGRESS</span>
                                 <div className="section-line" />
                                 <span className="section-count">{inProgress.length} KIT{inProgress.length !== 1 ? "S" : ""}</span>
+                                <span className="section-collapse-arrow">{collapsedSections["inprogress"] ? "▶" : "▼"}</span>
                               </div>
-                              <div className="vault-grid" style={{ padding: "0 0 32px" }}>{inProgress.map(k => renderKitCard(k, { showBacklog: true, showRemove: true, showTags: true }))}</div>
+                              {!collapsedSections["inprogress"] && <div className="vault-grid" style={{ padding: "0 0 32px" }}>{inProgress.map(k => renderKitCard(k, { showBacklog: true, showRemove: true, showTags: true }))}</div>}
                             </>
                           )}
                           {complete.length > 0 && (
                             <>
-                              <div className="section-header" style={{ padding: "0 0 20px", marginBottom: "4px" }}>
+                              <div className="section-header vault-section-header" style={{ padding: "0 0 20px", marginBottom: "4px", cursor: "pointer" }} onClick={() => toggleSection("complete")}>
                                 <span className="section-title" style={{ color: "var(--green)" }}>✓ COMPLETED</span>
                                 <div className="section-line" />
                                 <span className="section-count">{complete.length} KIT{complete.length !== 1 ? "S" : ""}</span>
+                                <span className="section-collapse-arrow">{collapsedSections["complete"] ? "▶" : "▼"}</span>
                               </div>
-                              <div className="vault-grid" style={{ padding: "0 0 32px" }}>{complete.map(k => renderKitCard(k, { showBacklog: true, showRemove: true, showTags: true }))}</div>
+                              {!collapsedSections["complete"] && <div className="vault-grid" style={{ padding: "0 0 32px" }}>{complete.map(k => renderKitCard(k, { showBacklog: true, showRemove: true, showTags: true }))}</div>}
                             </>
                           )}
                           {backlog.length > 0 && (
                             <>
-                              <div className="section-header" style={{ padding: "0 0 20px", marginBottom: "4px" }}>
+                              <div className="section-header vault-section-header" style={{ padding: "0 0 20px", marginBottom: "4px", cursor: "pointer" }} onClick={() => toggleSection("backlog")}>
                                 <span className="section-title" style={{ color: "var(--text-dim)" }}>◻ BACKLOG</span>
                                 <div className="section-line" />
                                 <span className="section-count">{backlog.length} KIT{backlog.length !== 1 ? "S" : ""}</span>
+                                <span className="section-collapse-arrow">{collapsedSections["backlog"] ? "▶" : "▼"}</span>
                               </div>
-                              <div className="vault-grid" style={{ padding: "0 0 32px" }}>{backlog.map(k => renderKitCard(k, { showBacklog: true, showRemove: true, showTags: true }))}</div>
+                              {!collapsedSections["backlog"] && <div className="vault-grid" style={{ padding: "0 0 32px" }}>{backlog.map(k => renderKitCard(k, { showBacklog: true, showRemove: true, showTags: true }))}</div>}
                             </>
                           )}
                         </div>
