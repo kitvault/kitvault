@@ -303,7 +303,7 @@
       rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px
     );
     pointer-events: none;
-    z-index: 9999;
+    z-index: -1;
   }
 
   .grid-bg {
@@ -440,7 +440,7 @@
     transition: color 0.2s; display: flex; align-items: center; gap: 6px;
     white-space: nowrap;
   }
-  .nav-btn:hover, .nav-item.open .nav-btn { color: #ffcc00; }
+  .nav-btn:hover, .nav-item.open .nav-btn, .nav-btn.active { color: #ffcc00; }
   .nav-btn-arrow { font-size: 0.5rem; transition: transform 0.2s; opacity: 0.6; }
   .nav-item.open .nav-btn-arrow { transform: rotate(180deg); }
   .nav-dropdown {

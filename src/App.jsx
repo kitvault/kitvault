@@ -6,7 +6,7 @@
 // ─────────────────────────────────────────────────────────────
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
+import { Routes, Route, useNavigate, useLocation, Link, NavLink } from "react-router-dom";
 
 // Styles
 import "./styles/app.css";
@@ -494,6 +494,9 @@ class ErrorBoundary extends React.Component {
 // KITVAULT APP — main component (routes + shared state)
 // ─────────────────────────────────────────────────────────────
 export default function KitVault() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
   // ── Auth State (cookie-based) ─────────────────────────────────
   const [userId, setUserId] = useState(null);
   const [userEmail, setUserEmail] = useState(null);
@@ -515,7 +518,7 @@ export default function KitVault() {
           setUserAvatarUrl(data.avatarUrl || "");
         }
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setAuthLoading(false));
   }, []);
 
@@ -1121,13 +1124,13 @@ export default function KitVault() {
             @keyframes kvPurchasePop { 0%{transform:scale(0.9)} 60%{transform:scale(1.04)} 100%{transform:scale(1)} }
             @keyframes kvBob { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
           `}</style>
-          <div className="logo" onClick={goHome} style={{ cursor: "pointer" }}>
+          <Link to="/" className="logo" onClick={() => setOpenManualId(null)} style={{ cursor: "pointer", textDecoration: "none", color: "inherit" }}>
             <div className="logo-icon">▣</div>
             <div className="logo-text">
               <span>KIT<span style={{ color: "#ff6600" }}>VAULT</span></span>
               <span className="logo-sub">KITVAULT.IO</span>
             </div>
-          </div>
+          </Link>
 
           <div className="header-right">
             <div className="status-dot" />
@@ -1157,26 +1160,47 @@ export default function KitVault() {
                     { icon: "🧴", label: "Top Coats", sub: "Gloss, semi-gloss, matte. Lock in your finish and protect your work.", route: "/tools/top-coats" },
                     { icon: "🪚", label: "Hobby Knives", sub: "Olfa & X-Acto knives for cleanup and minor modifications", route: "/tools/hobby-knives" },
                   ].map(item => (
-                    <div key={item.label} className="nav-dd-item" onClick={() => { closeMobileMenu(); if (item.route) navigate(item.route); }}>
-                      <span className="nav-dd-icon">{item.icon}</span>
-                      <span className="nav-dd-text">
-                        <span className="nav-dd-label">{item.label}{!item.route && <span style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.5rem", color: "var(--text-dim)", marginLeft: 8, letterSpacing: 1 }}>SOON</span>}</span>
-                        <span className="nav-dd-sub">{item.sub}</span>
-                      </span>
-                    </div>
+                    item.route
+                      ? (
+                        <Link key={item.label} to={item.route} className="nav-dd-item" onClick={closeMobileMenu} style={{ textDecoration: "none" }}>
+                          <span className="nav-dd-icon">{item.icon}</span>
+                          <span className="nav-dd-text">
+                            <span className="nav-dd-label">{item.label}</span>
+                            <span className="nav-dd-sub">{item.sub}</span>
+                          </span>
+                        </Link>
+                      ) : (
+                        <div key={item.label} className="nav-dd-item">
+                          <span className="nav-dd-icon">{item.icon}</span>
+                          <span className="nav-dd-text">
+                            <span className="nav-dd-label">{item.label}<span style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.5rem", color: "var(--text-dim)", marginLeft: 8, letterSpacing: 1 }}>SOON</span></span>
+                            <span className="nav-dd-sub">{item.sub}</span>
+                          </span>
+                        </div>
+                      )
                   ))}
                 </div>
               </div>
 
               {/* RESOURCES */}
-              <button className="nav-btn" onClick={() => { closeMobileMenu(); navigate("/resources"); }} style={{ color: location.pathname === "/resources" ? "#ffcc00" : "" }}>
+              <NavLink
+                to="/resources"
+                className="nav-btn"
+                onClick={closeMobileMenu}
+                style={({ isActive }) => ({ color: isActive ? "#ffcc00" : "", textDecoration: "none" })}
+              >
                 RESOURCES
-              </button>
+              </NavLink>
 
               {/* GALLERY */}
-              <button className="nav-btn" onClick={() => { closeMobileMenu(); navigate("/gallery"); }} style={{ color: location.pathname === "/gallery" ? "#ffcc00" : "" }}>
+              <NavLink
+                to="/gallery"
+                className="nav-btn"
+                onClick={closeMobileMenu}
+                style={({ isActive }) => ({ color: isActive ? "#ffcc00" : "", textDecoration: "none" })}
+              >
                 GALLERY
-              </button>
+              </NavLink>
 
               {/* GRADES */}
               <div className={`nav-item${openNav === "grades" ? " open" : ""}`}>
@@ -1194,12 +1218,12 @@ export default function KitVault() {
                     { slug: "sd", label: "SD — Super Deformed", sub: "Chibi-style, fun and quick builds for all levels", color: "#00ffcc" },
                     { slug: "mgsd", label: "MGSD — Master Grade SD", sub: "MG inner frame with SD proportions. Best of both", color: "#ff6677" },
                   ].map(item => (
-                    <div key={item.slug} className="nav-dd-item" onClick={() => { closeMobileMenu(); navigate(`/grade/${item.slug}`); }}>
+                    <Link key={item.slug} to={`/grade/${item.slug}`} className="nav-dd-item" onClick={closeMobileMenu} style={{ textDecoration: "none" }}>
                       <span className="nav-dd-text">
                         <span className="nav-dd-label" style={{ color: item.color }}>{item.label}</span>
                         <span className="nav-dd-sub">{item.sub}</span>
                       </span>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               </div>
@@ -1224,16 +1248,22 @@ export default function KitVault() {
 
               {effectiveSignedIn && (
                 <>
-                  <button onClick={goVault} className={`vault-btn${location.pathname === "/vault" ? " active" : ""}`}>
+                  <NavLink
+                    to="/vault"
+                    className={({ isActive }) => `vault-btn${isActive ? " active" : ""}`}
+                    style={{ textDecoration: "none" }}
+                    onClick={() => setOpenManualId(null)}
+                  >
                     VAULT
-                  </button>
+                  </NavLink>
                   {hangarProfile?.username && (
-                    <button
-                      onClick={() => navigate(`/hangar/${hangarProfile.username}`)}
-                      className={`vault-btn${location.pathname.startsWith("/hangar/") ? " active" : ""}`}
+                    <NavLink
+                      to={`/hangar/${hangarProfile.username}`}
+                      className={({ isActive }) => `vault-btn${isActive ? " active" : ""}`}
+                      style={{ textDecoration: "none" }}
                     >
                       HANGAR
-                    </button>
+                    </NavLink>
                   )}
                 </>
               )}
