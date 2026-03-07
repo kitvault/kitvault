@@ -303,7 +303,7 @@
       rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px
     );
     pointer-events: none;
-    z-index: -1;
+    z-index: 9999;
   }
 
   .grid-bg {
