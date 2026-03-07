@@ -719,6 +719,11 @@ export default function KitVault() {
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [collapsedSections, setCollapsedSections] = useState({});
   const toggleSection = (key) => setCollapsedSections(prev => ({ ...prev, [key]: !prev[key] }));
+  const [kitNotes, setKitNotes] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("kv_notes") || "{}"); } catch { return {}; }
+  });
+  const [openNotesId, setOpenNotesId] = useState(null);
+  const [noteDraft, setNoteDraft] = useState("");
 
   // ── D1 kits — merged with static list ────────────────────
   const [d1Kits, setD1Kits] = useState([]);
@@ -863,6 +868,7 @@ export default function KitVault() {
       if (data.progress) { setBuildProgress(data.progress); localStorage.setItem("kv_progress", JSON.stringify(data.progress)); }
       if (data.pages) { setPageProgress(data.pages); localStorage.setItem("kv_pages", JSON.stringify(data.pages)); }
       if (data.tags) { setKitTags(data.tags); localStorage.setItem("kv_tags", JSON.stringify(data.tags)); }
+      if (data.notes) { setKitNotes(data.notes); localStorage.setItem("kv_notes", JSON.stringify(data.notes)); }
     } catch (_) { /* silent fallback to localStorage */ }
   }, [effectiveSignedIn, effectiveUserId]);
 
@@ -926,6 +932,16 @@ export default function KitVault() {
       if (next.length === 0) delete updated[kitId];
       localStorage.setItem("kv_tags", JSON.stringify(updated));
       syncToD1({ tags: updated });
+      return updated;
+    });
+  };
+
+  const saveKitNote = (kitId, text) => {
+    setKitNotes(prev => {
+      const updated = { ...prev };
+      if (text.trim()) { updated[kitId] = text.trim(); } else { delete updated[kitId]; }
+      localStorage.setItem("kv_notes", JSON.stringify(updated));
+      syncToD1({ notes: updated });
       return updated;
     });
   };
@@ -1073,13 +1089,52 @@ export default function KitVault() {
             </div>
           )}
 
+          {/* Notes panel */}
+          {showTags && openNotesId === kit.id && (
+            <div className="kit-notes-panel" onClick={e => e.stopPropagation()}>
+              <div className="kit-notes-label">
+                <span>KIT NOTES</span>
+                <span style={{ color: "var(--text-dim)", fontWeight: 400 }}>{noteDraft.length}/1000</span>
+              </div>
+              <textarea
+                className="kit-notes-textarea"
+                maxLength={1000}
+                placeholder="Record your progress, paint colours, build notes..."
+                value={noteDraft}
+                onChange={e => setNoteDraft(e.target.value)}
+                autoFocus
+              />
+              <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+                <button className="kit-notes-save" onClick={e => { e.stopPropagation(); saveKitNote(kit.id, noteDraft); setOpenNotesId(null); }}>
+                  ✓ SAVE
+                </button>
+                <button className="kit-notes-cancel" onClick={e => { e.stopPropagation(); setOpenNotesId(null); }}>
+                  CANCEL
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="card-footer">
-            <span className="card-scale">SCALE {kit.scale}</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              {showTags && effectiveSignedIn && (
+                <button
+                  className={`kit-notes-btn${kitNotes[kit.id] ? " has-note" : ""}`}
+                  onClick={e => {
+                    e.stopPropagation();
+                    if (openNotesId === kit.id) { setOpenNotesId(null); return; }
+                    setNoteDraft(kitNotes[kit.id] || "");
+                    setOpenNotesId(kit.id);
+                  }}
+                  title="Kit notes"
+                >✎ NOTES</button>
+              )}
+            </div>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
               {showTags && effectiveSignedIn && (
                 <button
                   className="kit-tag-menu-btn"
-                  onClick={e => { e.stopPropagation(); setOpenTagsId(isTagsOpen ? null : kit.id); }}
+                  onClick={e => { e.stopPropagation(); setOpenTagsId(isTagsOpen ? null : kit.id); setOpenNotesId(null); }}
                   title="Tag this kit"
                 >•••</button>
               )}

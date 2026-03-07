@@ -1876,6 +1876,57 @@
   .back-to-top.visible { opacity: 1; pointer-events: all; }
   .back-to-top:hover { background: rgba(0,170,255,0.12); border-color: var(--accent); box-shadow: var(--glow); }
 
+  /* ── KIT NOTES BUTTON ── */
+  .kit-notes-btn {
+    background: var(--bg3); border: 1px solid var(--border);
+    color: var(--text-dim); font-family: 'Share Tech Mono', monospace;
+    font-size: 0.58rem; letter-spacing: 1px; padding: 3px 9px;
+    cursor: pointer; transition: all 0.2s; line-height: 1;
+  }
+  .kit-notes-btn:hover {
+    background: var(--card-hover-bg); border-color: var(--accent);
+    color: var(--accent);
+  }
+  .kit-notes-btn.has-note {
+    border-color: var(--accent); color: var(--accent);
+    background: var(--card-hover-bg);
+  }
+
+  /* ── KIT NOTES PANEL ── */
+  .kit-notes-panel {
+    background: var(--bg2); border: 1px solid var(--border-bright);
+    padding: 12px 14px; margin-bottom: 10px;
+    clip-path: polygon(0 0, 95% 0, 100% 8%, 100% 100%, 5% 100%, 0 92%);
+  }
+  .kit-notes-label {
+    font-family: 'Share Tech Mono', monospace; font-size: 0.5rem;
+    color: var(--accent); letter-spacing: 2px; margin-bottom: 8px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .kit-notes-textarea {
+    width: 100%; background: var(--bg3); border: 1px solid var(--border);
+    color: var(--text); font-family: 'Share Tech Mono', monospace;
+    font-size: 0.6rem; letter-spacing: 0.5px; line-height: 1.7;
+    padding: 8px 10px; resize: vertical; min-height: 90px;
+    outline: none; transition: border-color 0.2s; box-sizing: border-box;
+  }
+  .kit-notes-textarea:focus { border-color: var(--accent); }
+  .kit-notes-textarea::placeholder { color: var(--text-dim); opacity: 0.6; }
+  .kit-notes-save {
+    background: var(--card-hover-bg); border: 1px solid var(--accent);
+    color: var(--accent); font-family: 'Share Tech Mono', monospace;
+    font-size: 0.58rem; letter-spacing: 1px; padding: 5px 14px;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .kit-notes-save:hover { opacity: 0.85; }
+  .kit-notes-cancel {
+    background: var(--bg3); border: 1px solid var(--border);
+    color: var(--text-dim); font-family: 'Share Tech Mono', monospace;
+    font-size: 0.58rem; letter-spacing: 1px; padding: 5px 14px;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .kit-notes-cancel:hover { border-color: var(--border-bright); color: var(--text); }
+
   /* ── VAULT COLLAPSIBLE SECTIONS ── */
   .vault-section-header { user-select: none; }
   .vault-section-header:hover .section-title { opacity: 0.85; }
