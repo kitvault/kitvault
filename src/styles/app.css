@@ -1887,3 +1887,56 @@
   }
   .vault-remove-btn:hover { opacity: 1; background: rgba(255,34,68,0.08); border-color: rgba(255,34,68,0.5); }
 
+  /* ── KIT TAG MENU BUTTON ── */
+  .kit-tag-menu-btn {
+    position: absolute; top: 8px; right: 8px; z-index: 3;
+    background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.12);
+    color: var(--text-dim); font-family: 'Share Tech Mono', monospace;
+    font-size: 0.6rem; letter-spacing: 2px; padding: 3px 8px;
+    cursor: pointer; transition: all 0.2s; line-height: 1;
+  }
+  .kit-tag-menu-btn:hover {
+    background: rgba(0,170,255,0.1); border-color: rgba(0,170,255,0.4);
+    color: #00aaff;
+  }
+
+  /* ── KIT TAG POPOVER ── */
+  .kit-tag-popover {
+    background: rgba(8,16,30,0.97); border: 1px solid rgba(0,170,255,0.25);
+    padding: 12px 14px; margin: 8px 0 10px;
+    clip-path: polygon(0 0, 95% 0, 100% 8%, 100% 100%, 5% 100%, 0 92%);
+  }
+  .kit-tag-popover-label {
+    font-family: 'Share Tech Mono', monospace; font-size: 0.5rem;
+    color: #00aaff; letter-spacing: 2px; margin-bottom: 10px;
+  }
+  .kit-tag-popover-options {
+    display: flex; flex-wrap: wrap; gap: 6px;
+  }
+  .kit-tag-option {
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
+    color: var(--text-dim); font-family: 'Share Tech Mono', monospace;
+    font-size: 0.58rem; letter-spacing: 1px; padding: 5px 10px;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .kit-tag-option:hover {
+    background: rgba(0,170,255,0.08); border-color: rgba(0,170,255,0.35);
+    color: #00aaff;
+  }
+  .kit-tag-option.active {
+    background: rgba(0,255,136,0.08); border-color: rgba(0,255,136,0.35);
+    color: #00ff88;
+  }
+
+  /* ── KIT TAG PILLS (displayed on card) ── */
+  .kit-tag-pills {
+    display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 12px;
+  }
+  .kit-tag-pill {
+    font-family: 'Share Tech Mono', monospace; font-size: 0.5rem;
+    letter-spacing: 1px; padding: 2px 8px;
+    background: rgba(255,204,0,0.07); border: 1px solid rgba(255,204,0,0.25);
+    color: #ffcc00;
+  }
+
+

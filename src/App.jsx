@@ -712,6 +712,10 @@ export default function KitVault() {
   const [pageProgress, setPageProgress] = useState(() => {
     try { return JSON.parse(localStorage.getItem("kv_pages") || "{}"); } catch { return {}; }
   });
+  const [kitTags, setKitTags] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("kv_tags") || "{}"); } catch { return {}; }
+  });
+  const [openTagsId, setOpenTagsId] = useState(null);
 
   // ── D1 kits — merged with static list ────────────────────
   const [d1Kits, setD1Kits] = useState([]);
@@ -855,6 +859,7 @@ export default function KitVault() {
       if (data.favourites) { setFavourites(data.favourites); localStorage.setItem("kv_favourites", JSON.stringify(data.favourites)); }
       if (data.progress) { setBuildProgress(data.progress); localStorage.setItem("kv_progress", JSON.stringify(data.progress)); }
       if (data.pages) { setPageProgress(data.pages); localStorage.setItem("kv_pages", JSON.stringify(data.pages)); }
+      if (data.tags) { setKitTags(data.tags); localStorage.setItem("kv_tags", JSON.stringify(data.tags)); }
     } catch (_) { /* silent fallback to localStorage */ }
   }, [effectiveSignedIn, effectiveUserId]);
 
@@ -902,6 +907,23 @@ export default function KitVault() {
       localStorage.setItem("kv_favourites", JSON.stringify(next));
       syncToD1({ favourites: next });
       return next;
+    });
+  };
+
+  const KIT_TAG_OPTIONS = ["Panel Line", "Paint", "Scribe", "Decals", "Sanding"];
+
+  const toggleKitTag = (e, kitId, tag) => {
+    e.stopPropagation();
+    setKitTags(prev => {
+      const current = prev[kitId] || [];
+      const next = current.includes(tag)
+        ? current.filter(t => t !== tag)
+        : [...current, tag];
+      const updated = { ...prev, [kitId]: next };
+      if (next.length === 0) delete updated[kitId];
+      localStorage.setItem("kv_tags", JSON.stringify(updated));
+      syncToD1({ tags: updated });
+      return updated;
     });
   };
 
@@ -977,19 +999,27 @@ export default function KitVault() {
   }, [location.pathname, allKits]);
   useSEO(seoConfig);
 
-  // ── Shared kit card renderer (used by home + vault) ────────
-  const renderKitCard = (kit, { showBacklog = false, showRemove = false } = {}) => {
+  const renderKitCard = (kit, { showBacklog = false, showRemove = false, showTags = false } = {}) => {
     const c = gc(kit.grade);
     const isFav = favourites.includes(kit.id);
     const progress = buildProgress[kit.id];
     const pct = getKitProgress(kit);
+    const activeTags = kitTags[kit.id] || [];
+    const isTagsOpen = openTagsId === kit.id;
     return (
       <div key={kit.id} className="kit-card"
         style={{ "--card-accent": c.accent, "--card-accent-bg": c.bg, position: "relative" }}
-        onClick={() => goKit(kit)}
+        onClick={() => { if (isTagsOpen) { setOpenTagsId(null); return; } goKit(kit); }}
       >
         {showRemove && (
           <button className="vault-remove-btn" onClick={e => removeFromVault(e, kit.id)} title="Remove from vault">🗑</button>
+        )}
+        {showTags && effectiveSignedIn && (
+          <button
+            className="kit-tag-menu-btn"
+            onClick={e => { e.stopPropagation(); setOpenTagsId(isTagsOpen ? null : kit.id); }}
+            title="Tag this kit"
+          >•••</button>
         )}
         <div className="card-grade-banner" style={{ background: c.accent }} />
         <div className="card-body">
@@ -1025,6 +1055,37 @@ export default function KitVault() {
               </div>
             );
           })()}
+
+          {/* Tag pills */}
+          {showTags && activeTags.length > 0 && (
+            <div className="kit-tag-pills">
+              {activeTags.map(tag => (
+                <span key={tag} className="kit-tag-pill">{tag}</span>
+              ))}
+            </div>
+          )}
+
+          {/* Tag popover */}
+          {showTags && isTagsOpen && (
+            <div className="kit-tag-popover" onClick={e => e.stopPropagation()}>
+              <div className="kit-tag-popover-label">TODO TAGS</div>
+              <div className="kit-tag-popover-options">
+                {KIT_TAG_OPTIONS.map(tag => {
+                  const active = activeTags.includes(tag);
+                  return (
+                    <button
+                      key={tag}
+                      className={`kit-tag-option${active ? " active" : ""}`}
+                      onClick={e => toggleKitTag(e, kit.id, tag)}
+                    >
+                      {active ? "✓ " : ""}{tag}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           <div className="card-footer">
             <span className="card-scale">SCALE {kit.scale}</span>
             <span className="card-arrow">→</span>
@@ -1413,7 +1474,7 @@ export default function KitVault() {
                                 <div className="section-line" />
                                 <span className="section-count">{favOnly.length} KIT{favOnly.length !== 1 ? "S" : ""}</span>
                               </div>
-                              <div className="vault-grid" style={{ padding: "0 0 32px" }}>{favOnly.map(k => renderKitCard(k, { showBacklog: true, showRemove: true }))}</div>
+                              <div className="vault-grid" style={{ padding: "0 0 32px" }}>{favOnly.map(k => renderKitCard(k, { showBacklog: true, showRemove: true, showTags: true }))}</div>
                             </>
                           )}
                           {inProgress.length > 0 && (
@@ -1423,7 +1484,7 @@ export default function KitVault() {
                                 <div className="section-line" />
                                 <span className="section-count">{inProgress.length} KIT{inProgress.length !== 1 ? "S" : ""}</span>
                               </div>
-                              <div className="vault-grid" style={{ padding: "0 0 32px" }}>{inProgress.map(k => renderKitCard(k, { showBacklog: true, showRemove: true }))}</div>
+                              <div className="vault-grid" style={{ padding: "0 0 32px" }}>{inProgress.map(k => renderKitCard(k, { showBacklog: true, showRemove: true, showTags: true }))}</div>
                             </>
                           )}
                           {complete.length > 0 && (
@@ -1433,7 +1494,7 @@ export default function KitVault() {
                                 <div className="section-line" />
                                 <span className="section-count">{complete.length} KIT{complete.length !== 1 ? "S" : ""}</span>
                               </div>
-                              <div className="vault-grid" style={{ padding: "0 0 32px" }}>{complete.map(k => renderKitCard(k, { showBacklog: true, showRemove: true }))}</div>
+                              <div className="vault-grid" style={{ padding: "0 0 32px" }}>{complete.map(k => renderKitCard(k, { showBacklog: true, showRemove: true, showTags: true }))}</div>
                             </>
                           )}
                           {backlog.length > 0 && (
@@ -1443,7 +1504,7 @@ export default function KitVault() {
                                 <div className="section-line" />
                                 <span className="section-count">{backlog.length} KIT{backlog.length !== 1 ? "S" : ""}</span>
                               </div>
-                              <div className="vault-grid" style={{ padding: "0 0 32px" }}>{backlog.map(k => renderKitCard(k, { showBacklog: true, showRemove: true }))}</div>
+                              <div className="vault-grid" style={{ padding: "0 0 32px" }}>{backlog.map(k => renderKitCard(k, { showBacklog: true, showRemove: true, showTags: true }))}</div>
                             </>
                           )}
                         </div>
