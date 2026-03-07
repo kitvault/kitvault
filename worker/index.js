@@ -3,10 +3,15 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname;
 
+    const origin = request.headers.get("Origin") || "";
+    const allowedOrigins = ["https://kitvault.io", "https://www.kitvault.io", "http://localhost:5173"];
+    const corsOrigin = allowedOrigins.includes(origin) ? origin : "https://kitvault.io";
+
     const corsHeaders = {
-      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Origin": corsOrigin,
       "Access-Control-Allow-Methods": "GET, POST, DELETE, PATCH, OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type, X-Admin-Key, Authorization",
+      "Access-Control-Allow-Credentials": "true",
     };
 
     if (request.method === "OPTIONS") {
@@ -79,63 +84,88 @@ export default {
     }
 
     // ══════════════════════════════════════════════════════════
-    // BACKUP AUTH ENDPOINTS
+    // AUTH COOKIE + GOOGLE OAUTH HELPERS
     // ══════════════════════════════════════════════════════════
 
-    // ── POST /api/auth/register — Clerk user links email/password ──
-    if (path === "/api/auth/register" && request.method === "POST") {
+    function setAuthCookie(token, corsOrigin) {
+      const isLocalhost = corsOrigin.includes("localhost");
+      return `kv_token=${token}; HttpOnly; Path=/; Max-Age=${7 * 24 * 60 * 60}; SameSite=${isLocalhost ? "Lax" : "None"}; ${isLocalhost ? "" : "Secure; "}`;
+    }
+
+    function clearAuthCookie(corsOrigin) {
+      const isLocalhost = corsOrigin.includes("localhost");
+      return `kv_token=; HttpOnly; Path=/; Max-Age=0; SameSite=${isLocalhost ? "Lax" : "None"}; ${isLocalhost ? "" : "Secure; "}`;
+    }
+
+    function getCookieToken(request) {
+      const cookie = request.headers.get("Cookie") || "";
+      const match = cookie.match(/kv_token=([^;]+)/);
+      return match ? match[1] : null;
+    }
+
+    async function verifyGoogleToken(idToken) {
+      const res = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${idToken}`);
+      if (!res.ok) return null;
+      const payload = await res.json();
+      // Verify audience matches our client ID
+      if (payload.aud !== "1048413363942-31kef3psma06tg0c13heiiufoier6ltb.apps.googleusercontent.com") return null;
+      if (!payload.email || !payload.email_verified || payload.email_verified === "false") return null;
+      return payload;
+    }
+
+    // ══════════════════════════════════════════════════════════
+    // AUTH ENDPOINTS
+    // ══════════════════════════════════════════════════════════
+
+    // ── POST /api/auth/google — Google OAuth sign-in / sign-up ──
+    if (path === "/api/auth/google" && request.method === "POST") {
       try {
-        const { userId, email, password } = await request.json();
-
-        if (!userId || !email || !password) {
-          return new Response(JSON.stringify({ ok: false, error: "Missing userId, email, or password" }), {
+        const { credential } = await request.json();
+        if (!credential) {
+          return new Response(JSON.stringify({ ok: false, error: "Missing Google credential" }), {
             status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
 
-        // Basic email validation
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-          return new Response(JSON.stringify({ ok: false, error: "Invalid email format" }), {
-            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        const gPayload = await verifyGoogleToken(credential);
+        if (!gPayload) {
+          return new Response(JSON.stringify({ ok: false, error: "Invalid Google token" }), {
+            status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
 
-        // Password strength: minimum 8 characters
-        if (password.length < 8) {
-          return new Response(JSON.stringify({ ok: false, error: "Password must be at least 8 characters" }), {
-            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
+        const email = gPayload.email.toLowerCase();
+        const displayName = gPayload.name || "";
+        const avatarUrl = gPayload.picture || "";
+
+        // Check if user already exists with this email
+        const existing = await env.DB.prepare(
+          "SELECT user_id, display_name, avatar_url FROM user_auth WHERE email = ?"
+        ).bind(email).first();
+
+        let userId;
+
+        if (existing) {
+          userId = existing.user_id;
+          // Update display name and avatar from Google on each login
+          await env.DB.prepare(
+            "UPDATE user_auth SET display_name = ?, avatar_url = ?, auth_provider = 'google', updated_at = CURRENT_TIMESTAMP WHERE user_id = ?"
+          ).bind(displayName, avatarUrl, userId).run();
+        } else {
+          // Create new user
+          const randomBytes = new Uint8Array(16);
+          crypto.getRandomValues(randomBytes);
+          userId = "google_" + Array.from(randomBytes).map(b => b.toString(16).padStart(2, "0")).join("");
+
+          await env.DB.prepare(
+            "INSERT INTO user_auth (user_id, email, pw_hash, pw_salt, display_name, avatar_url, auth_provider, created_at, updated_at) VALUES (?, ?, '', '', ?, ?, 'google', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
+          ).bind(userId, email, displayName, avatarUrl).run();
         }
 
-        // Check if this user already has backup auth
-        const existingUser = await env.DB.prepare(
-          "SELECT user_id FROM user_auth WHERE user_id = ?"
-        ).bind(userId).first();
-        if (existingUser) {
-          return new Response(JSON.stringify({ ok: false, error: "Backup login already set up. Use change-password to update." }), {
-            status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
+        const token = await createJWT({ userId, email, displayName, avatarUrl }, env.JWT_SECRET);
 
-        // Check if email is already taken by another user
-        const existingEmail = await env.DB.prepare(
-          "SELECT user_id FROM user_auth WHERE email = ?"
-        ).bind(email.trim().toLowerCase()).first();
-        if (existingEmail) {
-          return new Response(JSON.stringify({ ok: false, error: "Email already in use" }), {
-            status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-
-        const salt = generateSalt();
-        const pwHash = await hashPassword(password, salt);
-
-        await env.DB.prepare(
-          "INSERT INTO user_auth (user_id, email, pw_hash, pw_salt, created_at, updated_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
-        ).bind(userId, email.trim().toLowerCase(), pwHash, salt).run();
-
-        return new Response(JSON.stringify({ ok: true }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        return new Response(JSON.stringify({ ok: true, userId, email, displayName, avatarUrl }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json", "Set-Cookie": setAuthCookie(token, corsOrigin) },
         });
       } catch (err) {
         return new Response(JSON.stringify({ ok: false, error: err.message }), {
@@ -144,7 +174,7 @@ export default {
       }
     }
 
-    // ── POST /api/auth/signup — Create a new standalone local account ──
+    // ── POST /api/auth/signup — Create a new email/password account ──
     if (path === "/api/auth/signup" && request.method === "POST") {
       try {
         const { email, password } = await request.json();
@@ -177,7 +207,6 @@ export default {
           });
         }
 
-        // Generate a local user ID (prefixed to distinguish from Clerk IDs)
         const randomBytes = new Uint8Array(16);
         crypto.getRandomValues(randomBytes);
         const localId = "local_" + Array.from(randomBytes).map(b => b.toString(16).padStart(2, "0")).join("");
@@ -186,14 +215,14 @@ export default {
         const pwHash = await hashPassword(password, salt);
 
         await env.DB.prepare(
-          "INSERT INTO user_auth (user_id, email, pw_hash, pw_salt, created_at, updated_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
+          "INSERT INTO user_auth (user_id, email, pw_hash, pw_salt, display_name, avatar_url, auth_provider, created_at, updated_at) VALUES (?, ?, ?, ?, '', '', 'email', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
         ).bind(localId, email.trim().toLowerCase(), pwHash, salt).run();
 
-        // Auto-login: return JWT immediately
-        const token = await createJWT({ userId: localId, email: email.trim().toLowerCase() }, env.JWT_SECRET);
+        // Auto-login: set httpOnly cookie
+        const token = await createJWT({ userId: localId, email: email.trim().toLowerCase(), displayName: "", avatarUrl: "" }, env.JWT_SECRET);
 
-        return new Response(JSON.stringify({ ok: true, token, userId: localId }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        return new Response(JSON.stringify({ ok: true, userId: localId, email: email.trim().toLowerCase(), displayName: "", avatarUrl: "" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json", "Set-Cookie": setAuthCookie(token, corsOrigin) },
         });
       } catch (err) {
         return new Response(JSON.stringify({ ok: false, error: err.message }), {
@@ -213,14 +242,18 @@ export default {
           });
         }
 
-        // Rate limit: max 10 login attempts per email per hour
-        // (Simple approach using a check — for production, consider a separate rate limit table)
         const row = await env.DB.prepare(
-          "SELECT user_id, pw_hash, pw_salt FROM user_auth WHERE email = ?"
+          "SELECT user_id, pw_hash, pw_salt, display_name, avatar_url FROM user_auth WHERE email = ?"
         ).bind(email.trim().toLowerCase()).first();
 
         if (!row) {
           return new Response(JSON.stringify({ ok: false, error: "Invalid email or password" }), {
+            status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        if (!row.pw_hash) {
+          return new Response(JSON.stringify({ ok: false, error: "This account uses Google sign-in. Please use the Google button." }), {
             status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
@@ -233,10 +266,37 @@ export default {
           });
         }
 
-        // Generate JWT
-        const token = await createJWT({ userId: row.user_id, email: email.trim().toLowerCase() }, env.JWT_SECRET);
+        const token = await createJWT({ userId: row.user_id, email: email.trim().toLowerCase(), displayName: row.display_name || "", avatarUrl: row.avatar_url || "" }, env.JWT_SECRET);
 
-        return new Response(JSON.stringify({ ok: true, token, userId: row.user_id }), {
+        return new Response(JSON.stringify({ ok: true, userId: row.user_id, email: email.trim().toLowerCase(), displayName: row.display_name || "", avatarUrl: row.avatar_url || "" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json", "Set-Cookie": setAuthCookie(token, corsOrigin) },
+        });
+      } catch (err) {
+        return new Response(JSON.stringify({ ok: false, error: err.message }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
+    // ── GET /api/auth/me — Validate session cookie, return user info ──
+    if (path === "/api/auth/me" && request.method === "GET") {
+      try {
+        const token = getCookieToken(request);
+
+        if (!token) {
+          return new Response(JSON.stringify({ ok: false, error: "Not logged in" }), {
+            status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        const payload = await verifyJWT(token, env.JWT_SECRET);
+        if (!payload) {
+          return new Response(JSON.stringify({ ok: false, error: "Invalid or expired session" }), {
+            status: 401, headers: { ...corsHeaders, "Content-Type": "application/json", "Set-Cookie": clearAuthCookie(corsOrigin) },
+          });
+        }
+
+        return new Response(JSON.stringify({ ok: true, userId: payload.userId, email: payload.email, displayName: payload.displayName || "", avatarUrl: payload.avatarUrl || "" }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       } catch (err) {
@@ -246,33 +306,11 @@ export default {
       }
     }
 
-    // ── GET /api/auth/me — Validate JWT, return user info ──
-    if (path === "/api/auth/me" && request.method === "GET") {
-      try {
-        const authHeader = request.headers.get("Authorization") || "";
-        const token = authHeader.replace("Bearer ", "");
-
-        if (!token) {
-          return new Response(JSON.stringify({ ok: false, error: "No token provided" }), {
-            status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-
-        const payload = await verifyJWT(token, env.JWT_SECRET);
-        if (!payload) {
-          return new Response(JSON.stringify({ ok: false, error: "Invalid or expired token" }), {
-            status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-
-        return new Response(JSON.stringify({ ok: true, userId: payload.userId, email: payload.email }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      } catch (err) {
-        return new Response(JSON.stringify({ ok: false, error: err.message }), {
-          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+    // ── POST /api/auth/logout — Clear session cookie ──
+    if (path === "/api/auth/logout" && request.method === "POST") {
+      return new Response(JSON.stringify({ ok: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json", "Set-Cookie": clearAuthCookie(corsOrigin) },
+      });
     }
 
     // ── POST /api/auth/change-password — Update password ──
@@ -328,24 +366,25 @@ export default {
       }
     }
 
-    // ── GET /api/auth/check?userId= — Check if user has backup auth set up ──
+    // ── GET /api/auth/check?userId= — Check if user exists in auth system ──
     if (path === "/api/auth/check" && request.method === "GET") {
       try {
         const userId = url.searchParams.get("userId");
         if (!userId) {
-          return new Response(JSON.stringify({ ok: true, hasBackupAuth: false }), {
+          return new Response(JSON.stringify({ ok: true, exists: false }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
 
         const row = await env.DB.prepare(
-          "SELECT email FROM user_auth WHERE user_id = ?"
+          "SELECT email, auth_provider FROM user_auth WHERE user_id = ?"
         ).bind(userId).first();
 
         return new Response(JSON.stringify({
           ok: true,
-          hasBackupAuth: !!row,
+          exists: !!row,
           email: row ? row.email.replace(/^(.{2})(.*)(@.*)$/, "$1***$3") : null,
+          authProvider: row ? row.auth_provider : null,
         }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       } catch (err) {
         return new Response(JSON.stringify({ ok: false, error: err.message }), {

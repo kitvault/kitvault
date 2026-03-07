@@ -4,7 +4,6 @@
 // autocomplete), caption, likes, comments per post, admin delete.
 // ─────────────────────────────────────────────────────────────
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useUser } from "@clerk/clerk-react";
 import { GRADE_COLORS, GRADES } from "../data/grades.js";
 
 const gc = (g) => GRADE_COLORS[g] || GRADE_COLORS["HG"];
@@ -557,10 +556,9 @@ function EditPostModal({ post, onClose, onSaved, onDeleted, user }) {
 
 // ─── Gallery Main ────────────────────────────────────────────
 export default function Gallery({ allKits, effectiveUser, effectiveSignedIn: signedInProp }) {
-  const { user: clerkUser, isSignedIn: clerkSignedIn } = useUser();
-  // Use props if provided (supports fallback auth), otherwise fall back to Clerk
-  const user = effectiveUser || clerkUser;
-  const isSignedIn = signedInProp !== undefined ? signedInProp : clerkSignedIn;
+  // Auth is always provided via props from App.jsx
+  const user = effectiveUser;
+  const isSignedIn = !!signedInProp;
   const isAdmin = !!sessionStorage.getItem(ADMIN_KEY_STORAGE);
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
