@@ -1634,15 +1634,15 @@ export default {
     }
 
 
-    // ── GET /api/kit-rating/:kitId — fetch community avg + my rating ──
+    // ── GET /api/kit-rating/:kitId — community avg + user's own rating ──
     if (request.method === "GET" && url.pathname.startsWith("/api/kit-rating/")) {
       try {
-        const kitId = url.pathname.split("/api/kit-rating/")[1];
+        const kitId = url.pathname.replace("/api/kit-rating/", "");
         if (!kitId) return new Response(JSON.stringify({ ok: false, error: "Missing kit_id" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
         const userId = url.searchParams.get("user_id");
 
-        // Community average
+        // Community average across all users
         const commRow = await env.DB.prepare(
           `SELECT AVG(difficulty) as difficulty, AVG(articulation) as articulation,
                   AVG(detail) as detail, AVG(fun_factor) as fun_factor,
@@ -1659,7 +1659,7 @@ export default {
           value:        Math.round((commRow.value        || 0) * 10) / 10,
         } : null;
 
-        // User's own rating
+        // The requesting user's own rating
         let my_rating = null;
         if (userId) {
           const row = await env.DB.prepare(
@@ -1676,7 +1676,7 @@ export default {
       }
     }
 
-    // ── POST /api/kit-rating — upsert user rating ──────────────────
+    // ── POST /api/kit-rating — upsert a user's rating ──────────────
     if (request.method === "POST" && url.pathname === "/api/kit-rating") {
       try {
         const token = getCookieToken(request);
@@ -1694,9 +1694,12 @@ export default {
           INSERT INTO kit_ratings (user_id, kit_id, difficulty, articulation, detail, fun_factor, value, updated_at)
           VALUES (?, ?, ?, ?, ?, ?, ?, unixepoch())
           ON CONFLICT(user_id, kit_id) DO UPDATE SET
-            difficulty=excluded.difficulty, articulation=excluded.articulation,
-            detail=excluded.detail, fun_factor=excluded.fun_factor,
-            value=excluded.value, updated_at=unixepoch()
+            difficulty   = excluded.difficulty,
+            articulation = excluded.articulation,
+            detail       = excluded.detail,
+            fun_factor   = excluded.fun_factor,
+            value        = excluded.value,
+            updated_at   = unixepoch()
         `).bind(payload.userId, kit_id, clamp(difficulty), clamp(articulation), clamp(detail), clamp(fun_factor), clamp(value)).run();
 
         return new Response(JSON.stringify({ ok: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });

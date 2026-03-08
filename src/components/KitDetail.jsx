@@ -975,8 +975,8 @@ function KitRating({ kitId, isSignedIn, user }) {
 
   return (
     <div style={{
-      border: "1px solid rgba(255,255,255,0.07)",
-      background: "rgba(0,0,0,0.25)",
+      border: "1px solid rgba(0,170,255,0.15)",
+      background: "#070f1e",
       padding: "20px 18px",
       marginTop: 0,
     }}>
@@ -1369,7 +1369,7 @@ export default function KitDetail({
       </div>
 
       {/* ── KIT IMAGE + RATING ──────────────────────────────── */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, alignItems: "start", marginTop: 8 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, alignItems: "start", marginTop: 8, maxWidth: "100%", boxSizing: "border-box" }}>
         <KitImage kit={kit} isAdmin={isAdmin} adminKey={sessionStorage.getItem(ADMIN_KEY_STORAGE)} onKitUpdated={onKitUpdated} />
         <KitRating kitId={kit.id} isSignedIn={isSignedIn} user={user} />
       </div>
