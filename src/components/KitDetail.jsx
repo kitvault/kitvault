@@ -23,7 +23,7 @@ const GRADE_OPTIONS = GRADES.filter(g => g !== "ALL");
 // ─────────────────────────────────────────────────────────────
 function PdfPage({ pdf, pageNum, width }) {
   const canvasRef = useRef(null);
-  const taskRef   = useRef(null);
+  const taskRef = useRef(null);
 
   useEffect(() => {
     if (!pdf || !width || !canvasRef.current) return;
@@ -32,16 +32,16 @@ function PdfPage({ pdf, pageNum, width }) {
     (async () => {
       try {
         if (taskRef.current) { taskRef.current.cancel(); taskRef.current = null; }
-        const page   = await pdf.getPage(pageNum);
+        const page = await pdf.getPage(pageNum);
         if (!alive) return;
         const baseVp = page.getViewport({ scale: 1 });
-        const vp     = page.getViewport({ scale: width / baseVp.width });
+        const vp = page.getViewport({ scale: width / baseVp.width });
         const canvas = canvasRef.current;
         if (!canvas) return;
-        const dpr    = window.devicePixelRatio || 1;
-        canvas.width  = Math.floor(vp.width  * dpr);
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = Math.floor(vp.width * dpr);
         canvas.height = Math.floor(vp.height * dpr);
-        canvas.style.width  = `${vp.width}px`;
+        canvas.style.width = `${vp.width}px`;
         canvas.style.height = `${vp.height}px`;
         const ctx = canvas.getContext("2d");
         ctx.scale(dpr, dpr);
@@ -70,11 +70,11 @@ function PdfPage({ pdf, pageNum, width }) {
 // PdfViewer — loads a PDF and renders all pages as canvases
 // ─────────────────────────────────────────────────────────────
 function PdfViewer({ url, onPageCount }) {
-  const [pdf,      setPdf]      = useState(null);
+  const [pdf, setPdf] = useState(null);
   const [numPages, setNumPages] = useState(0);
   const [progress, setProgress] = useState(0);
-  const [status,   setStatus]   = useState("loading");
-  const [errMsg,   setErrMsg]   = useState("");
+  const [status, setStatus] = useState("loading");
+  const [errMsg, setErrMsg] = useState("");
   const wrapRef = useRef(null);
   const [width, setWidth] = useState(0);
 
@@ -97,7 +97,7 @@ function PdfViewer({ url, onPageCount }) {
 
     (async () => {
       try {
-        const lib  = await loadPdfJs();
+        const lib = await loadPdfJs();
         const task = lib.getDocument({ url, withCredentials: false });
         task.onProgress = ({ loaded, total }) => {
           if (total) setProgress(Math.round((loaded / total) * 100));
@@ -172,17 +172,17 @@ function PdfViewer({ url, onPageCount }) {
 // Admin Edit Panel — inline styles
 // ─────────────────────────────────────────────────────────────
 const E = {
-  wrap: { border:"1px solid rgba(0,170,255,0.3)", background:"rgba(0,170,255,0.04)", padding:20, marginBottom:24 },
-  title: { fontSize:"0.65rem", letterSpacing:"3px", color:"#00aaff", marginBottom:16, display:"flex", alignItems:"center", justifyContent:"space-between" },
-  row: { display:"flex", gap:10, marginBottom:10, alignItems:"center", flexWrap:"wrap" },
-  label: { fontSize:"0.6rem", color:"#5a7a9f", letterSpacing:"1px", minWidth:70, flexShrink:0 },
-  input: { flex:1, minWidth:140, padding:"8px 12px", background:"#080c12", border:"1px solid #1a2f50", color:"#c8ddf5", fontFamily:"'Share Tech Mono',monospace", fontSize:"0.7rem", letterSpacing:"1px", outline:"none", boxSizing:"border-box" },
-  select: { padding:"8px 12px", background:"#080c12", border:"1px solid #1a2f50", color:"#c8ddf5", fontFamily:"'Share Tech Mono',monospace", fontSize:"0.7rem", letterSpacing:"1px", outline:"none" },
-  btnSave: { padding:"10px 24px", background:"rgba(0,255,136,0.1)", border:"1px solid rgba(0,255,136,0.4)", color:"#00ff88", fontFamily:"'Share Tech Mono',monospace", fontSize:"0.65rem", letterSpacing:"2px", cursor:"pointer" },
-  btnCancel: { padding:"10px 24px", background:"rgba(90,122,159,0.1)", border:"1px solid #1a2f50", color:"#5a7a9f", fontFamily:"'Share Tech Mono',monospace", fontSize:"0.65rem", letterSpacing:"2px", cursor:"pointer" },
-  btnEdit: { background:"rgba(0,170,255,0.08)", border:"1px solid rgba(0,170,255,0.3)", color:"#00aaff", fontFamily:"'Share Tech Mono',monospace", fontSize:"0.6rem", padding:"6px 14px", cursor:"pointer", letterSpacing:"1px" },
-  manualHeader: { fontSize:"0.6rem", color:"#5a7a9f", letterSpacing:"2px", margin:"16px 0 8px", borderTop:"1px solid #1a2f50", paddingTop:12 },
-  status: { fontSize:"0.6rem", letterSpacing:"1px", padding:"8px 12px", marginTop:10 },
+  wrap: { border: "1px solid rgba(0,170,255,0.3)", background: "rgba(0,170,255,0.04)", padding: 20, marginBottom: 24 },
+  title: { fontSize: "0.65rem", letterSpacing: "3px", color: "#00aaff", marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "space-between" },
+  row: { display: "flex", gap: 10, marginBottom: 10, alignItems: "center", flexWrap: "wrap" },
+  label: { fontSize: "0.6rem", color: "#5a7a9f", letterSpacing: "1px", minWidth: 70, flexShrink: 0 },
+  input: { flex: 1, minWidth: 140, padding: "8px 12px", background: "#080c12", border: "1px solid #1a2f50", color: "#c8ddf5", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.7rem", letterSpacing: "1px", outline: "none", boxSizing: "border-box" },
+  select: { padding: "8px 12px", background: "#080c12", border: "1px solid #1a2f50", color: "#c8ddf5", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.7rem", letterSpacing: "1px", outline: "none" },
+  btnSave: { padding: "10px 24px", background: "rgba(0,255,136,0.1)", border: "1px solid rgba(0,255,136,0.4)", color: "#00ff88", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.65rem", letterSpacing: "2px", cursor: "pointer" },
+  btnCancel: { padding: "10px 24px", background: "rgba(90,122,159,0.1)", border: "1px solid #1a2f50", color: "#5a7a9f", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.65rem", letterSpacing: "2px", cursor: "pointer" },
+  btnEdit: { background: "rgba(0,170,255,0.08)", border: "1px solid rgba(0,170,255,0.3)", color: "#00aaff", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.6rem", padding: "6px 14px", cursor: "pointer", letterSpacing: "1px" },
+  manualHeader: { fontSize: "0.6rem", color: "#5a7a9f", letterSpacing: "2px", margin: "16px 0 8px", borderTop: "1px solid #1a2f50", paddingTop: 12 },
+  status: { fontSize: "0.6rem", letterSpacing: "1px", padding: "8px 12px", marginTop: 10 },
 };
 
 function AdminEditPanel({ kit, onSaved, onCancel }) {
@@ -243,7 +243,7 @@ function AdminEditPanel({ kit, onSaved, onCancel }) {
           {GRADE_OPTIONS.map(g => <option key={g} value={g}>{g}</option>)}
         </select>
         <span style={E.label}>SCALE</span>
-        <input style={{...E.input, maxWidth:120}} value={form.scale} onChange={e => updateField("scale", e.target.value)} placeholder="1/144" />
+        <input style={{ ...E.input, maxWidth: 120 }} value={form.scale} onChange={e => updateField("scale", e.target.value)} placeholder="1/144" />
       </div>
       <div style={E.row}>
         <span style={E.label}>SERIES</span>
@@ -255,8 +255,8 @@ function AdminEditPanel({ kit, onSaved, onCancel }) {
       </div>
       <div style={E.row}>
         <span style={E.label}>AMAZON ASIN</span>
-        <input style={{...E.input, maxWidth:200}} value={form.amazon_asin} onChange={e => updateField("amazon_asin", e.target.value.toUpperCase())} placeholder="e.g. B09XYZ1234" maxLength={10} />
-        {form.amazon_asin && <span style={{fontSize:"0.5rem",color:"#5a7a9f",alignSelf:"center",whiteSpace:"nowrap"}}>amazon.com/dp/{form.amazon_asin}</span>}
+        <input style={{ ...E.input, maxWidth: 200 }} value={form.amazon_asin} onChange={e => updateField("amazon_asin", e.target.value.toUpperCase())} placeholder="e.g. B09XYZ1234" maxLength={10} />
+        {form.amazon_asin && <span style={{ fontSize: "0.5rem", color: "#5a7a9f", alignSelf: "center", whiteSpace: "nowrap" }}>amazon.com/dp/{form.amazon_asin}</span>}
       </div>
 
       {manualForms.map((m, idx) => (
@@ -266,19 +266,19 @@ function AdminEditPanel({ kit, onSaved, onCancel }) {
             <span style={E.label}>NAME</span>
             <input style={E.input} value={m.name} onChange={e => updateManual(idx, "name", e.target.value)} />
             <span style={E.label}>LANG</span>
-            <input style={{...E.input, maxWidth:60}} value={m.lang} onChange={e => updateManual(idx, "lang", e.target.value)} />
+            <input style={{ ...E.input, maxWidth: 60 }} value={m.lang} onChange={e => updateManual(idx, "lang", e.target.value)} />
             <span style={E.label}>PAGES</span>
-            <input style={{...E.input, maxWidth:70}} type="number" value={m.pages} onChange={e => updateManual(idx, "pages", parseInt(e.target.value)||0)} />
+            <input style={{ ...E.input, maxWidth: 70 }} type="number" value={m.pages} onChange={e => updateManual(idx, "pages", parseInt(e.target.value) || 0)} />
           </div>
         </div>
       ))}
 
-      <div style={{display:"flex",gap:10,marginTop:16}}>
+      <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
         <button style={E.btnSave} onClick={handleSave} disabled={saving}>{saving ? "SAVING..." : "SAVE CHANGES →"}</button>
         <button style={E.btnCancel} onClick={onCancel}>CANCEL</button>
       </div>
       {status && (
-        <div style={{...E.status, color: status.ok ? "#00ff88" : "#ff2244", border: `1px solid ${status.ok ? "rgba(0,255,136,0.3)" : "rgba(255,34,68,0.3)"}`, background: status.ok ? "rgba(0,255,136,0.05)" : "rgba(255,34,68,0.05)"}}>
+        <div style={{ ...E.status, color: status.ok ? "#00ff88" : "#ff2244", border: `1px solid ${status.ok ? "rgba(0,255,136,0.3)" : "rgba(255,34,68,0.3)"}`, background: status.ok ? "rgba(0,255,136,0.05)" : "rgba(255,34,68,0.05)" }}>
           {status.ok ? "✓" : "✕"} {status.message}
         </div>
       )}
@@ -321,10 +321,10 @@ function KitImage({ kit, isAdmin, adminKey, onKitUpdated }) {
   const handleClick = () => { if (isAdmin && !uploading) fileRef.current?.click(); };
 
   return (
-    <div className="kit-image-section">
+    <div className="kit-image-section" style={{ padding: 0 }}>
       <div className="kit-image-wrap"
-        style={{"--ki-accent": gc(kit.grade).accent, ...(isAdmin ? {cursor:"pointer"} : {}), ...(dragOver ? {borderColor:"#00aaff",boxShadow:"0 0 20px rgba(0,170,255,0.2)"} : {})}}
-        onDragOver={e => { if (isAdmin) { e.preventDefault(); setDragOver(true); }}}
+        style={{ "--ki-accent": gc(kit.grade).accent, ...(isAdmin ? { cursor: "pointer" } : {}), ...(dragOver ? { borderColor: "#00aaff", boxShadow: "0 0 20px rgba(0,170,255,0.2)" } : {}) }}
+        onDragOver={e => { if (isAdmin) { e.preventDefault(); setDragOver(true); } }}
         onDragLeave={() => setDragOver(false)}
         onDrop={handleDrop}
         onClick={handleClick}
@@ -332,14 +332,14 @@ function KitImage({ kit, isAdmin, adminKey, onKitUpdated }) {
         {isAdmin && <input ref={fileRef} type="file" accept="image/*" hidden onChange={e => uploadImage(e.target.files[0])} />}
         {uploading ? (
           <div className="kit-image-placeholder">
-            <div className="kit-image-placeholder-icon" style={{fontSize:"1.2rem"}}>⏳</div>
+            <div className="kit-image-placeholder-icon" style={{ fontSize: "1.2rem" }}>⏳</div>
             <div className="kit-image-placeholder-text">UPLOADING...</div>
           </div>
         ) : imgSrc ? (
           <>
             <img className="kit-image" src={imgSrc} alt={`${kit.name} — ${kit.grade} ${kit.scale}`}
-              onError={e => { e.target.style.display="none"; e.target.nextSibling.style.display="flex"; }} />
-            <div className="kit-image-placeholder" style={{display:"none"}}>
+              onError={e => { e.target.style.display = "none"; e.target.nextSibling.style.display = "flex"; }} />
+            <div className="kit-image-placeholder" style={{ display: "none" }}>
               <div className="kit-image-placeholder-icon">🤖</div>
               <div className="kit-image-placeholder-text">IMAGE UNAVAILABLE</div>
             </div>
@@ -353,13 +353,13 @@ function KitImage({ kit, isAdmin, adminKey, onKitUpdated }) {
           </div>
         )}
         {isAdmin && imgSrc && (
-          <div style={{position:"absolute",bottom:36,right:12,fontSize:"0.5rem",color:"rgba(0,170,255,0.5)",letterSpacing:"1px",fontFamily:"'Share Tech Mono',monospace"}}>
+          <div style={{ position: "absolute", bottom: 36, right: 12, fontSize: "0.5rem", color: "rgba(0,170,255,0.5)", letterSpacing: "1px", fontFamily: "'Share Tech Mono',monospace" }}>
             CLICK TO REPLACE
           </div>
         )}
         <div className="kit-image-label">{kit.grade} {kit.scale} · {kit.name}</div>
       </div>
-      {error && <div style={{fontSize:"0.6rem",color:"#ff2244",marginTop:8,letterSpacing:"0.5px"}}>✕ {error}</div>}
+      {error && <div style={{ fontSize: "0.6rem", color: "#ff2244", marginTop: 8, letterSpacing: "0.5px" }}>✕ {error}</div>}
     </div>
   );
 }
@@ -560,7 +560,7 @@ function CommunityBuilds({ kitId, kitName }) {
     fetch(`/api/gallery/kit/${kitId}`)
       .then(r => r.json())
       .then(data => { if (Array.isArray(data)) setPosts(data); })
-      .catch(() => {});
+      .catch(() => { });
   }, [kitId]);
 
   // Flatten all images from all posts
@@ -589,11 +589,11 @@ function CommunityBuilds({ kitId, kitName }) {
       </div>
       {viewImg && (
         <div style={CB.overlay} onClick={() => setViewImg(null)}>
-          <div onClick={e => e.stopPropagation()} style={{textAlign:"center"}}>
+          <div onClick={e => e.stopPropagation()} style={{ textAlign: "center" }}>
             <img src={viewImg.src} alt="" style={CB.fullImg} />
-            <div style={{marginTop:12,fontSize:"0.65rem",color:"#9ab0cc",fontFamily:"'Share Tech Mono',monospace"}}>
-              {viewImg.caption && <div style={{marginBottom:4}}>{viewImg.caption}</div>}
-              <div style={{fontSize:"0.55rem",color:"var(--text-dim,#5a7a9f)"}}>
+            <div style={{ marginTop: 12, fontSize: "0.65rem", color: "#9ab0cc", fontFamily: "'Share Tech Mono',monospace" }}>
+              {viewImg.caption && <div style={{ marginBottom: 4 }}>{viewImg.caption}</div>}
+              <div style={{ fontSize: "0.55rem", color: "var(--text-dim,#5a7a9f)" }}>
                 Build by {viewImg.username} · Click outside to close
               </div>
             </div>
@@ -664,7 +664,7 @@ function CommentSection({ kitId, isSignedIn, user }) {
       const res = await fetch(`/api/comments/${kitId}`);
       const data = await res.json();
       if (Array.isArray(data)) setComments(data);
-    } catch (_) {}
+    } catch (_) { }
     setLoading(false);
   }, [kitId]);
 
@@ -722,7 +722,7 @@ function CommentSection({ kitId, isSignedIn, user }) {
         }),
       });
       if (res.ok) fetchComments();
-    } catch (_) {}
+    } catch (_) { }
   };
 
   const handleKeyDown = (e) => {
@@ -772,7 +772,7 @@ function CommentSection({ kitId, isSignedIn, user }) {
         <div>
           {replyTo && (
             <div style={C.replyingTo}>
-              REPLYING TO <span style={{color:"#c8ddf5"}}>{replyTo.username}</span>
+              REPLYING TO <span style={{ color: "#c8ddf5" }}>{replyTo.username}</span>
               <button style={C.cancelBtn} onClick={() => { setReplyTo(null); setBody(""); }}>✕ CANCEL</button>
             </div>
           )}
@@ -787,7 +787,7 @@ function CommentSection({ kitId, isSignedIn, user }) {
               maxLength={1000}
             />
             <button
-              style={{...(replyTo ? C.postBtnSm : C.postBtn), ...((!body.trim() || posting) ? C.postBtnDisabled : {})}}
+              style={{ ...(replyTo ? C.postBtnSm : C.postBtn), ...((!body.trim() || posting) ? C.postBtnDisabled : {}) }}
               onClick={() => postComment(replyTo?.id || null)}
               disabled={!body.trim() || posting}
             >
@@ -825,11 +825,11 @@ function CommentSection({ kitId, isSignedIn, user }) {
 // KitRating — Pentagon radar chart + sliders
 // ─────────────────────────────────────────────────────────────
 const STATS = [
-  { key: "difficulty",   label: "DIFFICULTY",   color: "#ff6644" },
+  { key: "difficulty", label: "DIFFICULTY", color: "#ff6644" },
   { key: "articulation", label: "ARTICULATION", color: "#00aaff" },
-  { key: "detail",       label: "DETAIL",       color: "#cc44ff" },
-  { key: "fun_factor",   label: "FUN FACTOR",   color: "#ffcc00" },
-  { key: "value",        label: "VALUE",        color: "#00ff88" },
+  { key: "detail", label: "DETAIL", color: "#cc44ff" },
+  { key: "fun_factor", label: "FUN FACTOR", color: "#ffcc00" },
+  { key: "value", label: "VALUE", color: "#00ff88" },
 ];
 const EMPTY_STATS = { difficulty: 0, articulation: 0, detail: 0, fun_factor: 0, value: 0 };
 
@@ -869,7 +869,7 @@ function PentagonChart({ myRating, communityRating, size = 220 }) {
     };
   });
 
-  const myPts   = pts(STATS.map(s => myRating?.[s.key]   ?? 0));
+  const myPts = pts(STATS.map(s => myRating?.[s.key] ?? 0));
   const commPts = pts(STATS.map(s => communityRating?.[s.key] ?? 0));
 
   const toPath = (points) => points.map(([x, y], i) => `${i === 0 ? "M" : "L"}${x},${y}`).join(" ") + "Z";
@@ -917,19 +917,19 @@ function PentagonChart({ myRating, communityRating, size = 220 }) {
 }
 
 function KitRating({ kitId, isSignedIn, user }) {
-  const [myRating,        setMyRating]        = useState(null);
+  const [myRating, setMyRating] = useState(null);
   const [communityRating, setCommunityRating] = useState(null);
-  const [ratingCount,     setRatingCount]     = useState(0);
-  const [draft,           setDraft]           = useState({ ...EMPTY_STATS });
-  const [saving,          setSaving]          = useState(false);
-  const [saved,           setSaved]           = useState(false);
-  const [loading,         setLoading]         = useState(true);
+  const [ratingCount, setRatingCount] = useState(0);
+  const [draft, setDraft] = useState({ ...EMPTY_STATS });
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const fetchRatings = useCallback(async () => {
     setLoading(true);
     try {
       const userParam = user?.id ? `?user_id=${user.id}` : "";
-      const res  = await fetch(`/api/kit-rating/${kitId}${userParam}`);
+      const res = await fetch(`/api/kit-rating/${kitId}${userParam}`);
       const data = await res.json();
       if (data.ok) {
         setCommunityRating(data.community || null);
@@ -939,7 +939,7 @@ function KitRating({ kitId, isSignedIn, user }) {
           setDraft({ ...data.my_rating });
         }
       }
-    } catch (_) {}
+    } catch (_) { }
     setLoading(false);
   }, [kitId, user?.id]);
 
@@ -967,7 +967,7 @@ function KitRating({ kitId, isSignedIn, user }) {
         fetchRatings();
         setTimeout(() => setSaved(false), 2500);
       }
-    } catch (_) {}
+    } catch (_) { }
     setSaving(false);
   };
 
@@ -1092,9 +1092,9 @@ export default function KitDetail({
   const navigate = useNavigate();
   const kit = allKits.find(k => slugify(k) === slug);
 
-  const [realPages,        setRealPages]        = useState({});
+  const [realPages, setRealPages] = useState({});
   const [fullscreenManual, setFullscreenManual] = useState(null);
-  const [editing,          setEditing]           = useState(false);
+  const [editing, setEditing] = useState(false);
 
   // Check if admin key exists in session
   const isAdmin = !!sessionStorage.getItem(ADMIN_KEY_STORAGE);
@@ -1122,10 +1122,10 @@ export default function KitDetail({
   }, [kit?.id]);
 
   if (!kit) return (
-    <div style={{padding:"80px 40px",textAlign:"center",fontFamily:"'Share Tech Mono',monospace",color:"var(--text-dim)"}}>
-      <div style={{fontSize:"3rem",marginBottom:"16px",opacity:0.3}}>404</div>
-      <div style={{letterSpacing:"2px",marginBottom:"24px"}}>KIT NOT FOUND</div>
-      <button className="back-btn" style={{margin:"0 auto"}} onClick={goHome}>← BACK TO LIBRARY</button>
+    <div style={{ padding: "80px 40px", textAlign: "center", fontFamily: "'Share Tech Mono',monospace", color: "var(--text-dim)" }}>
+      <div style={{ fontSize: "3rem", marginBottom: "16px", opacity: 0.3 }}>404</div>
+      <div style={{ letterSpacing: "2px", marginBottom: "24px" }}>KIT NOT FOUND</div>
+      <button className="back-btn" style={{ margin: "0 auto" }} onClick={goHome}>← BACK TO LIBRARY</button>
     </div>
   );
 
@@ -1138,23 +1138,23 @@ export default function KitDetail({
       <button className="back-btn" onClick={() => navigate(-1)}>← BACK TO LIBRARY</button>
 
       <div className="kit-detail-header">
-        <div className="detail-grade" style={{color:gc(kit.grade).accent}}>
+        <div className="detail-grade" style={{ color: gc(kit.grade).accent }}>
           {kit.grade} GRADE — {kit.scale}
           {isAdmin && isD1Kit && !editing && (
-            <button style={{...E.btnEdit, marginLeft:12}} onClick={() => setEditing(true)}>✎ EDIT</button>
+            <button style={{ ...E.btnEdit, marginLeft: 12 }} onClick={() => setEditing(true)}>✎ EDIT</button>
           )}
         </div>
         <div className="detail-title">
           {kit.name}
           {isSignedIn && (
-            <button className="fav-btn" style={{marginLeft:"12px",fontSize:"1.4rem"}} onClick={e => toggleFavourite(e, kit.id)}>
+            <button className="fav-btn" style={{ marginLeft: "12px", fontSize: "1.4rem" }} onClick={e => toggleFavourite(e, kit.id)}>
               {isFav ? "⭐" : "☆"}
             </button>
           )}
         </div>
         <div className="detail-meta">
           <span>◈ {kit.series}</span>
-          <span>◈ {kit.manuals.length} MANUAL{kit.manuals.length!==1?"S":""} AVAILABLE</span>
+          <span>◈ {kit.manuals.length} MANUAL{kit.manuals.length !== 1 ? "S" : ""} AVAILABLE</span>
         </div>
       </div>
 
@@ -1175,21 +1175,21 @@ export default function KitDetail({
           <span className="build-status-label">◈ BUILD STATUS</span>
           <div className="build-status-options">
             <button
-              className={`build-status-fav${isFav?" on":""}`}
+              className={`build-status-fav${isFav ? " on" : ""}`}
               onClick={e => toggleFavourite(e, kit.id)}
               title={isFav ? "Remove from My Vault" : "Add to My Vault"}
             >
               {isFav ? "⭐" : "☆"}
             </button>
-            <div style={{width:"1px",height:"20px",background:"var(--border)",flexShrink:0}} />
+            <div style={{ width: "1px", height: "20px", background: "var(--border)", flexShrink: 0 }} />
             {[
-              {id:"backlog", label:"◻ BACKLOG"},
-              {id:"inprogress", label:"⚙ IN PROGRESS"},
-              {id:"complete",   label:"✓ COMPLETE"},
+              { id: "backlog", label: "◻ BACKLOG" },
+              { id: "inprogress", label: "⚙ IN PROGRESS" },
+              { id: "complete", label: "✓ COMPLETE" },
             ].map(s => (
               <button
                 key={s.id}
-                className={`build-status-btn${buildProgress[kit.id]===s.id ? ` active-${s.id}` : ""}`}
+                className={`build-status-btn${buildProgress[kit.id] === s.id ? ` active-${s.id}` : ""}`}
                 onClick={() => setBuildStatus(kit.id, s.id)}
               >
                 {s.label}
@@ -1199,7 +1199,7 @@ export default function KitDetail({
         </div>
       )}
 
-      <div style={{height:"16px"}} />
+      <div style={{ height: "16px" }} />
       {isSignedIn && kit.manuals.some(m => m.url) && (() => {
         const manualRows = kit.manuals.filter(m => m.url).map(m => {
           const key = `${kit.id}-${m.id}`;
@@ -1222,9 +1222,9 @@ export default function KitDetail({
             </div>
             <div className="xp-track">
               <div className="xp-track-segments">
-                {Array.from({length: SEGMENTS}).map((_,i) => <div key={i} className="xp-segment" />)}
+                {Array.from({ length: SEGMENTS }).map((_, i) => <div key={i} className="xp-segment" />)}
               </div>
-              <div className="xp-fill" style={{width: hasAnyTotal ? `${overallPct}%` : "0%"}} />
+              <div className="xp-fill" style={{ width: hasAnyTotal ? `${overallPct}%` : "0%" }} />
             </div>
             <div className="xp-multi-wrap">
               {manualRows.map(({ m, key, total, current }) => {
@@ -1248,7 +1248,7 @@ export default function KitDetail({
                           value={current || ""}
                           placeholder="0"
                           onChange={e => {
-                            const val     = Math.max(0, parseInt(e.target.value) || 0);
+                            const val = Math.max(0, parseInt(e.target.value) || 0);
                             const clamped = total ? Math.min(val, total) : val;
                             setManualPage(kit.id, m.id, clamped, total || clamped);
                           }}
@@ -1259,10 +1259,10 @@ export default function KitDetail({
                         }}>+</button>
                       </div>
                       <span className="xp-total">
-                        / {isLoading ? <span style={{opacity:0.4}}>loading...</span> : `${total} PGS`}
+                        / {isLoading ? <span style={{ opacity: 0.4 }}>loading...</span> : `${total} PGS`}
                       </span>
                       {total > 0 && (
-                        <span style={{marginLeft:"auto",fontFamily:"'Share Tech Mono',monospace",fontSize:"0.6rem",color: pct===100?"var(--green)":pct>0?"var(--gold)":"var(--text-dim)"}}>
+                        <span style={{ marginLeft: "auto", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.6rem", color: pct === 100 ? "var(--green)" : pct > 0 ? "var(--gold)" : "var(--text-dim)" }}>
                           {pct}%
                         </span>
                       )}
@@ -1277,7 +1277,7 @@ export default function KitDetail({
 
       {/* ── MANUAL LIST ─────────────────────────────────────── */}
       <div className="manual-list">
-        <div className="section-header" style={{padding:"0 0 20px"}}>
+        <div className="section-header" style={{ padding: "0 0 20px" }}>
           <span className="section-title">AVAILABLE MANUALS</span>
           <div className="section-line" />
         </div>
@@ -1324,7 +1324,7 @@ export default function KitDetail({
               <div className="pdf-dropdown-inner">
                 <div className="pdf-dropdown-header">
                   <span className="pdf-dropdown-title">◈ {manual.name.toUpperCase()}</span>
-                  <div style={{display:"flex",gap:"8px",alignItems:"center"}}>
+                  <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
                     {manual.url && (
                       <button
                         className="btn-fullscreen"
@@ -1356,8 +1356,8 @@ export default function KitDetail({
                     <div className="pdf-placeholder">
                       <div className="big">PDF</div>
                       <div>[ PDF VIEWER ]</div>
-                      <div style={{marginTop:12,fontSize:"0.65rem",opacity:0.6}}>
-                        Add a <code>url</code> field to this manual in the data<br/>to enable in-browser viewing.
+                      <div style={{ marginTop: 12, fontSize: "0.65rem", opacity: 0.6 }}>
+                        Add a <code>url</code> field to this manual in the data<br />to enable in-browser viewing.
                       </div>
                     </div>
                   )}
@@ -1369,7 +1369,7 @@ export default function KitDetail({
       </div>
 
       {/* ── KIT IMAGE + RATING ──────────────────────────────── */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, alignItems: "start", marginTop: 8, maxWidth: "100%", boxSizing: "border-box" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, alignItems: "start", marginTop: 8, padding: "0 40px", boxSizing: "border-box" }}>
         <KitImage kit={kit} isAdmin={isAdmin} adminKey={sessionStorage.getItem(ADMIN_KEY_STORAGE)} onKitUpdated={onKitUpdated} />
         <KitRating kitId={kit.id} isSignedIn={isSignedIn} user={user} />
       </div>
