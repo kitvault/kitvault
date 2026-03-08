@@ -822,6 +822,254 @@ function CommentSection({ kitId, isSignedIn, user }) {
 }
 
 // ─────────────────────────────────────────────────────────────
+// KitRating — Pentagon radar chart + sliders
+// ─────────────────────────────────────────────────────────────
+const STATS = [
+  { key: "difficulty",   label: "DIFFICULTY",   color: "#ff6644" },
+  { key: "articulation", label: "ARTICULATION", color: "#00aaff" },
+  { key: "detail",       label: "DETAIL",       color: "#cc44ff" },
+  { key: "fun_factor",   label: "FUN FACTOR",   color: "#ffcc00" },
+  { key: "value",        label: "VALUE",        color: "#00ff88" },
+];
+const EMPTY_STATS = { difficulty: 0, articulation: 0, detail: 0, fun_factor: 0, value: 0 };
+
+function PentagonChart({ myRating, communityRating, size = 220 }) {
+  const cx = size / 2, cy = size / 2;
+  const r = size * 0.38;
+  const n = 5;
+
+  // Pentagon points for a given value (0-10)
+  const pts = (vals) =>
+    vals.map((v, i) => {
+      const angle = (Math.PI * 2 * i) / n - Math.PI / 2;
+      const radius = (v / 10) * r;
+      return [cx + radius * Math.cos(angle), cy + radius * Math.sin(angle)];
+    });
+
+  // Background grid rings
+  const gridRings = [2, 4, 6, 8, 10].map(val =>
+    pts(Array(n).fill(val)).map(([x, y]) => `${x},${y}`).join(" ")
+  );
+
+  // Axis endpoints (value = 10)
+  const axes = Array.from({ length: n }, (_, i) => {
+    const angle = (Math.PI * 2 * i) / n - Math.PI / 2;
+    return [cx + r * Math.cos(angle), cy + r * Math.sin(angle)];
+  });
+
+  // Label positions (slightly further out)
+  const labelR = r * 1.28;
+  const labels = STATS.map((s, i) => {
+    const angle = (Math.PI * 2 * i) / n - Math.PI / 2;
+    return {
+      x: cx + labelR * Math.cos(angle),
+      y: cy + labelR * Math.sin(angle),
+      label: s.label,
+      color: s.color,
+    };
+  });
+
+  const myPts   = pts(STATS.map(s => myRating?.[s.key]   ?? 0));
+  const commPts = pts(STATS.map(s => communityRating?.[s.key] ?? 0));
+
+  const toPath = (points) => points.map(([x, y], i) => `${i === 0 ? "M" : "L"}${x},${y}`).join(" ") + "Z";
+
+  return (
+    <svg width={size} height={size} style={{ overflow: "visible" }}>
+      {/* Grid rings */}
+      {gridRings.map((pts, i) => (
+        <polygon key={i} points={pts}
+          fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
+      ))}
+      {/* Axis lines */}
+      {axes.map(([x, y], i) => (
+        <line key={i} x1={cx} y1={cy} x2={x} y2={y}
+          stroke="rgba(255,255,255,0.08)" strokeWidth="1" />
+      ))}
+      {/* Community average shape */}
+      {communityRating && (
+        <path d={toPath(commPts)}
+          fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.25)"
+          strokeWidth="1.5" strokeDasharray="4,3" />
+      )}
+      {/* My rating shape */}
+      {myRating && (
+        <path d={toPath(myPts)}
+          fill="rgba(0,170,255,0.15)" stroke="#00aaff"
+          strokeWidth="2" />
+      )}
+      {/* Vertex dots for my rating */}
+      {myRating && myPts.map(([x, y], i) => (
+        <circle key={i} cx={x} cy={y} r="3"
+          fill={STATS[i].color} stroke="rgba(0,0,0,0.5)" strokeWidth="1" />
+      ))}
+      {/* Labels */}
+      {labels.map((l, i) => (
+        <text key={i} x={l.x} y={l.y}
+          textAnchor="middle" dominantBaseline="middle"
+          fontFamily="'Share Tech Mono',monospace" fontSize="8.5"
+          fill={l.color} letterSpacing="0.5">
+          {l.label}
+        </text>
+      ))}
+    </svg>
+  );
+}
+
+function KitRating({ kitId, isSignedIn, user }) {
+  const [myRating,        setMyRating]        = useState(null);
+  const [communityRating, setCommunityRating] = useState(null);
+  const [ratingCount,     setRatingCount]     = useState(0);
+  const [draft,           setDraft]           = useState({ ...EMPTY_STATS });
+  const [saving,          setSaving]          = useState(false);
+  const [saved,           setSaved]           = useState(false);
+  const [loading,         setLoading]         = useState(true);
+
+  const fetchRatings = useCallback(async () => {
+    setLoading(true);
+    try {
+      const userParam = user?.id ? `?user_id=${user.id}` : "";
+      const res  = await fetch(`/api/kit-rating/${kitId}${userParam}`);
+      const data = await res.json();
+      if (data.ok) {
+        setCommunityRating(data.community || null);
+        setRatingCount(data.count || 0);
+        if (data.my_rating) {
+          setMyRating(data.my_rating);
+          setDraft({ ...data.my_rating });
+        }
+      }
+    } catch (_) {}
+    setLoading(false);
+  }, [kitId, user?.id]);
+
+  useEffect(() => { fetchRatings(); }, [fetchRatings]);
+
+  const handleSlider = (key, val) => {
+    setDraft(prev => ({ ...prev, [key]: Number(val) }));
+  };
+
+  const submitRating = async () => {
+    if (!user || saving) return;
+    setSaving(true);
+    setSaved(false);
+    try {
+      const res = await fetch("/api/kit-rating", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kit_id: kitId, user_id: user.id, ...draft }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setMyRating({ ...draft });
+        setSaved(true);
+        fetchRatings();
+        setTimeout(() => setSaved(false), 2500);
+      }
+    } catch (_) {}
+    setSaving(false);
+  };
+
+  const hasAnyDraft = Object.values(draft).some(v => v > 0);
+
+  return (
+    <div style={{
+      border: "1px solid rgba(255,255,255,0.07)",
+      background: "rgba(0,0,0,0.25)",
+      padding: "20px 18px",
+      marginTop: 0,
+    }}>
+      {/* Header */}
+      <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.65rem", letterSpacing: "3px", color: "var(--accent,#00aaff)", marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <span>◈ KIT RATING</span>
+        {ratingCount > 0 && (
+          <span style={{ fontSize: "0.55rem", color: "var(--text-dim,#5a7a9f)", letterSpacing: "1px" }}>
+            {ratingCount} REVIEW{ratingCount !== 1 ? "S" : ""}
+          </span>
+        )}
+      </div>
+
+      {/* Pentagon chart */}
+      {loading ? (
+        <div style={{ textAlign: "center", padding: "40px 0", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.6rem", color: "var(--text-dim,#5a7a9f)", letterSpacing: "2px" }}>
+          LOADING...
+        </div>
+      ) : (
+        <>
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}>
+            <PentagonChart
+              myRating={hasAnyDraft ? draft : myRating}
+              communityRating={communityRating}
+            />
+          </div>
+
+          {/* Legend */}
+          <div style={{ display: "flex", gap: 12, justifyContent: "center", marginBottom: 16, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 5, fontFamily: "'Share Tech Mono',monospace", fontSize: "0.5rem", color: "var(--text-dim,#5a7a9f)", letterSpacing: "0.5px" }}>
+              <div style={{ width: 18, height: 2, background: "#00aaff" }} /> YOURS
+            </div>
+            {communityRating && (
+              <div style={{ display: "flex", alignItems: "center", gap: 5, fontFamily: "'Share Tech Mono',monospace", fontSize: "0.5rem", color: "var(--text-dim,#5a7a9f)", letterSpacing: "0.5px" }}>
+                <div style={{ width: 18, height: 2, background: "rgba(255,255,255,0.25)", borderTop: "1px dashed rgba(255,255,255,0.25)" }} /> COMMUNITY
+              </div>
+            )}
+          </div>
+
+          {/* Sliders — only if signed in */}
+          {isSignedIn && user ? (
+            <>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 16 }}>
+                {STATS.map(s => (
+                  <div key={s.key}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                      <span style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.55rem", color: s.color, letterSpacing: "1px" }}>{s.label}</span>
+                      <span style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.6rem", color: "#c8ddf5", minWidth: 20, textAlign: "right" }}>{draft[s.key]}</span>
+                    </div>
+                    <input
+                      type="range" min="0" max="10" step="1"
+                      value={draft[s.key]}
+                      onChange={e => handleSlider(s.key, e.target.value)}
+                      style={{
+                        width: "100%", appearance: "none", WebkitAppearance: "none",
+                        height: 4, borderRadius: 2, outline: "none", cursor: "pointer",
+                        background: `linear-gradient(to right, ${s.color} 0%, ${s.color} ${draft[s.key] * 10}%, rgba(255,255,255,0.1) ${draft[s.key] * 10}%, rgba(255,255,255,0.1) 100%)`,
+                        accentColor: s.color,
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+              <button
+                onClick={submitRating}
+                disabled={saving || !hasAnyDraft}
+                style={{
+                  width: "100%",
+                  padding: "10px",
+                  background: saved ? "rgba(0,255,136,0.1)" : "rgba(0,170,255,0.1)",
+                  border: `1px solid ${saved ? "rgba(0,255,136,0.4)" : "rgba(0,170,255,0.3)"}`,
+                  color: saved ? "#00ff88" : "#00aaff",
+                  fontFamily: "'Share Tech Mono',monospace",
+                  fontSize: "0.6rem", letterSpacing: "2px", cursor: saving || !hasAnyDraft ? "not-allowed" : "pointer",
+                  opacity: !hasAnyDraft ? 0.4 : 1,
+                  transition: "all 0.2s",
+                }}
+              >
+                {saved ? "✓ RATING SAVED" : saving ? "SAVING..." : myRating ? "UPDATE RATING →" : "SUBMIT RATING →"}
+              </button>
+            </>
+          ) : (
+            <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.55rem", color: "var(--text-dim,#5a7a9f)", textAlign: "center", padding: "8px 0", letterSpacing: "1px", opacity: 0.7 }}>
+              SIGN IN TO RATE THIS KIT
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
 // KitDetail — main export
 // ─────────────────────────────────────────────────────────────
 export default function KitDetail({
@@ -1120,8 +1368,11 @@ export default function KitDetail({
         ))}
       </div>
 
-      {/* ── KIT IMAGE ───────────────────────────────────────── */}
-      <KitImage kit={kit} isAdmin={isAdmin} adminKey={sessionStorage.getItem(ADMIN_KEY_STORAGE)} onKitUpdated={onKitUpdated} />
+      {/* ── KIT IMAGE + RATING ──────────────────────────────── */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, alignItems: "start", marginTop: 8 }}>
+        <KitImage kit={kit} isAdmin={isAdmin} adminKey={sessionStorage.getItem(ADMIN_KEY_STORAGE)} onKitUpdated={onKitUpdated} />
+        <KitRating kitId={kit.id} isSignedIn={isSignedIn} user={user} />
+      </div>
 
       {/* ── MY BUILD PHOTOS ─────────────────────────────────── */}
       <BuildPhotos kitId={kit.id} isSignedIn={isSignedIn} user={user} />

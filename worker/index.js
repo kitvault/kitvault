@@ -1634,6 +1634,77 @@ export default {
     }
 
 
+    // ── GET /api/kit-rating/:kitId — fetch community avg + my rating ──
+    if (request.method === "GET" && url.pathname.startsWith("/api/kit-rating/")) {
+      try {
+        const kitId = url.pathname.split("/api/kit-rating/")[1];
+        if (!kitId) return new Response(JSON.stringify({ ok: false, error: "Missing kit_id" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+        const userId = url.searchParams.get("user_id");
+
+        // Community average
+        const commRow = await env.DB.prepare(
+          `SELECT AVG(difficulty) as difficulty, AVG(articulation) as articulation,
+                  AVG(detail) as detail, AVG(fun_factor) as fun_factor,
+                  AVG(value) as value, COUNT(*) as count
+           FROM kit_ratings WHERE kit_id = ?`
+        ).bind(kitId).first();
+
+        const count = commRow?.count || 0;
+        const community = count > 0 ? {
+          difficulty:   Math.round((commRow.difficulty   || 0) * 10) / 10,
+          articulation: Math.round((commRow.articulation || 0) * 10) / 10,
+          detail:       Math.round((commRow.detail       || 0) * 10) / 10,
+          fun_factor:   Math.round((commRow.fun_factor   || 0) * 10) / 10,
+          value:        Math.round((commRow.value        || 0) * 10) / 10,
+        } : null;
+
+        // User's own rating
+        let my_rating = null;
+        if (userId) {
+          const row = await env.DB.prepare(
+            `SELECT difficulty, articulation, detail, fun_factor, value FROM kit_ratings WHERE kit_id = ? AND user_id = ?`
+          ).bind(kitId, userId).first();
+          if (row) my_rating = row;
+        }
+
+        return new Response(JSON.stringify({ ok: true, community, count, my_rating }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch (err) {
+        return new Response(JSON.stringify({ ok: false, error: err.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+    }
+
+    // ── POST /api/kit-rating — upsert user rating ──────────────────
+    if (request.method === "POST" && url.pathname === "/api/kit-rating") {
+      try {
+        const token = getCookieToken(request);
+        if (!token) return new Response(JSON.stringify({ ok: false, error: "Not authenticated" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        const payload = await verifyJWT(token, env.JWT_SECRET);
+        if (!payload) return new Response(JSON.stringify({ ok: false, error: "Invalid token" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+        const body = await request.json();
+        const { kit_id, difficulty, articulation, detail, fun_factor, value } = body;
+        if (!kit_id) return new Response(JSON.stringify({ ok: false, error: "Missing kit_id" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+        const clamp = (v) => Math.max(0, Math.min(10, Math.round(Number(v) || 0)));
+
+        await env.DB.prepare(`
+          INSERT INTO kit_ratings (user_id, kit_id, difficulty, articulation, detail, fun_factor, value, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, unixepoch())
+          ON CONFLICT(user_id, kit_id) DO UPDATE SET
+            difficulty=excluded.difficulty, articulation=excluded.articulation,
+            detail=excluded.detail, fun_factor=excluded.fun_factor,
+            value=excluded.value, updated_at=unixepoch()
+        `).bind(payload.userId, kit_id, clamp(difficulty), clamp(articulation), clamp(detail), clamp(fun_factor), clamp(value)).run();
+
+        return new Response(JSON.stringify({ ok: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      } catch (err) {
+        return new Response(JSON.stringify({ ok: false, error: err.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+    }
+
     return new Response(JSON.stringify({ error: "Not found" }), {
       status: 404,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
