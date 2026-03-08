@@ -9,7 +9,7 @@ import { GRADE_COLORS, slugify } from "../data/grades.js";
 
 const gc = (g) => GRADE_COLORS[g] || GRADE_COLORS["HG"];
 
-export default function Hangar({ currentUserId }) {
+export default function Hangar({ currentUserId, onRemoveFromVault, onRemoveFromHangar }) {
   const { username } = useParams();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -37,6 +37,13 @@ export default function Hangar({ currentUserId }) {
   }, [username, currentUserId]);
 
   useEffect(() => { fetchHangar(); }, [fetchHangar]);
+
+  const removeFromHangar = (kitId) => {
+    if (!onRemoveFromHangar) return;
+    const syntheticE = { stopPropagation: () => {} };
+    onRemoveFromHangar(syntheticE, kitId);
+    setTimeout(() => fetchHangar(), 600);
+  };
 
   const copyLink = () => {
     navigator.clipboard.writeText(`https://kitvault.io/hangar/${username}`);
@@ -98,22 +105,24 @@ export default function Hangar({ currentUserId }) {
   const getKitPhotos = (kitId) => photos.filter(p => p.kit_id === kitId);
 
   // ── Kit card ──
-  const KitCard = ({ kit }) => {
+  const KitCard = ({ kit, onRemove }) => {
     const kitPhotos = getKitPhotos(kit.id);
     const status = progress[String(kit.id)];
     const isFav = favourites.includes(kit.id);
     const colors = gc(kit.grade);
+    const [menuOpen, setMenuOpen] = useState(false);
+    const [hovered, setHovered] = useState(false);
 
     return (
       <div
         style={{
           background: "rgba(0,0,0,0.25)", border: "1px solid rgba(255,255,255,0.06)",
           borderRadius: 2, overflow: "hidden", cursor: "pointer",
-          transition: "border-color 0.2s",
+          transition: "border-color 0.2s", position: "relative",
         }}
-        onClick={() => navigate(`/kit/${slugify(kit)}`)}
-        onMouseEnter={e => e.currentTarget.style.borderColor = colors.accent + "44"}
-        onMouseLeave={e => e.currentTarget.style.borderColor = "rgba(255,255,255,0.06)"}
+        onClick={() => { if (menuOpen) { setMenuOpen(false); return; } navigate(`/kit/${slugify(kit)}`); }}
+        onMouseEnter={e => { e.currentTarget.style.borderColor = colors.accent + "44"; setHovered(true); }}
+        onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.06)"; setHovered(false); setMenuOpen(false); }}
       >
         {/* Kit image or first build photo */}
         <div style={{ width: "100%", aspectRatio: "1", background: "rgba(0,0,0,0.3)", position: "relative", overflow: "hidden" }}>
@@ -176,6 +185,46 @@ export default function Hangar({ currentUserId }) {
           {isFav && (
             <div style={{ position: "absolute", bottom: 8, right: 8, fontSize: "0.75rem" }}>⭐</div>
           )}
+
+          {/* Owner-only ••• menu */}
+          {is_owner && (hovered || menuOpen) && (
+            <div
+              style={{ position: "absolute", top: 8, right: 8, zIndex: 10 }}
+              onClick={e => e.stopPropagation()}
+            >
+              <button
+                onClick={e => { e.stopPropagation(); setMenuOpen(v => !v); }}
+                style={{
+                  background: "rgba(0,0,0,0.75)", border: "1px solid rgba(255,255,255,0.2)",
+                  color: "#c8ddf5", fontFamily: "'Share Tech Mono',monospace",
+                  fontSize: "0.6rem", padding: "4px 10px", cursor: "pointer",
+                  letterSpacing: "2px", backdropFilter: "blur(4px)",
+                }}
+              >•••</button>
+              {menuOpen && (
+                <div style={{
+                  position: "absolute", top: "calc(100% + 4px)", right: 0,
+                  background: "rgba(8,12,18,0.97)", border: "1px solid rgba(255,255,255,0.12)",
+                  backdropFilter: "blur(8px)", minWidth: 130, zIndex: 20,
+                }}>
+                  <button
+                    onClick={e => { e.stopPropagation(); setMenuOpen(false); onRemove && onRemove(kit.id); }}
+                    style={{
+                      width: "100%", background: "none", border: "none",
+                      borderBottom: "none", color: "#ff4466",
+                      fontFamily: "'Share Tech Mono',monospace", fontSize: "0.62rem",
+                      padding: "10px 14px", cursor: "pointer", textAlign: "left",
+                      letterSpacing: "1px", display: "flex", alignItems: "center", gap: 8,
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = "rgba(255,34,68,0.1)"}
+                    onMouseLeave={e => e.currentTarget.style.background = "none"}
+                  >
+                    🗑 DELETE
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Kit info */}
@@ -216,7 +265,7 @@ export default function Hangar({ currentUserId }) {
   };
 
   // ── Section renderer ──
-  const Section = ({ title, icon, kits: sectionKits, color, sectionKey }) => {
+  const Section = ({ title, icon, kits: sectionKits, color, sectionKey, onRemove }) => {
     const [collapsed, setCollapsed] = useState(false);
     if (sectionKits.length === 0) return null;
     return (
@@ -246,7 +295,7 @@ export default function Hangar({ currentUserId }) {
             gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
             gap: 16,
           }}>
-            {sectionKits.map(kit => <KitCard key={kit.id} kit={kit} />)}
+            {sectionKits.map(kit => <KitCard key={kit.id} kit={kit} onRemove={onRemove} />)}
           </div>
         )}
       </div>
@@ -346,10 +395,10 @@ export default function Hangar({ currentUserId }) {
       )}
 
       {/* KIT SECTIONS */}
-      <Section title="FAVORITES" icon="⭐" kits={favKits} color="#ffcc00" />
-      <Section title="COMPLETED" icon="✓" kits={completedKits} color="#00ff88" />
-      <Section title="IN PROGRESS" icon="🔧" kits={inProgressKits} color="#ffaa00" />
-      <Section title="BACKLOG" icon="📦" kits={backlogKits} color="#5a7a9f" />
+      <Section title="FAVORITES" icon="⭐" kits={favKits} color="#ffcc00" onRemove={removeFromHangar} />
+      <Section title="COMPLETED" icon="✓" kits={completedKits} color="#00ff88" onRemove={removeFromHangar} />
+      <Section title="IN PROGRESS" icon="🔧" kits={inProgressKits} color="#ffaa00" onRemove={removeFromHangar} />
+      <Section title="BACKLOG" icon="📦" kits={backlogKits} color="#5a7a9f" onRemove={removeFromHangar} />
 
       {/* GALLERY POSTS */}
       {gallery_posts.length > 0 && (

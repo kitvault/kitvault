@@ -992,7 +992,7 @@ export default function KitVault() {
             </div>
           )}
 
-          {/* Tag popover */}
+          {/* ••• Dropdown menu (tags + Move to Hangar) */}
           {showTags && isTagsOpen && (
             <div className="kit-tag-popover" onClick={e => e.stopPropagation()}>
               <div className="kit-tag-popover-label">TODO TAGS</div>
@@ -1010,6 +1010,24 @@ export default function KitVault() {
                   );
                 })}
               </div>
+              {/* Move to Hangar option */}
+              {effectiveSignedIn && hangarProfile?.username && (
+                <div style={{ borderTop: "1px solid var(--border)", marginTop: 10, paddingTop: 10 }}>
+                  <button
+                    className="kit-tag-option"
+                    style={{ width: "100%", color: favourites.includes(kit.id) ? "var(--text-dim)" : "var(--accent3)", borderColor: favourites.includes(kit.id) ? "var(--border)" : "rgba(0,255,204,0.3)" }}
+                    onClick={e => {
+                      e.stopPropagation();
+                      if (!favourites.includes(kit.id)) {
+                        toggleFavourite(e, kit.id);
+                        setOpenTagsId(null);
+                      }
+                    }}
+                  >
+                    {favourites.includes(kit.id) ? "✓ IN HANGAR" : "✈ MOVE TO HANGAR"}
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
@@ -1440,7 +1458,7 @@ export default function KitVault() {
                           <span style={{ fontSize: "0.7rem", opacity: 0.5 }}>STAR A KIT OR SET A BUILD STATUS TO ADD IT HERE</span>
                         </div>
                       ) : (
-                        <div style={{ padding: "0 40px 60px" }}>
+                        <div style={{ padding: "0 40px 60px", marginTop: 48 }}>
                           {favOnly.length > 0 && (
                             <>
                               <div className="section-header vault-section-header" style={{ padding: "0 0 20px", marginBottom: "4px", cursor: "pointer" }} onClick={() => toggleSection("fav")}>
@@ -1696,7 +1714,7 @@ export default function KitVault() {
 
             {/* ===== PUBLIC HANGAR PROFILE ===== */}
             <Route path="/hangar/:username" element={
-              <Hangar currentUserId={effectiveSignedIn ? effectiveUserId : null} />
+              <Hangar currentUserId={effectiveSignedIn ? effectiveUserId : null} onRemoveFromVault={effectiveSignedIn ? removeFromVault : null} onMoveToHangar={effectiveSignedIn ? (e, kitId) => { if (!favourites.includes(kitId)) toggleFavourite(e, kitId); } : null} />
             } />
 
             {/* ===== ADMIN ===== */}
