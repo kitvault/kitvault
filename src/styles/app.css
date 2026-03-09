@@ -1961,6 +1961,24 @@
     color: var(--accent);
   }
 
+  /* ── KIT TAGS BUTTON (next to grade badge) ── */
+  .kit-tags-btn {
+    background: transparent; border: 1px solid var(--border);
+    color: var(--text-dim); font-family: 'Share Tech Mono', monospace;
+    font-size: 0.58rem; letter-spacing: 1.5px; padding: 2px 8px;
+    cursor: pointer; transition: all 0.2s; line-height: 1.6;
+  }
+  .kit-tags-btn:hover {
+    border-color: var(--card-accent, var(--accent));
+    color: var(--card-accent, var(--accent));
+    background: var(--card-accent-bg, var(--card-hover-bg));
+  }
+  .kit-tags-btn.active {
+    border-color: var(--card-accent, var(--accent));
+    color: var(--card-accent, var(--accent));
+    background: var(--card-accent-bg, var(--card-hover-bg));
+  }
+
   /* ── KIT TAG POPOVER ── */
   .kit-tag-popover {
     background: var(--bg2); border: 1px solid var(--border-bright);

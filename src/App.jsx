@@ -640,6 +640,8 @@ export default function KitVault() {
     try { return JSON.parse(localStorage.getItem("kv_tags") || "{}"); } catch { return {}; }
   });
   const [openTagsId, setOpenTagsId] = useState(null);
+  const [openMoreMenuId, setOpenMoreMenuId] = useState(null);
+  const [duplicatedKits, setDuplicatedKits] = useState([]); // [{ afterId, kit }]
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [collapsedSections, setCollapsedSections] = useState({});
   const toggleSection = (key) => setCollapsedSections(prev => ({ ...prev, [key]: !prev[key] }));
@@ -843,6 +845,17 @@ export default function KitVault() {
     });
   };
 
+  const duplicateKit = (kit) => {
+    const dupId = `dup-${kit.id}-${Date.now()}`;
+    const dupKit = { ...kit, id: dupId, _isDuplicate: true, _originalId: kit.id };
+    setDuplicatedKits(prev => [...prev, { afterId: kit.id, kit: dupKit }]);
+    setOpenMoreMenuId(null);
+  };
+
+  const removeDuplicate = (dupId) => {
+    setDuplicatedKits(prev => prev.filter(d => d.kit.id !== dupId));
+  };
+
   const KIT_TAG_OPTIONS = ["Panel Line", "Paint", "Scribe", "Decals", "Sanding"];
 
   const toggleKitTag = (e, kitId, tag) => {
@@ -942,6 +955,18 @@ export default function KitVault() {
   }, [location.pathname, allKits]);
   useSEO(seoConfig);
 
+  // Renders a list of kits with any duplicates inserted inline after their original
+  const renderWithDuplicates = (kits, opts) => {
+    const cards = [];
+    kits.forEach(kit => {
+      cards.push(renderKitCard(kit, opts));
+      duplicatedKits
+        .filter(d => d.afterId === kit.id)
+        .forEach(d => cards.push(renderKitCard(d.kit, opts)));
+    });
+    return cards;
+  };
+
   const renderKitCard = (kit, { showBacklog = false, showRemove = false, showTags = false } = {}) => {
     const c = gc(kit.grade);
     const isFav = favourites.includes(kit.id);
@@ -949,15 +974,35 @@ export default function KitVault() {
     const pct = getKitProgress(kit);
     const activeTags = kitTags[kit.id] || [];
     const isTagsOpen = openTagsId === kit.id;
+    const isMoreOpen = openMoreMenuId === kit.id;
+    const isDuplicate = !!kit._isDuplicate;
     return (
       <div key={kit.id} className="kit-card"
         style={{ "--card-accent": c.accent, "--card-accent-bg": c.bg, position: "relative" }}
-        onClick={() => { if (isTagsOpen) { setOpenTagsId(null); return; } goKit(kit); }}
+        onClick={() => {
+          if (isTagsOpen) { setOpenTagsId(null); return; }
+          if (isMoreOpen) { setOpenMoreMenuId(null); return; }
+          if (!isDuplicate) goKit(kit);
+        }}
       >
         <div className="card-grade-banner" style={{ background: c.accent }} />
         <div className="card-body">
           <div className="card-top">
-            <span className="grade-badge">{kit.grade}</span>
+            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <span className="grade-badge">{kit.grade}</span>
+              {showTags && effectiveSignedIn && (
+                <button
+                  className={`kit-tags-btn${isTagsOpen ? " active" : ""}`}
+                  onClick={e => {
+                    e.stopPropagation();
+                    setOpenTagsId(isTagsOpen ? null : kit.id);
+                    setOpenMoreMenuId(null);
+                    setOpenNotesId(null);
+                  }}
+                  title="Manage tags"
+                >TAGS</button>
+              )}
+            </div>
             <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
               {progress === "inprogress" && <span className="build-badge inprogress">IN PROGRESS</span>}
               {progress === "complete" && <span className="build-badge complete">COMPLETE</span>}
@@ -992,7 +1037,7 @@ export default function KitVault() {
             </div>
           )}
 
-          {/* ••• Dropdown menu (tags + Move to Hangar) */}
+          {/* TAGS popover — opened via TAGS button */}
           {showTags && isTagsOpen && (
             <div className="kit-tag-popover" onClick={e => e.stopPropagation()}>
               <div className="kit-tag-popover-label">TODO TAGS</div>
@@ -1010,24 +1055,36 @@ export default function KitVault() {
                   );
                 })}
               </div>
-              {/* Move to Hangar option */}
-              {effectiveSignedIn && hangarProfile?.username && (
-                <div style={{ borderTop: "1px solid var(--border)", marginTop: 10, paddingTop: 10 }}>
+            </div>
+          )}
+
+          {/* ••• dropdown — Duplicate + Delete + Move to Hangar */}
+          {showTags && isMoreOpen && (
+            <div className="kit-tag-popover" onClick={e => e.stopPropagation()}>
+              <div className="kit-tag-popover-options" style={{ flexDirection: "column", gap: 6 }}>
+                <button
+                  className="kit-tag-option"
+                  style={{ width: "100%", textAlign: "left" }}
+                  onClick={e => { e.stopPropagation(); duplicateKit(kit); }}
+                >⧉ DUPLICATE</button>
+                <button
+                  className="kit-tag-option"
+                  style={{ width: "100%", textAlign: "left", color: "var(--red)", borderColor: "rgba(255,34,68,0.3)" }}
+                  onClick={e => { e.stopPropagation(); setOpenMoreMenuId(null); if (isDuplicate) { removeDuplicate(kit.id); } else { setConfirmDeleteId(kit.id); } }}
+                >🗑 DELETE</button>
+                {effectiveSignedIn && hangarProfile?.username && !isDuplicate && (
                   <button
                     className="kit-tag-option"
-                    style={{ width: "100%", color: favourites.includes(kit.id) ? "var(--text-dim)" : "var(--accent3)", borderColor: favourites.includes(kit.id) ? "var(--border)" : "rgba(0,255,204,0.3)" }}
+                    style={{ width: "100%", textAlign: "left", color: favourites.includes(kit.id) ? "var(--text-dim)" : "var(--accent3)", borderColor: favourites.includes(kit.id) ? "var(--border)" : "rgba(0,255,204,0.3)", marginTop: 4, borderTop: "1px solid var(--border)", paddingTop: 10 }}
                     onClick={e => {
                       e.stopPropagation();
-                      if (!favourites.includes(kit.id)) {
-                        toggleFavourite(e, kit.id);
-                        setOpenTagsId(null);
-                      }
+                      if (!favourites.includes(kit.id)) { toggleFavourite(e, kit.id); setOpenMoreMenuId(null); }
                     }}
                   >
                     {favourites.includes(kit.id) ? "✓ IN HANGAR" : "✈ MOVE TO HANGAR"}
                   </button>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           )}
 
@@ -1076,8 +1133,8 @@ export default function KitVault() {
               {showTags && effectiveSignedIn && (
                 <button
                   className="kit-tag-menu-btn"
-                  onClick={e => { e.stopPropagation(); setOpenTagsId(isTagsOpen ? null : kit.id); setOpenNotesId(null); }}
-                  title="Tag this kit"
+                  onClick={e => { e.stopPropagation(); setOpenMoreMenuId(isMoreOpen ? null : kit.id); setOpenTagsId(null); setOpenNotesId(null); }}
+                  title="More options"
                 >•••</button>
               )}
               {effectiveSignedIn && (
@@ -1085,10 +1142,10 @@ export default function KitVault() {
                   {isFav ? "⭐" : "☆"}
                 </button>
               )}
-              {showRemove && (
+              {showRemove && !isDuplicate && (
                 <button className="vault-remove-btn" onClick={e => { e.stopPropagation(); setConfirmDeleteId(kit.id); }} title="Remove from vault">🗑</button>
               )}
-              <span className="card-arrow">→</span>
+              {!isDuplicate && <span className="card-arrow">→</span>}
             </div>
           </div>
         </div>
@@ -1467,7 +1524,7 @@ export default function KitVault() {
                                 <span className="section-count">{favOnly.length} KIT{favOnly.length !== 1 ? "S" : ""}</span>
                                 <span className="section-collapse-arrow">{collapsedSections["fav"] ? "▶" : "▼"}</span>
                               </div>
-                              {!collapsedSections["fav"] && <div className="vault-grid" style={{ padding: "0 0 32px" }}>{favOnly.map(k => renderKitCard(k, { showBacklog: true, showRemove: true, showTags: true }))}</div>}
+                              {!collapsedSections["fav"] && <div className="vault-grid" style={{ padding: "0 0 32px" }}>{renderWithDuplicates(favOnly, { showBacklog: true, showRemove: true, showTags: true })}</div>}
                             </>
                           )}
                           {inProgress.length > 0 && (
@@ -1478,7 +1535,7 @@ export default function KitVault() {
                                 <span className="section-count">{inProgress.length} KIT{inProgress.length !== 1 ? "S" : ""}</span>
                                 <span className="section-collapse-arrow">{collapsedSections["inprogress"] ? "▶" : "▼"}</span>
                               </div>
-                              {!collapsedSections["inprogress"] && <div className="vault-grid" style={{ padding: "0 0 32px" }}>{inProgress.map(k => renderKitCard(k, { showBacklog: true, showRemove: true, showTags: true }))}</div>}
+                              {!collapsedSections["inprogress"] && <div className="vault-grid" style={{ padding: "0 0 32px" }}>{renderWithDuplicates(inProgress, { showBacklog: true, showRemove: true, showTags: true })}</div>}
                             </>
                           )}
                           {complete.length > 0 && (
@@ -1489,7 +1546,7 @@ export default function KitVault() {
                                 <span className="section-count">{complete.length} KIT{complete.length !== 1 ? "S" : ""}</span>
                                 <span className="section-collapse-arrow">{collapsedSections["complete"] ? "▶" : "▼"}</span>
                               </div>
-                              {!collapsedSections["complete"] && <div className="vault-grid" style={{ padding: "0 0 32px" }}>{complete.map(k => renderKitCard(k, { showBacklog: true, showRemove: true, showTags: true }))}</div>}
+                              {!collapsedSections["complete"] && <div className="vault-grid" style={{ padding: "0 0 32px" }}>{renderWithDuplicates(complete, { showBacklog: true, showRemove: true, showTags: true })}</div>}
                             </>
                           )}
                           {backlog.length > 0 && (
@@ -1500,7 +1557,7 @@ export default function KitVault() {
                                 <span className="section-count">{backlog.length} KIT{backlog.length !== 1 ? "S" : ""}</span>
                                 <span className="section-collapse-arrow">{collapsedSections["backlog"] ? "▶" : "▼"}</span>
                               </div>
-                              {!collapsedSections["backlog"] && <div className="vault-grid" style={{ padding: "0 0 32px" }}>{backlog.map(k => renderKitCard(k, { showBacklog: true, showRemove: true, showTags: true }))}</div>}
+                              {!collapsedSections["backlog"] && <div className="vault-grid" style={{ padding: "0 0 32px" }}>{renderWithDuplicates(backlog, { showBacklog: true, showRemove: true, showTags: true })}</div>}
                             </>
                           )}
                         </div>
