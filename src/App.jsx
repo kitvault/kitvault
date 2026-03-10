@@ -657,6 +657,7 @@ export default function KitVault() {
   const [openTimerId, setOpenTimerId] = useState(null);
   const [timerTick, setTimerTick] = useState(0);
   const [confirmEndTimerId, setConfirmEndTimerId] = useState(null);
+  const [confirmRestartTimerId, setConfirmRestartTimerId] = useState(null);
   useEffect(() => {
     const interval = setInterval(() => setTimerTick(t => t + 1), 1000);
     return () => clearInterval(interval);
@@ -715,6 +716,9 @@ export default function KitVault() {
   const [hangarIsPublic, setHangarIsPublic] = useState(false);
   const [hangarSaving, setHangarSaving] = useState(false);
   const [hangarMsg, setHangarMsg] = useState("");
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarPreview, setAvatarPreview] = useState("");
   const [usernameAvailable, setUsernameAvailable] = useState(null);
 
   const fetchHangarProfile = useCallback(async () => {
@@ -733,6 +737,13 @@ export default function KitVault() {
   }, [effectiveSignedIn, effectiveUserId]);
 
   useEffect(() => { fetchHangarProfile(); }, [fetchHangarProfile]);
+
+  // Listen for Hangar avatar click → open profile modal
+  useEffect(() => {
+    const handler = () => { setAvatarPreview(userAvatarUrl || ""); setHangarMsg(""); setShowProfileModal(true); };
+    window.addEventListener("kitvault:openProfileModal", handler);
+    return () => window.removeEventListener("kitvault:openProfileModal", handler);
+  }, [userAvatarUrl]);
 
   // Username availability check (debounced)
   const usernameCheckTimer = useRef(null);
@@ -784,6 +795,59 @@ export default function KitVault() {
       setHangarMsg("Network error");
     }
     setHangarSaving(false);
+  };
+
+  const handleAvatarUpload = async (file) => {
+    if (!file || !effectiveUserId) return;
+    if (!file.type.startsWith("image/")) return;
+    if (file.size > 2 * 1024 * 1024) { setHangarMsg("Image must be under 2MB"); return; }
+    setAvatarUploading(true);
+    setHangarMsg("");
+    try {
+      // Read as base64 data URL
+      const dataUrl = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      // Resize to max 256px via canvas before saving
+      const resized = await new Promise((resolve) => {
+        const img = new window.Image();
+        img.onload = () => {
+          const size = Math.min(img.width, img.height);
+          const canvas = document.createElement("canvas");
+          canvas.width = 256; canvas.height = 256;
+          const ctx = canvas.getContext("2d");
+          const sx = (img.width - size) / 2;
+          const sy = (img.height - size) / 2;
+          ctx.drawImage(img, sx, sy, size, size, 0, 0, 256, 256);
+          resolve(canvas.toDataURL("image/jpeg", 0.85));
+        };
+        img.src = dataUrl;
+      });
+      // Update avatar URL in state and save to hangar profile
+      setUserAvatarUrl(resized);
+      setAvatarPreview(resized);
+      // Save through existing profile endpoint
+      await fetch("/api/hangar/profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: effectiveUserId,
+          username: hangarProfile?.username || hangarUsername.trim().toLowerCase(),
+          display_name: hangarProfile?.display_name || hangarDisplayName.trim(),
+          avatar_url: resized,
+          bio: hangarProfile?.bio || hangarBio.trim(),
+          is_public: hangarProfile?.is_public ?? hangarIsPublic,
+        }),
+      });
+      setHangarMsg("✓ Photo saved");
+      fetchHangarProfile();
+    } catch (err) {
+      setHangarMsg("Upload failed");
+    }
+    setAvatarUploading(false);
   };
 
   // ── D1 sync ──────────────────────────────────────────────────
@@ -939,6 +1003,16 @@ export default function KitVault() {
     });
     setConfirmEndTimerId(null);
     setOpenTimerId(null);
+  };
+
+  const timerRestart = (kitId) => {
+    setKitTimers(prev => {
+      const next = { ...prev, [kitId]: { accumulated: 0, running: false, startedAt: null, ended: false } };
+      localStorage.setItem("kv_timers", JSON.stringify(next));
+      syncToD1({ timers: next });
+      return next;
+    });
+    setConfirmRestartTimerId(null);
   };
 
   const KIT_TAG_OPTIONS = ["Panel Line", "Paint", "Scribe", "Decals", "Sanding"];
@@ -1200,26 +1274,30 @@ export default function KitVault() {
           )}
 
           {/* Timer panel */}
-          {showTags && openTimerId === kit.id && !isDuplicate && (() => {
-            const timer = kitTimers[kit.id];
+          {showTags && openTimerId === kit.id && (() => {
+            const timerId = kit._originalId || kit.id;
+            const timer = kitTimers[timerId];
             const liveSeconds = getLiveSeconds(timer);
             const isRunning = timer?.running;
             const isEnded = timer?.ended;
             return (
               <div className="kit-timer-panel" onClick={e => e.stopPropagation()}>
                 <div className="kit-timer-display">{formatTimer(liveSeconds)}</div>
-                <div className="kit-timer-label">BUILD TIME</div>
+                <div className="kit-timer-label">BUILD TIME{isDuplicate ? " (SHARED)" : ""}</div>
                 {!isEnded ? (
                   <div className="kit-timer-controls">
                     {!isRunning ? (
-                      <button className="kit-timer-btn start" onClick={e => { e.stopPropagation(); timerStart(kit.id); }}>▶ START</button>
+                      <button className="kit-timer-btn start" onClick={e => { e.stopPropagation(); timerStart(timerId); }}>▶ START</button>
                     ) : (
-                      <button className="kit-timer-btn pause" onClick={e => { e.stopPropagation(); timerPause(kit.id); }}>⏸ PAUSE</button>
+                      <button className="kit-timer-btn pause" onClick={e => { e.stopPropagation(); timerPause(timerId); }}>⏸ PAUSE</button>
                     )}
-                    <button className="kit-timer-btn end" onClick={e => { e.stopPropagation(); setConfirmEndTimerId(kit.id); }}>⏹ END</button>
+                    <button className="kit-timer-btn end" onClick={e => { e.stopPropagation(); setConfirmEndTimerId(timerId); }}>⏹ END</button>
                   </div>
                 ) : (
-                  <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.58rem", color: "var(--green)", letterSpacing: "1.5px", textAlign: "center", marginTop: 4 }}>✓ BUILD COMPLETE</div>
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+                    <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.58rem", color: "var(--green)", letterSpacing: "1.5px" }}>✓ BUILD COMPLETE</div>
+                    <button className="kit-timer-btn start" style={{ fontSize: "0.58rem", padding: "5px 12px" }} onClick={e => { e.stopPropagation(); setConfirmRestartTimerId(timerId); }}>↺ RESTART</button>
+                  </div>
                 )}
               </div>
             );
@@ -1239,9 +1317,9 @@ export default function KitVault() {
                   title="Kit notes"
                 >✎ NOTES</button>
               )}
-              {showTags && effectiveSignedIn && !isDuplicate && (
+              {showTags && effectiveSignedIn && (
                 <button
-                  className={`kit-timer-btn-small${kitTimers[kit.id]?.running ? " running" : ""}${kitTimers[kit.id]?.ended ? " ended" : ""}`}
+                  className={`kit-timer-btn-small${kitTimers[kit._originalId || kit.id]?.running ? " running" : ""}${kitTimers[kit._originalId || kit.id]?.ended ? " ended" : ""}`}
                   onClick={e => { e.stopPropagation(); setOpenTimerId(openTimerId === kit.id ? null : kit.id); setOpenNotesId(null); setOpenTagsId(null); setOpenMoreMenuId(null); }}
                   title="Build timer"
                 >⏱ TIMER</button>
@@ -1496,17 +1574,27 @@ export default function KitVault() {
             <div className="header-profile">
               {effectiveSignedIn ? (
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  {userAvatarUrl ? (
-                    <img src={userAvatarUrl} alt="" style={{ width: 28, height: 28, borderRadius: "50%", border: "1px solid rgba(0,170,255,0.3)" }} />
-                  ) : (
-                    <div style={{
-                      width: 28, height: 28, borderRadius: "50%", border: "1px solid rgba(0,170,255,0.3)",
-                      background: "rgba(0,170,255,0.1)", display: "flex", alignItems: "center", justifyContent: "center",
-                      fontFamily: "'Share Tech Mono',monospace", fontSize: "0.6rem", color: "#00aaff",
-                    }}>
-                      {(userDisplayName || userEmail || "U").charAt(0).toUpperCase()}
-                    </div>
-                  )}
+                  <button
+                    onClick={() => { setAvatarPreview(userAvatarUrl || ""); setHangarMsg(""); setShowProfileModal(true); }}
+                    title="Edit profile"
+                    style={{ background: "none", border: "none", padding: 0, cursor: "pointer", position: "relative", borderRadius: "50%" }}
+                  >
+                    {userAvatarUrl ? (
+                      <img src={userAvatarUrl} alt="" style={{ width: 32, height: 32, borderRadius: "50%", border: "2px solid rgba(0,170,255,0.4)", display: "block", transition: "border-color 0.2s" }}
+                        onMouseEnter={e => e.currentTarget.style.borderColor = "rgba(0,170,255,0.9)"}
+                        onMouseLeave={e => e.currentTarget.style.borderColor = "rgba(0,170,255,0.4)"} />
+                    ) : (
+                      <div style={{
+                        width: 32, height: 32, borderRadius: "50%", border: "2px solid rgba(0,170,255,0.4)",
+                        background: "rgba(0,170,255,0.1)", display: "flex", alignItems: "center", justifyContent: "center",
+                        fontFamily: "'Share Tech Mono',monospace", fontSize: "0.65rem", color: "#00aaff", transition: "all 0.2s",
+                      }}
+                        onMouseEnter={e => e.currentTarget.style.borderColor = "rgba(0,170,255,0.9)"}
+                        onMouseLeave={e => e.currentTarget.style.borderColor = "rgba(0,170,255,0.4)"}>
+                        {(userDisplayName || userEmail || "U").charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                  </button>
                   <button className="auth-btn" onClick={handleLogout} style={{ fontSize: "0.55rem" }}>LOG OUT</button>
                 </div>
               ) : (
@@ -1605,6 +1693,7 @@ export default function KitVault() {
                 kitWishlist={kitWishlist} toggleWishlist={toggleWishlist}
                 kitTimers={kitTimers} timerStart={timerStart} timerPause={timerPause}
                 setConfirmEndTimerId={setConfirmEndTimerId}
+                setConfirmRestartTimerId={setConfirmRestartTimerId}
                 formatTimer={formatTimer} getLiveSeconds={getLiveSeconds} timerTick={timerTick}
               />
             } />
@@ -2228,6 +2317,101 @@ export default function KitVault() {
           />
         )}
 
+        {/* PROFILE MODAL */}
+        {showProfileModal && effectiveSignedIn && (
+          <div
+            style={{ position: "fixed", inset: 0, background: "rgba(0,5,18,0.92)", backdropFilter: "blur(8px)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
+            onClick={() => setShowProfileModal(false)}
+          >
+            <div
+              style={{ background: "var(--bg2)", border: "1px solid var(--border-bright)", maxWidth: 420, width: "100%", clipPath: "polygon(0 0, 97% 0, 100% 3%, 100% 100%, 3% 100%, 0 97%)", boxShadow: "0 0 60px rgba(0,170,255,0.12)" }}
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Modal header */}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderBottom: "1px solid var(--border)" }}>
+                <div style={{ fontFamily: "'Orbitron',sans-serif", fontSize: "0.75rem", color: "var(--accent)", letterSpacing: "3px" }}>MY PROFILE</div>
+                <button onClick={() => setShowProfileModal(false)} style={{ background: "none", border: "1px solid var(--border)", color: "var(--text-dim)", width: 28, height: 28, cursor: "pointer", fontSize: "0.9rem", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s" }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--red)"; e.currentTarget.style.color = "var(--red)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--text-dim)"; }}>✕</button>
+              </div>
+
+              {/* Avatar section */}
+              <div style={{ padding: "28px 28px 0", display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
+                <div style={{ position: "relative", cursor: "pointer" }}
+                  onClick={() => document.getElementById("profile-avatar-input").click()}>
+                  {/* Avatar circle */}
+                  {(avatarPreview || userAvatarUrl) ? (
+                    <img
+                      src={avatarPreview || userAvatarUrl}
+                      alt=""
+                      style={{ width: 96, height: 96, borderRadius: "50%", border: "2px solid rgba(0,170,255,0.4)", objectFit: "cover", display: "block" }}
+                    />
+                  ) : (
+                    <div style={{ width: 96, height: 96, borderRadius: "50%", border: "2px solid rgba(0,170,255,0.4)", background: "rgba(0,170,255,0.1)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Orbitron',sans-serif", fontSize: "1.8rem", color: "#00aaff" }}>
+                      {(userDisplayName || userEmail || "U").charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  {/* Camera overlay */}
+                  <div style={{ position: "absolute", inset: 0, borderRadius: "50%", background: "rgba(0,0,0,0.55)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 4, opacity: 0, transition: "opacity 0.2s" }}
+                    onMouseEnter={e => e.currentTarget.style.opacity = 1}
+                    onMouseLeave={e => e.currentTarget.style.opacity = 0}>
+                    <span style={{ fontSize: "1.4rem" }}>📷</span>
+                    <span style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.5rem", color: "#fff", letterSpacing: "1px" }}>CHANGE</span>
+                  </div>
+                  {avatarUploading && (
+                    <div style={{ position: "absolute", inset: 0, borderRadius: "50%", background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.5rem", color: "var(--accent)", letterSpacing: "1px" }}>...</div>
+                  )}
+                </div>
+                <input
+                  id="profile-avatar-input"
+                  type="file"
+                  accept="image/*"
+                  style={{ display: "none" }}
+                  onChange={e => { if (e.target.files[0]) handleAvatarUpload(e.target.files[0]); e.target.value = ""; }}
+                />
+                <button
+                  onClick={() => document.getElementById("profile-avatar-input").click()}
+                  style={{ background: "rgba(0,170,255,0.08)", border: "1px solid rgba(0,170,255,0.3)", color: "#00aaff", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.58rem", padding: "7px 18px", cursor: "pointer", letterSpacing: "1.5px", transition: "all 0.2s" }}
+                  onMouseEnter={e => e.currentTarget.style.background = "rgba(0,170,255,0.18)"}
+                  onMouseLeave={e => e.currentTarget.style.background = "rgba(0,170,255,0.08)"}
+                >📷 {avatarUploading ? "UPLOADING..." : "CHANGE PHOTO"}</button>
+                {hangarMsg && (
+                  <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.6rem", color: hangarMsg.startsWith("✓") ? "var(--green)" : "var(--red)", letterSpacing: "1px" }}>{hangarMsg}</div>
+                )}
+              </div>
+
+              {/* Profile info */}
+              <div style={{ padding: "20px 28px 28px", display: "flex", flexDirection: "column", gap: 14 }}>
+                <div style={{ borderTop: "1px solid var(--border)", paddingTop: 20 }}>
+                  <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.55rem", color: "var(--text-dim)", letterSpacing: "2px", marginBottom: 6 }}>DISPLAY NAME</div>
+                  <div style={{ fontFamily: "'Rajdhani',sans-serif", fontSize: "1.1rem", fontWeight: 700, color: "var(--text-bright)" }}>{hangarProfile?.display_name || userDisplayName || "—"}</div>
+                </div>
+                <div>
+                  <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.55rem", color: "var(--text-dim)", letterSpacing: "2px", marginBottom: 6 }}>USERNAME</div>
+                  <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.8rem", color: "var(--accent)" }}>@{hangarProfile?.username || "not set"}</div>
+                </div>
+                <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
+                  {hangarProfile?.username && (
+                    <button
+                      onClick={() => { setShowProfileModal(false); window.location.href = `/hangar/${hangarProfile.username}`; }}
+                      style={{ flex: 1, background: "rgba(255,204,0,0.08)", border: "1px solid rgba(255,204,0,0.3)", color: "var(--gold)", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.6rem", padding: "10px", cursor: "pointer", letterSpacing: "1.5px", transition: "all 0.2s" }}
+                      onMouseEnter={e => e.currentTarget.style.background = "rgba(255,204,0,0.15)"}
+                      onMouseLeave={e => e.currentTarget.style.background = "rgba(255,204,0,0.08)"}
+                    >✈ VIEW MY HANGAR</button>
+                  )}
+                  <button
+                    onClick={() => { setShowProfileModal(false); setShowSettings(true); }}
+                    style={{ flex: 1, background: "rgba(255,255,255,0.03)", border: "1px solid var(--border)", color: "var(--text-dim)", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.6rem", padding: "10px", cursor: "pointer", letterSpacing: "1.5px", transition: "all 0.2s" }}
+                    onMouseEnter={e => e.currentTarget.style.borderColor = "var(--accent)"}
+                    onMouseLeave={e => e.currentTarget.style.borderColor = "var(--border)"}
+                  >⚙ EDIT PROFILE</button>
+                </div>
+                <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.5rem", color: "var(--text-dim)", letterSpacing: "0.5px", opacity: 0.6, textAlign: "center" }}>Max 2MB · JPG, PNG, GIF, WebP</div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* CONFIRM END TIMER MODAL */}
         {confirmEndTimerId && (
           <div
@@ -2252,6 +2436,37 @@ export default function KitVault() {
                 >⏹ YES, END TIMER</button>
                 <button
                   onClick={() => setConfirmEndTimerId(null)}
+                  style={{ flex: 1, background: "var(--bg3)", border: "1px solid var(--border)", color: "var(--text-dim)", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.65rem", padding: "10px", cursor: "pointer", letterSpacing: "1.5px" }}
+                >CANCEL</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* CONFIRM RESTART TIMER MODAL */}
+        {confirmRestartTimerId && (
+          <div
+            style={{ position: "fixed", inset: 0, background: "rgba(0,5,18,0.88)", backdropFilter: "blur(6px)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
+            onClick={() => setConfirmRestartTimerId(null)}
+          >
+            <div
+              style={{ background: "var(--bg2)", border: "1px solid rgba(0,170,255,0.35)", maxWidth: 380, width: "100%", padding: "32px 28px", clipPath: "polygon(0 0, 95% 0, 100% 5%, 100% 100%, 5% 100%, 0 95%)" }}
+              onClick={e => e.stopPropagation()}
+            >
+              <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.5rem", color: "var(--accent)", letterSpacing: "3px", marginBottom: 14 }}>↺ CONFIRM RESTART TIMER</div>
+              <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.65rem", color: "var(--text-dim)", letterSpacing: "0.5px", marginBottom: 8, lineHeight: 1.8 }}>
+                Previous time: <span style={{ color: "var(--gold)" }}>{formatTimer(kitTimers[confirmRestartTimerId]?.accumulated || 0)}</span>
+              </div>
+              <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.65rem", color: "var(--text-dim)", letterSpacing: "0.5px", marginBottom: 24, lineHeight: 1.8 }}>
+                Restarting will wipe your recorded build time and reset to 00:00:00. This cannot be undone.
+              </div>
+              <div style={{ display: "flex", gap: 10 }}>
+                <button
+                  onClick={() => timerRestart(confirmRestartTimerId)}
+                  style={{ flex: 1, background: "rgba(0,170,255,0.1)", border: "1px solid rgba(0,170,255,0.4)", color: "var(--accent)", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.65rem", padding: "10px", cursor: "pointer", letterSpacing: "1.5px" }}
+                >↺ YES, RESTART</button>
+                <button
+                  onClick={() => setConfirmRestartTimerId(null)}
                   style={{ flex: 1, background: "var(--bg3)", border: "1px solid var(--border)", color: "var(--text-dim)", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.65rem", padding: "10px", cursor: "pointer", letterSpacing: "1.5px" }}
                 >CANCEL</button>
               </div>

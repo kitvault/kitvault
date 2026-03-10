@@ -1095,6 +1095,7 @@ export default function KitDetail({
   timerStart,
   timerPause,
   setConfirmEndTimerId,
+  setConfirmRestartTimerId,
   formatTimer,
   getLiveSeconds,
   timerTick,
@@ -1313,7 +1314,10 @@ export default function KitDetail({
                           <button className="xp-timer-btn end" onClick={() => setConfirmEndTimerId?.(kit.id)}>⏹</button>
                         </>
                       ) : (
-                        <span style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.55rem", color: "var(--green)", letterSpacing: "1px" }}>DONE</span>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          <span style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.55rem", color: "var(--green)", letterSpacing: "1px" }}>✓ DONE</span>
+                          <button className="xp-timer-btn start" style={{ fontSize: "0.65rem" }} onClick={() => setConfirmRestartTimerId?.(kit.id)} title="Restart timer">↺</button>
+                        </div>
                       )}
                     </div>
                   );

@@ -326,15 +326,44 @@ export default function Hangar({ currentUserId, onRemoveFromVault, onRemoveFromH
         flexWrap: "wrap",
       }}>
         {/* Avatar */}
-        {profile.avatar_url && (
-          <img
-            src={profile.avatar_url}
-            alt={profile.display_name || profile.username}
-            style={{
-              width: 90, height: 90, borderRadius: "50%",
-              border: "2px solid rgba(0,170,255,0.3)",
-            }}
-          />
+        {(profile.avatar_url || is_owner) && (
+          is_owner ? (
+            <div
+              style={{ position: "relative", cursor: "pointer", flexShrink: 0 }}
+              onClick={() => window.dispatchEvent(new CustomEvent("kitvault:openProfileModal"))}
+              title="Change profile photo"
+            >
+              {profile.avatar_url ? (
+                <img
+                  src={profile.avatar_url}
+                  alt={profile.display_name || profile.username}
+                  style={{ width: 90, height: 90, borderRadius: "50%", border: "2px solid rgba(0,170,255,0.3)", display: "block" }}
+                />
+              ) : (
+                <div style={{ width: 90, height: 90, borderRadius: "50%", border: "2px solid rgba(0,170,255,0.3)", background: "rgba(0,170,255,0.1)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Orbitron',sans-serif", fontSize: "2rem", color: "#00aaff" }}>
+                  {(profile.display_name || profile.username || "U").charAt(0).toUpperCase()}
+                </div>
+              )}
+              {/* Camera overlay */}
+              <div style={{
+                position: "absolute", inset: 0, borderRadius: "50%",
+                background: "rgba(0,0,0,0.55)",
+                display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3,
+                opacity: 0, transition: "opacity 0.2s",
+              }}
+                onMouseEnter={e => e.currentTarget.style.opacity = 1}
+                onMouseLeave={e => e.currentTarget.style.opacity = 0}>
+                <span style={{ fontSize: "1.4rem" }}>📷</span>
+                <span style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.45rem", color: "#fff", letterSpacing: "1px" }}>CHANGE</span>
+              </div>
+            </div>
+          ) : (
+            <img
+              src={profile.avatar_url}
+              alt={profile.display_name || profile.username}
+              style={{ width: 90, height: 90, borderRadius: "50%", border: "2px solid rgba(0,170,255,0.3)" }}
+            />
+          )
         )}
 
         {/* Name + bio */}
