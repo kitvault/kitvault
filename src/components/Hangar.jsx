@@ -95,6 +95,16 @@ export default function Hangar({ currentUserId, onRemoveFromVault, onRemoveFromH
   const { profile, vault, photos, gallery_posts, stats, is_owner } = data;
   const { kits, favourites, progress } = vault;
 
+  // Format seconds → Xh Ym
+  const formatBuildTime = (seconds) => {
+    if (!seconds) return "0h";
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    if (h === 0) return `${m}m`;
+    if (m === 0) return `${h}h`;
+    return `${h}h ${m}m`;
+  };
+
   // Organize kits by status
   const favKits = kits.filter(k => favourites.includes(k.id));
   const completedKits = kits.filter(k => progress[String(k.id)] === "complete" && !favourites.includes(k.id));
@@ -370,6 +380,7 @@ export default function Hangar({ currentUserId, onRemoveFromVault, onRemoveFromH
           { label: "BACKLOG", value: stats.backlog, color: "#5a7a9f" },
           { label: "BUILD PHOTOS", value: stats.photos, color: "#cc44ff" },
           { label: "GALLERY POSTS", value: stats.gallery_posts, color: "#ff6600" },
+          { label: "TOTAL BUILD TIME", value: formatBuildTime(stats.total_build_time || 0), color: "#ffcc00" },
         ].map(s => (
           <div key={s.label} style={{
             flex: "1 1 120px", background: "rgba(0,0,0,0.25)", border: "1px solid rgba(255,255,255,0.06)",

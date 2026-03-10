@@ -643,6 +643,24 @@ export default function KitVault() {
   const [openMoreMenuId, setOpenMoreMenuId] = useState(null);
   const [duplicatedKits, setDuplicatedKits] = useState([]); // [{ afterId, kit }]
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+
+  // ── Wishlist ─────────────────────────────────────────────────
+  const [kitWishlist, setKitWishlist] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("kv_wishlist") || "[]"); } catch { return []; }
+  });
+
+  // ── Build Timers ─────────────────────────────────────────────
+  // { kitId: { accumulated: seconds, running: bool, startedAt: epoch_ms|null } }
+  const [kitTimers, setKitTimers] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("kv_timers") || "{}"); } catch { return {}; }
+  });
+  const [openTimerId, setOpenTimerId] = useState(null);
+  const [timerTick, setTimerTick] = useState(0);
+  const [confirmEndTimerId, setConfirmEndTimerId] = useState(null);
+  useEffect(() => {
+    const interval = setInterval(() => setTimerTick(t => t + 1), 1000);
+    return () => clearInterval(interval);
+  }, []);
   const [collapsedSections, setCollapsedSections] = useState({});
   const toggleSection = (key) => setCollapsedSections(prev => ({ ...prev, [key]: !prev[key] }));
   const [kitNotes, setKitNotes] = useState(() => {
@@ -795,6 +813,8 @@ export default function KitVault() {
       if (data.pages) { setPageProgress(data.pages); localStorage.setItem("kv_pages", JSON.stringify(data.pages)); }
       if (data.tags) { setKitTags(data.tags); localStorage.setItem("kv_tags", JSON.stringify(data.tags)); }
       if (data.notes) { setKitNotes(data.notes); localStorage.setItem("kv_notes", JSON.stringify(data.notes)); }
+      if (data.wishlist) { setKitWishlist(data.wishlist); localStorage.setItem("kv_wishlist", JSON.stringify(data.wishlist)); }
+      if (data.timers) { setKitTimers(data.timers); localStorage.setItem("kv_timers", JSON.stringify(data.timers)); }
     } catch (_) { /* silent fallback to localStorage */ }
   }, [effectiveSignedIn, effectiveUserId]);
 
@@ -854,6 +874,71 @@ export default function KitVault() {
 
   const removeDuplicate = (dupId) => {
     setDuplicatedKits(prev => prev.filter(d => d.kit.id !== dupId));
+  };
+
+  // ── Wishlist helpers ─────────────────────────────────────────
+  const toggleWishlist = (kitId) => {
+    setKitWishlist(prev => {
+      const next = prev.includes(kitId) ? prev.filter(id => id !== kitId) : [...prev, kitId];
+      localStorage.setItem("kv_wishlist", JSON.stringify(next));
+      syncToD1({ wishlist: next });
+      return next;
+    });
+  };
+
+  // ── Timer helpers ────────────────────────────────────────────
+  const formatTimer = (seconds) => {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  };
+
+  const getLiveSeconds = (timer) => {
+    if (!timer) return 0;
+    const base = timer.accumulated || 0;
+    if (!timer.running || !timer.startedAt) return base;
+    return base + Math.floor((Date.now() - timer.startedAt) / 1000);
+  };
+
+  const timerStart = (kitId) => {
+    if (!effectiveSignedIn) return;
+    setKitTimers(prev => {
+      const t = prev[kitId] || { accumulated: 0, running: false, startedAt: null };
+      if (t.running) return prev;
+      const next = { ...prev, [kitId]: { accumulated: t.accumulated, running: true, startedAt: Date.now() } };
+      localStorage.setItem("kv_timers", JSON.stringify(next));
+      syncToD1({ timers: next });
+      return next;
+    });
+  };
+
+  const timerPause = (kitId) => {
+    if (!effectiveSignedIn) return;
+    setKitTimers(prev => {
+      const t = prev[kitId];
+      if (!t || !t.running) return prev;
+      const elapsed = Math.floor((Date.now() - t.startedAt) / 1000);
+      const next = { ...prev, [kitId]: { accumulated: t.accumulated + elapsed, running: false, startedAt: null } };
+      localStorage.setItem("kv_timers", JSON.stringify(next));
+      syncToD1({ timers: next });
+      return next;
+    });
+  };
+
+  const timerEnd = (kitId) => {
+    // Save final time then mark as ended (running: false, startedAt: null, ended: true)
+    setKitTimers(prev => {
+      const t = prev[kitId];
+      const elapsed = t?.running && t?.startedAt ? Math.floor((Date.now() - t.startedAt) / 1000) : 0;
+      const total = (t?.accumulated || 0) + elapsed;
+      const next = { ...prev, [kitId]: { accumulated: total, running: false, startedAt: null, ended: true } };
+      localStorage.setItem("kv_timers", JSON.stringify(next));
+      syncToD1({ timers: next });
+      return next;
+    });
+    setConfirmEndTimerId(null);
+    setOpenTimerId(null);
   };
 
   const KIT_TAG_OPTIONS = ["Panel Line", "Paint", "Scribe", "Decals", "Sanding"];
@@ -967,7 +1052,7 @@ export default function KitVault() {
     return cards;
   };
 
-  const renderKitCard = (kit, { showBacklog = false, showRemove = false, showTags = false } = {}) => {
+  const renderKitCard = (kit, { showBacklog = false, showRemove = false, showTags = false, showWishlistRemove = false } = {}) => {
     const c = gc(kit.grade);
     const isFav = favourites.includes(kit.id);
     const progress = buildProgress[kit.id];
@@ -1114,6 +1199,32 @@ export default function KitVault() {
             </div>
           )}
 
+          {/* Timer panel */}
+          {showTags && openTimerId === kit.id && !isDuplicate && (() => {
+            const timer = kitTimers[kit.id];
+            const liveSeconds = getLiveSeconds(timer);
+            const isRunning = timer?.running;
+            const isEnded = timer?.ended;
+            return (
+              <div className="kit-timer-panel" onClick={e => e.stopPropagation()}>
+                <div className="kit-timer-display">{formatTimer(liveSeconds)}</div>
+                <div className="kit-timer-label">BUILD TIME</div>
+                {!isEnded ? (
+                  <div className="kit-timer-controls">
+                    {!isRunning ? (
+                      <button className="kit-timer-btn start" onClick={e => { e.stopPropagation(); timerStart(kit.id); }}>▶ START</button>
+                    ) : (
+                      <button className="kit-timer-btn pause" onClick={e => { e.stopPropagation(); timerPause(kit.id); }}>⏸ PAUSE</button>
+                    )}
+                    <button className="kit-timer-btn end" onClick={e => { e.stopPropagation(); setConfirmEndTimerId(kit.id); }}>⏹ END</button>
+                  </div>
+                ) : (
+                  <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.58rem", color: "var(--green)", letterSpacing: "1.5px", textAlign: "center", marginTop: 4 }}>✓ BUILD COMPLETE</div>
+                )}
+              </div>
+            );
+          })()}
+
           <div className="card-footer">
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
               {showTags && effectiveSignedIn && (
@@ -1127,6 +1238,13 @@ export default function KitVault() {
                   }}
                   title="Kit notes"
                 >✎ NOTES</button>
+              )}
+              {showTags && effectiveSignedIn && !isDuplicate && (
+                <button
+                  className={`kit-timer-btn-small${kitTimers[kit.id]?.running ? " running" : ""}${kitTimers[kit.id]?.ended ? " ended" : ""}`}
+                  onClick={e => { e.stopPropagation(); setOpenTimerId(openTimerId === kit.id ? null : kit.id); setOpenNotesId(null); setOpenTagsId(null); setOpenMoreMenuId(null); }}
+                  title="Build timer"
+                >⏱ TIMER</button>
               )}
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -1144,6 +1262,9 @@ export default function KitVault() {
               )}
               {showRemove && !isDuplicate && (
                 <button className="vault-remove-btn" onClick={e => { e.stopPropagation(); setConfirmDeleteId(kit.id); }} title="Remove from vault">🗑</button>
+              )}
+              {showWishlistRemove && (
+                <button className="vault-remove-btn" onClick={e => { e.stopPropagation(); toggleWishlist(kit.id); }} title="Remove from wishlist">🗑</button>
               )}
               {!isDuplicate && <span className="card-arrow">→</span>}
             </div>
@@ -1481,6 +1602,10 @@ export default function KitVault() {
                 setOpenManualId={setOpenManualId} goHome={goHome}
                 onKitUpdated={fetchD1Kits}
                 kitNotes={kitNotes} saveKitNote={saveKitNote}
+                kitWishlist={kitWishlist} toggleWishlist={toggleWishlist}
+                kitTimers={kitTimers} timerStart={timerStart} timerPause={timerPause}
+                setConfirmEndTimerId={setConfirmEndTimerId}
+                formatTimer={formatTimer} getLiveSeconds={getLiveSeconds} timerTick={timerTick}
               />
             } />
 
@@ -1561,6 +1686,25 @@ export default function KitVault() {
                               {!collapsedSections["backlog"] && <div className="vault-grid" style={{ padding: "0 0 32px" }}>{renderWithDuplicates(backlog, { showBacklog: true, showRemove: true, showTags: true })}</div>}
                             </>
                           )}
+                          {(() => {
+                            const wishlistKits = allKits.filter(k => kitWishlist.includes(k.id));
+                            if (wishlistKits.length === 0) return null;
+                            return (
+                              <>
+                                <div className="section-header vault-section-header" style={{ padding: "0 0 20px", marginBottom: "4px", cursor: "pointer" }} onClick={() => toggleSection("wishlist")}>
+                                  <span className="section-title" style={{ color: "#cc44ff" }}>✦ WISH LIST</span>
+                                  <div className="section-line" />
+                                  <span className="section-count">{wishlistKits.length} KIT{wishlistKits.length !== 1 ? "S" : ""}</span>
+                                  <span className="section-collapse-arrow">{collapsedSections["wishlist"] ? "▶" : "▼"}</span>
+                                </div>
+                                {!collapsedSections["wishlist"] && (
+                                  <div className="vault-grid" style={{ padding: "0 0 32px" }}>
+                                    {wishlistKits.map(k => renderKitCard(k, { showWishlistRemove: true }))}
+                                  </div>
+                                )}
+                              </>
+                            );
+                          })()}
                         </div>
                       )}
                     </>
@@ -2082,6 +2226,37 @@ export default function KitVault() {
             onSignup={handleSignup}
             onGoogleLogin={handleGoogleLogin}
           />
+        )}
+
+        {/* CONFIRM END TIMER MODAL */}
+        {confirmEndTimerId && (
+          <div
+            style={{ position: "fixed", inset: 0, background: "rgba(0,5,18,0.88)", backdropFilter: "blur(6px)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
+            onClick={() => setConfirmEndTimerId(null)}
+          >
+            <div
+              style={{ background: "var(--bg2)", border: "1px solid rgba(255,170,0,0.35)", maxWidth: 380, width: "100%", padding: "32px 28px", clipPath: "polygon(0 0, 95% 0, 100% 5%, 100% 100%, 5% 100%, 0 95%)" }}
+              onClick={e => e.stopPropagation()}
+            >
+              <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.5rem", color: "#ffaa00", letterSpacing: "3px", marginBottom: 14 }}>⚠ CONFIRM END TIMER</div>
+              <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.65rem", color: "var(--text-dim)", letterSpacing: "0.5px", marginBottom: 8, lineHeight: 1.8 }}>
+                Final time: <span style={{ color: "var(--gold)" }}>{formatTimer(getLiveSeconds(kitTimers[confirmEndTimerId]))}</span>
+              </div>
+              <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.65rem", color: "var(--text-dim)", letterSpacing: "0.5px", marginBottom: 24, lineHeight: 1.8 }}>
+                Ending the timer will stop it completely and save your total build time. This cannot be undone.
+              </div>
+              <div style={{ display: "flex", gap: 10 }}>
+                <button
+                  onClick={() => timerEnd(confirmEndTimerId)}
+                  style={{ flex: 1, background: "rgba(255,170,0,0.1)", border: "1px solid rgba(255,170,0,0.4)", color: "#ffaa00", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.65rem", padding: "10px", cursor: "pointer", letterSpacing: "1.5px" }}
+                >⏹ YES, END TIMER</button>
+                <button
+                  onClick={() => setConfirmEndTimerId(null)}
+                  style={{ flex: 1, background: "var(--bg3)", border: "1px solid var(--border)", color: "var(--text-dim)", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.65rem", padding: "10px", cursor: "pointer", letterSpacing: "1.5px" }}
+                >CANCEL</button>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* CONFIRM DELETE MODAL */}

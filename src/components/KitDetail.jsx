@@ -1089,6 +1089,15 @@ export default function KitDetail({
   onKitUpdated,
   kitNotes,
   saveKitNote,
+  kitWishlist,
+  toggleWishlist,
+  kitTimers,
+  timerStart,
+  timerPause,
+  setConfirmEndTimerId,
+  formatTimer,
+  getLiveSeconds,
+  timerTick,
 }) {
   const { slug } = useParams();
   const navigate = useNavigate();
@@ -1099,6 +1108,7 @@ export default function KitDetail({
   const [editing, setEditing] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
   const [noteDraft, setNoteDraft] = useState("");
+  const [showKitMenu, setShowKitMenu] = useState(false);
 
   // Check if admin key exists in session
   const isAdmin = !!sessionStorage.getItem(ADMIN_KEY_STORAGE);
@@ -1151,9 +1161,23 @@ export default function KitDetail({
         <div className="detail-title">
           {kit.name}
           {isSignedIn && (
-            <button className="fav-btn" style={{ marginLeft: "12px", fontSize: "1.4rem" }} onClick={e => toggleFavourite(e, kit.id)}>
-              {isFav ? "⭐" : "☆"}
-            </button>
+            <div style={{ display: "inline-block", position: "relative", marginLeft: "12px", verticalAlign: "middle" }}>
+              <button
+                className="kit-detail-menu-btn"
+                onClick={e => { e.stopPropagation(); setShowKitMenu(v => !v); }}
+                title="Kit options"
+              >[...]</button>
+              {showKitMenu && (
+                <div className="kit-detail-menu-dropdown" onClick={e => e.stopPropagation()}>
+                  <button
+                    className="kit-detail-menu-item"
+                    onClick={() => { toggleWishlist?.(kit.id); setShowKitMenu(false); }}
+                  >
+                    {kitWishlist?.includes(kit.id) ? "✦ REMOVE FROM WISH LIST" : "✦ ADD TO WISH LIST"}
+                  </button>
+                </div>
+              )}
+            </div>
           )}
         </div>
         <div className="detail-meta">
@@ -1203,14 +1227,11 @@ export default function KitDetail({
         </div>
       )}
 
-      {/* ── KIT NOTES ───────────────────────────────────────── */}
+      {/* ── KIT NOTES (expandable) ───────────────────────────── */}
       {isSignedIn && (
-        <div style={{ margin: "0 0 0 0" }}>
+        <div style={{ margin: "0 40px" }}>
           <button
-            onClick={() => {
-              if (!showNotes) setNoteDraft(kitNotes?.[kit.id] || "");
-              setShowNotes(prev => !prev);
-            }}
+            onClick={() => { if (!showNotes) setNoteDraft(kitNotes?.[kit.id] || ""); setShowNotes(v => !v); }}
             style={{
               width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
               background: kitNotes?.[kit.id] ? "rgba(255,204,0,0.06)" : "rgba(255,255,255,0.02)",
@@ -1218,18 +1239,14 @@ export default function KitDetail({
               borderColor: kitNotes?.[kit.id] ? "rgba(255,204,0,0.25)" : "var(--border, rgba(255,255,255,0.08))",
               color: kitNotes?.[kit.id] ? "var(--gold, #ffcc00)" : "var(--text-dim, #5a7a9f)",
               fontFamily: "'Share Tech Mono',monospace", fontSize: "0.6rem",
-              letterSpacing: "2px", padding: "10px 16px", cursor: "pointer",
-              transition: "all 0.2s",
+              letterSpacing: "2px", padding: "10px 16px", cursor: "pointer", transition: "all 0.2s",
             }}
           >
             <span>✎ {kitNotes?.[kit.id] ? "KIT NOTES" : "ADD KIT NOTES"}</span>
             <span style={{ opacity: 0.6 }}>{showNotes ? "▲" : "▼"}</span>
           </button>
           {showNotes && (
-            <div style={{
-              border: "1px solid var(--border, rgba(255,255,255,0.08))", borderTop: "none",
-              background: "var(--bg2, #0a1628)", padding: "14px 16px",
-            }}>
+            <div style={{ border: "1px solid var(--border)", borderTop: "none", background: "var(--bg2)", padding: "14px 16px" }}>
               <textarea
                 maxLength={1000}
                 placeholder="Record your progress, paint colours, build notes..."
@@ -1237,31 +1254,17 @@ export default function KitDetail({
                 onChange={e => setNoteDraft(e.target.value)}
                 style={{
                   width: "100%", boxSizing: "border-box", minHeight: 90,
-                  background: "rgba(0,0,0,0.3)", border: "1px solid var(--border, rgba(255,255,255,0.08))",
-                  color: "var(--text-bright, #c8ddf5)", fontFamily: "'Share Tech Mono',monospace",
+                  background: "rgba(0,0,0,0.3)", border: "1px solid var(--border)",
+                  color: "var(--text-bright)", fontFamily: "'Share Tech Mono',monospace",
                   fontSize: "0.65rem", letterSpacing: "0.5px", padding: "10px 12px",
                   resize: "vertical", outline: "none", lineHeight: 1.7,
                 }}
               />
               <div style={{ display: "flex", gap: 8, marginTop: 8, justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.55rem", color: "var(--text-dim, #5a7a9f)" }}>{noteDraft.length}/1000</span>
+                <span style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.55rem", color: "var(--text-dim)" }}>{noteDraft.length}/1000</span>
                 <div style={{ display: "flex", gap: 8 }}>
-                  <button
-                    onClick={() => { saveKitNote?.(kit.id, noteDraft); setShowNotes(false); }}
-                    style={{
-                      background: "rgba(0,255,136,0.08)", border: "1px solid rgba(0,255,136,0.35)",
-                      color: "#00ff88", fontFamily: "'Share Tech Mono',monospace",
-                      fontSize: "0.6rem", padding: "8px 18px", cursor: "pointer", letterSpacing: "1.5px",
-                    }}
-                  >✓ SAVE</button>
-                  <button
-                    onClick={() => setShowNotes(false)}
-                    style={{
-                      background: "var(--bg3, rgba(255,255,255,0.03))", border: "1px solid var(--border)",
-                      color: "var(--text-dim, #5a7a9f)", fontFamily: "'Share Tech Mono',monospace",
-                      fontSize: "0.6rem", padding: "8px 18px", cursor: "pointer", letterSpacing: "1.5px",
-                    }}
-                  >CANCEL</button>
+                  <button onClick={() => { saveKitNote?.(kit.id, noteDraft); setShowNotes(false); }} style={{ background: "rgba(0,255,136,0.08)", border: "1px solid rgba(0,255,136,0.35)", color: "#00ff88", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.6rem", padding: "8px 18px", cursor: "pointer", letterSpacing: "1.5px" }}>✓ SAVE</button>
+                  <button onClick={() => setShowNotes(false)} style={{ background: "var(--bg3)", border: "1px solid var(--border)", color: "var(--text-dim)", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.6rem", padding: "8px 18px", cursor: "pointer", letterSpacing: "1.5px" }}>CANCEL</button>
                 </div>
               </div>
             </div>
@@ -1288,7 +1291,35 @@ export default function KitDetail({
           <div className="xp-bar-full" style={colors}>
             <div className="xp-header">
               <span className="xp-label">◈ BUILD PROGRESS</span>
-              <span className="xp-pct">{hasAnyTotal ? `${overallPct}%` : "—"}</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                {/* ── BUILD TIMER ── */}
+                {isSignedIn && (() => {
+                  const timer = kitTimers?.[kit.id];
+                  const liveSeconds = getLiveSeconds?.(timer) || 0;
+                  const isRunning = timer?.running;
+                  const isEnded = timer?.ended;
+                  return (
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.9rem", color: isRunning ? "var(--gold)" : isEnded ? "var(--green)" : "var(--text-dim)", letterSpacing: "2px", minWidth: 88, textAlign: "right" }}>
+                        {formatTimer?.(liveSeconds) || "00:00:00"}
+                      </span>
+                      {!isEnded ? (
+                        <>
+                          {!isRunning ? (
+                            <button className="xp-timer-btn start" onClick={() => timerStart?.(kit.id)}>▶</button>
+                          ) : (
+                            <button className="xp-timer-btn pause" onClick={() => timerPause?.(kit.id)}>⏸</button>
+                          )}
+                          <button className="xp-timer-btn end" onClick={() => setConfirmEndTimerId?.(kit.id)}>⏹</button>
+                        </>
+                      ) : (
+                        <span style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.55rem", color: "var(--green)", letterSpacing: "1px" }}>DONE</span>
+                      )}
+                    </div>
+                  );
+                })()}
+                <span className="xp-pct">{hasAnyTotal ? `${overallPct}%` : "—"}</span>
+              </div>
             </div>
             <div className="xp-track">
               <div className="xp-track-segments">
