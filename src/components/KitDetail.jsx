@@ -1150,6 +1150,23 @@ export default function KitDetail({
 
   return (
     <>
+      <style>{`
+        .kit-detail-rating-image-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 20px;
+          align-items: start;
+          margin-top: 8px;
+          padding: 0 40px;
+          box-sizing: border-box;
+        }
+        @media (max-width: 768px) {
+          .kit-detail-rating-image-grid {
+            grid-template-columns: 1fr;
+            padding: 0 16px;
+          }
+        }
+      `}</style>
       <button className="back-btn" onClick={() => navigate(-1)}>← BACK TO LIBRARY</button>
 
       <div className="kit-detail-header">
@@ -1473,10 +1490,10 @@ export default function KitDetail({
         ))}
       </div>
 
-      {/* ── KIT IMAGE + RATING ──────────────────────────────── */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, alignItems: "start", marginTop: 8, padding: "0 40px", boxSizing: "border-box" }}>
-        <KitImage kit={kit} isAdmin={isAdmin} adminKey={sessionStorage.getItem(ADMIN_KEY_STORAGE)} onKitUpdated={onKitUpdated} />
+      {/* ── KIT RATING + IMAGE ──────────────────────────────── */}
+      <div className="kit-detail-rating-image-grid">
         <KitRating kitId={kit.id} isSignedIn={isSignedIn} user={user} />
+        <KitImage kit={kit} isAdmin={isAdmin} adminKey={sessionStorage.getItem(ADMIN_KEY_STORAGE)} onKitUpdated={onKitUpdated} />
       </div>
 
       {/* ── MY BUILD PHOTOS ─────────────────────────────────── */}

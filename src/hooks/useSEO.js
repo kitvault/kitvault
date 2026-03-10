@@ -7,7 +7,7 @@ import { useEffect } from "react";
 
 const SITE_NAME = "KitVault.io";
 const BASE_URL = "https://kitvault.io";
-const DEFAULT_DESC = "Your complete Gunpla manual database. Browse, view, and download assembly manuals for HG, MG, RG, PG, SD, EG, and MGSD Gundam model kits.";
+const DEFAULT_DESC = "Track your Gunpla builds, browse assembly manuals, and manage your kit collection. Free build tracker for HG, MG, RG, PG, SD, EG, and MGSD Gundam model kits.";
 
 function setMeta(name, content) {
   let el = document.querySelector(`meta[name="${name}"]`) || document.querySelector(`meta[property="${name}"]`);
@@ -35,7 +35,7 @@ function setCanonical(url) {
 
 export default function useSEO({ title, description, path }) {
   useEffect(() => {
-    const fullTitle = title ? `${title} — ${SITE_NAME}` : `${SITE_NAME} — Gunpla Manual Database`;
+    const fullTitle = title ? `${title} — ${SITE_NAME}` : `${SITE_NAME} — Track. Build. Complete.`;
     const desc = description || DEFAULT_DESC;
     const canonicalUrl = `${BASE_URL}${path || ""}`;
 
@@ -56,7 +56,7 @@ export default function useSEO({ title, description, path }) {
 export const SEO = {
   home: {
     title: null,
-    description: "Your complete Gunpla manual database. Browse assembly manuals for HG, MG, RG, PG, SD, and MGSD Gundam model kits. Free & Community-driven.",
+    description: "Track your Gunpla builds, browse assembly manuals, and manage your kit collection. Free & community-driven. HG, MG, RG, PG, SD, and MGSD kits.",
     path: "/",
   },
   vault: {
@@ -76,7 +76,7 @@ export const SEO = {
   },
   support: {
     title: "Support KitVault",
-    description: "Help keep KitVault.io running. Support the Gunpla manual database with a tip — every dollar helps cover hosting and development.",
+    description: "Help keep KitVault.io running. Support the free Gunpla build tracker with a tip — every dollar helps cover hosting and development.",
     path: "/support",
   },
   disclaimer: {

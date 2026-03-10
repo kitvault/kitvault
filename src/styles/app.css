@@ -2099,3 +2099,115 @@
   @media (max-width: 640px) {
     .build-status-wrap { margin: 0 16px 16px; clip-path: none; }
   }
+
+  /* ═══════════════════════════════════════════════════════════
+     HERO SLIDESHOW
+  ═══════════════════════════════════════════════════════════ */
+  .hero-slideshow {
+    position: relative; overflow: hidden;
+    min-height: 260px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--bg);
+  }
+  /* Reuse the existing radial hero glow */
+  .hero-slideshow::before {
+    content: ''; position: absolute;
+    top: -100px; left: 50%; transform: translateX(-50%);
+    width: 700px; height: 500px;
+    background: radial-gradient(circle, rgba(0,170,255,0.07) 0%, transparent 70%);
+    pointer-events: none; z-index: 0;
+  }
+  .hero-slide-inner {
+    position: relative; z-index: 1;
+    width: 100%; padding: 60px 80px 52px;
+    text-align: center;
+    display: flex; flex-direction: column; align-items: center;
+  }
+
+  /* ── Slide 2: stats grid ── */
+  .hero-stats-grid {
+    display: flex; gap: 0; margin: 20px 0 4px;
+    border: 1px solid var(--border);
+  }
+  .hero-stat-block {
+    flex: 1; padding: 20px 24px; text-align: center;
+    border-right: 1px solid var(--border);
+    background: rgba(0,0,0,0.2);
+  }
+  .hero-stat-block:last-child { border-right: none; }
+  .hero-stat-val {
+    font-family: 'Orbitron', monospace; font-size: 2rem; font-weight: 700;
+    color: var(--accent); letter-spacing: 2px; line-height: 1;
+    margin-bottom: 8px;
+  }
+  .hero-stat-lbl {
+    font-family: 'Share Tech Mono', monospace; font-size: 0.58rem;
+    color: var(--text-dim); letter-spacing: 2px;
+  }
+
+  /* ── Slide 3: recently completed grid ── */
+  .hero-recent-grid {
+    display: flex; gap: 12px; margin: 16px 0 4px;
+    justify-content: center; flex-wrap: wrap;
+  }
+  .hero-recent-card {
+    width: 140px; background: rgba(0,0,0,0.3);
+    border: 1px solid var(--border); overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .hero-recent-card:hover { border-color: var(--accent); }
+  .hero-recent-img {
+    width: 100%; height: 110px; object-fit: cover; display: block;
+  }
+  .hero-recent-info { padding: 8px 10px; }
+  .hero-recent-kit {
+    font-family: 'Rajdhani', sans-serif; font-size: 0.78rem; font-weight: 600;
+    color: var(--text-bright); letter-spacing: 0.3px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .hero-recent-user {
+    font-family: 'Share Tech Mono', monospace; font-size: 0.52rem;
+    color: var(--accent); letter-spacing: 0.5px; margin-top: 2px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+
+  /* ── Navigation arrows ── */
+  .hero-slide-arrow {
+    position: absolute; top: 50%; transform: translateY(-50%);
+    background: rgba(0,0,0,0.45); border: 1px solid var(--border);
+    color: var(--text-dim); font-size: 1.6rem; line-height: 1;
+    width: 38px; height: 56px; cursor: pointer; z-index: 10;
+    transition: all 0.2s; display: flex; align-items: center; justify-content: center;
+    font-family: 'Share Tech Mono', monospace;
+  }
+  .hero-slide-arrow:hover { border-color: var(--accent); color: var(--accent); background: rgba(0,170,255,0.1); }
+  .hero-slide-arrow.left  { left: 16px; }
+  .hero-slide-arrow.right { right: 16px; }
+
+  /* ── Dot indicators ── */
+  .hero-slide-dots {
+    position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%);
+    display: flex; gap: 8px; z-index: 10;
+  }
+  .hero-slide-dot {
+    width: 28px; height: 3px; border: none; cursor: pointer;
+    background: rgba(255,255,255,0.15); transition: all 0.25s; padding: 0;
+  }
+  .hero-slide-dot.active { background: var(--accent); box-shadow: 0 0 8px rgba(0,170,255,0.6); }
+  .hero-slide-dot:hover { background: rgba(255,255,255,0.35); }
+
+  /* ── Mobile ── */
+  @media (max-width: 640px) {
+    .hero-slideshow { min-height: 220px; }
+    .hero-slide-inner { padding: 36px 44px 44px; }
+    .hero-stats-grid { flex-direction: column; gap: 0; }
+    .hero-stat-block { border-right: none; border-bottom: 1px solid var(--border); padding: 14px 16px; }
+    .hero-stat-block:last-child { border-bottom: none; }
+    .hero-stat-val { font-size: 1.5rem; }
+    .hero-recent-grid { gap: 8px; }
+    .hero-recent-card { width: 120px; }
+    .hero-recent-img { height: 90px; }
+    .hero-slide-arrow { width: 30px; height: 44px; font-size: 1.2rem; }
+    .hero-slide-arrow.left  { left: 6px; }
+    .hero-slide-arrow.right { right: 6px; }
+  }

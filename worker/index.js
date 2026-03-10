@@ -1329,7 +1329,7 @@ export default {
         if (!userId) return new Response(JSON.stringify({}), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
         const row = await env.DB.prepare(
-          "SELECT favourites, progress, pages FROM user_progress WHERE user_id = ?"
+          "SELECT favourites, progress, pages, tags, notes, wishlist, timers FROM user_progress WHERE user_id = ?"
         ).bind(userId).first();
 
         if (!row) return new Response(JSON.stringify({}), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -1338,6 +1338,10 @@ export default {
           favourites: row.favourites ? JSON.parse(row.favourites) : [],
           progress: row.progress ? JSON.parse(row.progress) : {},
           pages: row.pages ? JSON.parse(row.pages) : {},
+          tags: row.tags ? JSON.parse(row.tags) : {},
+          notes: row.notes ? JSON.parse(row.notes) : {},
+          wishlist: row.wishlist ? JSON.parse(row.wishlist) : [],
+          timers: row.timers ? JSON.parse(row.timers) : {},
         }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       } catch (err) {
         return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -1355,31 +1359,47 @@ export default {
 
         // Get existing row or create default
         const existing = await env.DB.prepare(
-          "SELECT favourites, progress, pages FROM user_progress WHERE user_id = ?"
+          "SELECT favourites, progress, pages, tags, notes, wishlist, timers FROM user_progress WHERE user_id = ?"
         ).bind(userId).first();
 
         const currentFavourites = existing?.favourites ? JSON.parse(existing.favourites) : [];
         const currentProgress = existing?.progress ? JSON.parse(existing.progress) : {};
         const currentPages = existing?.pages ? JSON.parse(existing.pages) : {};
+        const currentTags = existing?.tags ? JSON.parse(existing.tags) : {};
+        const currentNotes = existing?.notes ? JSON.parse(existing.notes) : {};
+        const currentWishlist = existing?.wishlist ? JSON.parse(existing.wishlist) : [];
+        const currentTimers = existing?.timers ? JSON.parse(existing.timers) : {};
 
         // Merge incoming data (only update fields that were sent)
         const newFavourites = body.favourites !== undefined ? body.favourites : currentFavourites;
         const newProgress = body.progress !== undefined ? body.progress : currentProgress;
         const newPages = body.pages !== undefined ? body.pages : currentPages;
+        const newTags = body.tags !== undefined ? body.tags : currentTags;
+        const newNotes = body.notes !== undefined ? body.notes : currentNotes;
+        const newWishlist = body.wishlist !== undefined ? body.wishlist : currentWishlist;
+        const newTimers = body.timers !== undefined ? body.timers : currentTimers;
 
         await env.DB.prepare(`
-          INSERT INTO user_progress (user_id, favourites, progress, pages, updated_at)
-          VALUES (?, ?, ?, ?, ?)
+          INSERT INTO user_progress (user_id, favourites, progress, pages, tags, notes, wishlist, timers, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
           ON CONFLICT(user_id) DO UPDATE SET
             favourites = excluded.favourites,
             progress = excluded.progress,
             pages = excluded.pages,
+            tags = excluded.tags,
+            notes = excluded.notes,
+            wishlist = excluded.wishlist,
+            timers = excluded.timers,
             updated_at = excluded.updated_at
         `).bind(
           userId,
           JSON.stringify(newFavourites),
           JSON.stringify(newProgress),
           JSON.stringify(newPages),
+          JSON.stringify(newTags),
+          JSON.stringify(newNotes),
+          JSON.stringify(newWishlist),
+          JSON.stringify(newTimers),
           now
         ).run();
 
@@ -1506,9 +1526,10 @@ export default {
         }
 
         // Get user's vault progress (favourites + build status)
-        const progressRow = await env.DB.prepare("SELECT favourites, progress, pages FROM user_progress WHERE user_id = ?").bind(profile.user_id).first();
+        const progressRow = await env.DB.prepare("SELECT favourites, progress, pages, timers FROM user_progress WHERE user_id = ?").bind(profile.user_id).first();
         const favourites = progressRow?.favourites ? JSON.parse(progressRow.favourites) : [];
         const progress = progressRow?.progress ? JSON.parse(progressRow.progress) : {};
+        const timers = progressRow?.timers ? JSON.parse(progressRow.timers) : {};
 
         // Get kit IDs that are in the user's vault
         const vaultKitIds = [];
@@ -1562,6 +1583,7 @@ export default {
             backlog: Object.values(progress).filter(s => s === "backlog").length,
             gallery_posts: (galleryPosts || []).length,
             photos: (photos || []).length,
+            total_build_time: Object.values(timers).reduce((sum, t) => sum + (t?.accumulated || 0), 0),
           },
           is_owner: isOwner,
         }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -1703,6 +1725,91 @@ export default {
         `).bind(payload.userId, kit_id, clamp(difficulty), clamp(articulation), clamp(detail), clamp(fun_factor), clamp(value)).run();
 
         return new Response(JSON.stringify({ ok: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      } catch (err) {
+        return new Response(JSON.stringify({ ok: false, error: err.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+    }
+
+    // ══════════════════════════════════════════════════════════
+    // COMMUNITY STATS ENDPOINTS
+    // ══════════════════════════════════════════════════════════
+
+    // ── GET /api/stats — Community-wide totals (build time + completed) ──
+    if (path === "/api/stats" && request.method === "GET") {
+      try {
+        // Sum all timer accumulated values across all users
+        const { results: allProgress } = await env.DB.prepare(
+          "SELECT timers, progress FROM user_progress WHERE timers IS NOT NULL OR progress IS NOT NULL"
+        ).all();
+
+        let totalBuildTimeSeconds = 0;
+        let totalCompleted = 0;
+
+        for (const row of (allProgress || [])) {
+          // Sum timer accumulated seconds
+          if (row.timers) {
+            try {
+              const timers = JSON.parse(row.timers);
+              for (const t of Object.values(timers)) {
+                totalBuildTimeSeconds += t?.accumulated || 0;
+              }
+            } catch (_) {}
+          }
+          // Count completed kits
+          if (row.progress) {
+            try {
+              const progress = JSON.parse(row.progress);
+              for (const status of Object.values(progress)) {
+                if (status === "complete") totalCompleted++;
+              }
+            } catch (_) {}
+          }
+        }
+
+        return new Response(JSON.stringify({
+          ok: true,
+          total_build_time_seconds: totalBuildTimeSeconds,
+          total_completed: totalCompleted,
+        }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      } catch (err) {
+        return new Response(JSON.stringify({ ok: false, error: err.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+    }
+
+    // ── GET /api/community/recent-completed — Today's completed builds with photos ──
+    if (path === "/api/community/recent-completed" && request.method === "GET") {
+      try {
+        // Get start of today in UTC (unix epoch seconds)
+        const now = new Date();
+        const todayStart = Math.floor(new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())).getTime() / 1000);
+
+        // Find gallery posts from today that have images, joined with user profile info
+        // Gallery posts are the best proxy for "completed with photo" — they require an image upload
+        const { results } = await env.DB.prepare(`
+          SELECT g.kit_name, g.image_urls, g.username,
+                 COALESCE(p.display_name, g.username) as display_name
+          FROM gallery g
+          LEFT JOIN user_profiles p ON p.user_id = g.user_id
+          WHERE g.created_at >= ?
+          ORDER BY g.created_at DESC
+          LIMIT 4
+        `).bind(todayStart).all();
+
+        const items = (results || []).map(row => {
+          let photoUrl = "";
+          try {
+            const imgs = JSON.parse(row.image_urls || "[]");
+            photoUrl = imgs[0] || "";
+          } catch (_) {}
+          return {
+            kit_name: row.kit_name || "Unknown Kit",
+            photo_url: photoUrl,
+            display_name: row.display_name || row.username || "Builder",
+            username: row.username || "",
+          };
+        }).filter(item => item.photo_url); // Only include items that actually have a photo
+
+        return new Response(JSON.stringify({ ok: true, items }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       } catch (err) {
         return new Response(JSON.stringify({ ok: false, error: err.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
