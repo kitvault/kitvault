@@ -512,7 +512,7 @@ function HeroSlideshow({ allKitsCount, effectiveSignedIn, buildProgress, kitTime
     fetch("/api/stats")
       .then(r => r.json())
       .then(d => { if (d.ok) setStats(d); })
-      .catch(() => {});
+      .catch(() => { });
 
     // Fetch recent-completed — cache with UTC date key
     const todayUTC = new Date().toISOString().slice(0, 10);
@@ -523,7 +523,7 @@ function HeroSlideshow({ allKitsCount, effectiveSignedIn, buildProgress, kitTime
         setRecentCompleted(cached.data);
         return;
       }
-    } catch (_) {}
+    } catch (_) { }
     fetch("/api/community/recent-completed")
       .then(r => r.json())
       .then(d => {
@@ -532,7 +532,7 @@ function HeroSlideshow({ allKitsCount, effectiveSignedIn, buildProgress, kitTime
           localStorage.setItem(cacheKey, JSON.stringify({ date: todayUTC, data: d.items }));
         }
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   const goTo = (next, dir) => {
@@ -585,8 +585,25 @@ function HeroSlideshow({ allKitsCount, effectiveSignedIn, buildProgress, kitTime
       {slide === 0 && (
         <div style={slideStyle}>
           <div className="hero-slide-inner">
+            <style>{`
+              .hero-kv-title { font-family: 'Rajdhani',sans-serif; font-weight: 700; font-size: clamp(3rem, 8vw, 5.5rem); letter-spacing: 6px; line-height: 1; margin: 12px 0; }
+              /* Dark (default) — blue + orange */
+              .hero-kv-a1 { color: #4a9eff; }
+              .hero-kv-a2 { color: #ff8844; }
+              /* Light */
+              [data-theme="light"] .hero-kv-a1 { color: #2a6fcc; }
+              [data-theme="light"] .hero-kv-a2 { color: #e06620; }
+              /* Neko / Cyber Pink */
+              [data-theme="neko"] .hero-kv-a1 { color: #cc3388; }
+              [data-theme="neko"] .hero-kv-a2 { color: #ff77bb; }
+              /* Cat Mode — warm gold + copper */
+              [data-theme="cat"] .hero-kv-a1 { color: #e8b84b; }
+              [data-theme="cat"] .hero-kv-a2 { color: #d4906a; }
+            `}</style>
             <div className="hero-tag">GUNPLA BUILD TRACKER</div>
-            <h1><span className="a1">KIT</span><span className="a2">VAULT</span></h1>
+            <h1 className="hero-kv-title">
+              <span className="hero-kv-a1">KIT</span><span className="hero-kv-a2">VAULT</span>
+            </h1>
             <p className="hero-sub">TRACK. BUILD. COMPLETE.</p>
           </div>
         </div>
