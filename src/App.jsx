@@ -1480,6 +1480,7 @@ export default function KitVault() {
                 openManualId={openManualId} toggleManual={toggleManual}
                 setOpenManualId={setOpenManualId} goHome={goHome}
                 onKitUpdated={fetchD1Kits}
+                kitNotes={kitNotes} saveKitNote={saveKitNote}
               />
             } />
 

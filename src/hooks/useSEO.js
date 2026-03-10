@@ -56,7 +56,7 @@ export default function useSEO({ title, description, path }) {
 export const SEO = {
   home: {
     title: null,
-    description: "Your complete Gunpla manual database. Browse assembly manuals for HG, MG, RG, PG, SD, and MGSD Gundam model kits.",
+    description: "Your complete Gunpla manual database. Browse assembly manuals for HG, MG, RG, PG, SD, and MGSD Gundam model kits. Free & Community-driven.",
     path: "/",
   },
   vault: {

@@ -1087,6 +1087,8 @@ export default function KitDetail({
   setOpenManualId,
   goHome,
   onKitUpdated,
+  kitNotes,
+  saveKitNote,
 }) {
   const { slug } = useParams();
   const navigate = useNavigate();
@@ -1095,6 +1097,8 @@ export default function KitDetail({
   const [realPages, setRealPages] = useState({});
   const [fullscreenManual, setFullscreenManual] = useState(null);
   const [editing, setEditing] = useState(false);
+  const [showNotes, setShowNotes] = useState(false);
+  const [noteDraft, setNoteDraft] = useState("");
 
   // Check if admin key exists in session
   const isAdmin = !!sessionStorage.getItem(ADMIN_KEY_STORAGE);
@@ -1196,6 +1200,72 @@ export default function KitDetail({
               </button>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* ── KIT NOTES ───────────────────────────────────────── */}
+      {isSignedIn && (
+        <div style={{ margin: "0 0 0 0" }}>
+          <button
+            onClick={() => {
+              if (!showNotes) setNoteDraft(kitNotes?.[kit.id] || "");
+              setShowNotes(prev => !prev);
+            }}
+            style={{
+              width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+              background: kitNotes?.[kit.id] ? "rgba(255,204,0,0.06)" : "rgba(255,255,255,0.02)",
+              border: "1px solid",
+              borderColor: kitNotes?.[kit.id] ? "rgba(255,204,0,0.25)" : "var(--border, rgba(255,255,255,0.08))",
+              color: kitNotes?.[kit.id] ? "var(--gold, #ffcc00)" : "var(--text-dim, #5a7a9f)",
+              fontFamily: "'Share Tech Mono',monospace", fontSize: "0.6rem",
+              letterSpacing: "2px", padding: "10px 16px", cursor: "pointer",
+              transition: "all 0.2s",
+            }}
+          >
+            <span>✎ {kitNotes?.[kit.id] ? "KIT NOTES" : "ADD KIT NOTES"}</span>
+            <span style={{ opacity: 0.6 }}>{showNotes ? "▲" : "▼"}</span>
+          </button>
+          {showNotes && (
+            <div style={{
+              border: "1px solid var(--border, rgba(255,255,255,0.08))", borderTop: "none",
+              background: "var(--bg2, #0a1628)", padding: "14px 16px",
+            }}>
+              <textarea
+                maxLength={1000}
+                placeholder="Record your progress, paint colours, build notes..."
+                value={noteDraft}
+                onChange={e => setNoteDraft(e.target.value)}
+                style={{
+                  width: "100%", boxSizing: "border-box", minHeight: 90,
+                  background: "rgba(0,0,0,0.3)", border: "1px solid var(--border, rgba(255,255,255,0.08))",
+                  color: "var(--text-bright, #c8ddf5)", fontFamily: "'Share Tech Mono',monospace",
+                  fontSize: "0.65rem", letterSpacing: "0.5px", padding: "10px 12px",
+                  resize: "vertical", outline: "none", lineHeight: 1.7,
+                }}
+              />
+              <div style={{ display: "flex", gap: 8, marginTop: 8, justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.55rem", color: "var(--text-dim, #5a7a9f)" }}>{noteDraft.length}/1000</span>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button
+                    onClick={() => { saveKitNote?.(kit.id, noteDraft); setShowNotes(false); }}
+                    style={{
+                      background: "rgba(0,255,136,0.08)", border: "1px solid rgba(0,255,136,0.35)",
+                      color: "#00ff88", fontFamily: "'Share Tech Mono',monospace",
+                      fontSize: "0.6rem", padding: "8px 18px", cursor: "pointer", letterSpacing: "1.5px",
+                    }}
+                  >✓ SAVE</button>
+                  <button
+                    onClick={() => setShowNotes(false)}
+                    style={{
+                      background: "var(--bg3, rgba(255,255,255,0.03))", border: "1px solid var(--border)",
+                      color: "var(--text-dim, #5a7a9f)", fontFamily: "'Share Tech Mono',monospace",
+                      fontSize: "0.6rem", padding: "8px 18px", cursor: "pointer", letterSpacing: "1.5px",
+                    }}
+                  >CANCEL</button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
