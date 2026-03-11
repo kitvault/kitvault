@@ -1746,12 +1746,17 @@ export default {
         let totalCompleted = 0;
 
         for (const row of (allProgress || [])) {
-          // Sum timer accumulated seconds
+          // Sum timer accumulated seconds — also add live elapsed for currently-running timers
           if (row.timers) {
             try {
               const timers = JSON.parse(row.timers);
+              const nowMs = Date.now();
               for (const t of Object.values(timers)) {
                 totalBuildTimeSeconds += t?.accumulated || 0;
+                // Add live elapsed if timer is actively running
+                if (t?.running && t?.startedAt) {
+                  totalBuildTimeSeconds += Math.floor((nowMs - t.startedAt) / 1000);
+                }
               }
             } catch (_) {}
           }
