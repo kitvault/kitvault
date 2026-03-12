@@ -157,6 +157,9 @@ export default function KitVault() {
   const closeMobileMenu = () => { setMobileMenuOpen(false); closeNav(); };
   const [gradeFilter, setGradeFilter] = useState("ALL");
   const [search, setSearch] = useState("");
+  const [kitPage, setKitPage] = useState(0);
+  const [kitsPerPage, setKitsPerPage] = useState(50);
+  const KITS_PER_PAGE_OPTIONS = [50, 100, 200];
   const [openManualId, setOpenManualId] = useState(null);
   const toggleManual = (id) => setOpenManualId(prev => prev === id ? null : id);
   const [showSettings, setShowSettings] = useState(false);
@@ -631,6 +634,9 @@ export default function KitVault() {
     if (sortOrder === "za") return b.name.localeCompare(a.name);
     return (b.created_at || 0) - (a.created_at || 0);
   }), [allKits, gradeFilter, search, sortOrder]);
+
+  // Reset to page 0 whenever the filtered results change
+  useEffect(() => { setKitPage(0); }, [gradeFilter, search, sortOrder, kitsPerPage]);
 
   const gc = (g) => GRADE_COLORS[g] || GRADE_COLORS["HG"];
   const goHome = () => { setOpenManualId(null); navigate("/"); };
@@ -1229,9 +1235,64 @@ export default function KitVault() {
                       </div>
                     </div>
                   ) : (
-                    filtered.map(kit => renderKitCard(kit))
+                    filtered.slice(kitPage * kitsPerPage, (kitPage + 1) * kitsPerPage).map(kit => renderKitCard(kit))
                   )}
                 </div>
+
+                {/* ── Pagination controls ── */}
+                {!kitsLoading && filtered.length > 50 && (() => {
+                  const totalPages = Math.ceil(filtered.length / kitsPerPage);
+                  const startKit = kitPage * kitsPerPage + 1;
+                  const endKit = Math.min((kitPage + 1) * kitsPerPage, filtered.length);
+                  return (
+                    <div className="kit-pagination">
+                      <button
+                        className="kit-page-btn"
+                        disabled={kitPage === 0}
+                        onClick={() => { setKitPage(p => p - 1); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                      >‹ PREV</button>
+
+                      <div className="kit-page-info">
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <span className="kit-page-range">{startKit}–{endKit} of {filtered.length}</span>
+                          <div className="kit-per-page">
+                            {KITS_PER_PAGE_OPTIONS.map(n => (
+                              <button
+                                key={n}
+                                className={`kit-per-page-btn${kitsPerPage === n ? " active" : ""}`}
+                                onClick={() => setKitsPerPage(n)}
+                              >{n}</button>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="kit-page-dots">
+                          {Array.from({ length: totalPages }).map((_, i) => {
+                            const show = i === 0 || i === totalPages - 1 || Math.abs(i - kitPage) <= 1;
+                            const isEllipsisBefore = i === 1 && kitPage > 2;
+                            const isEllipsisAfter = i === totalPages - 2 && kitPage < totalPages - 3;
+                            if (!show) return null;
+                            if (isEllipsisBefore || isEllipsisAfter) {
+                              return <span key={i} className="kit-page-ellipsis">···</span>;
+                            }
+                            return (
+                              <button
+                                key={i}
+                                className={`kit-page-num${i === kitPage ? " active" : ""}`}
+                                onClick={() => { setKitPage(i); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                              >{i + 1}</button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      <button
+                        className="kit-page-btn"
+                        disabled={kitPage >= totalPages - 1}
+                        onClick={() => { setKitPage(p => p + 1); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                      >NEXT ›</button>
+                    </div>
+                  );
+                })()}
               </>
             } />
 
