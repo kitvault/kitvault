@@ -100,6 +100,7 @@ export default function KitVault() {
     });
     const data = await res.json();
     if (data.ok) {
+      setIsSignedIn(true);
       setUserId(data.userId);
       setUserEmail(data.email);
       setUserDisplayName(data.displayName || "");
@@ -119,6 +120,7 @@ export default function KitVault() {
     });
     const data = await res.json();
     if (data.ok) {
+      setIsSignedIn(true);
       setUserId(data.userId);
       setUserEmail(data.email);
       setUserDisplayName(data.displayName || "");
