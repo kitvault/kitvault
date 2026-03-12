@@ -53,6 +53,44 @@ function useDebounce(fn, delay) {
 
 // KITVAULT APP — main component (routes + shared state)
 // ─────────────────────────────────────────────────────────────
+function VerificationBanner({ userEmail }) {
+  const [resending, setResending] = useState(false);
+  const [resendMsg, setResendMsg] = useState("");
+  const handleResend = async () => {
+    setResending(true); setResendMsg("");
+    try {
+      const res = await fetch("/api/auth/resend-verification", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: userEmail }),
+      });
+      const data = await res.json();
+      setResendMsg(data.ok ? "✓ Verification email sent!" : (data.error || "Failed"));
+    } catch { setResendMsg("Network error"); }
+    setResending(false);
+  };
+  return (
+    <div style={{
+      background: "rgba(255,170,0,0.08)", border: "1px solid rgba(255,170,0,0.25)",
+      padding: "12px 24px", display: "flex", alignItems: "center", justifyContent: "center",
+      gap: 16, flexWrap: "wrap",
+    }}>
+      <span style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.65rem", color: "#ffaa00", letterSpacing: "1px" }}>
+        ⚠ VERIFY YOUR EMAIL TO UNLOCK VAULT, HANGAR & BUILD FEATURES
+      </span>
+      <button
+        onClick={handleResend} disabled={resending}
+        style={{
+          background: "rgba(255,170,0,0.1)", border: "1px solid rgba(255,170,0,0.4)",
+          color: "#ffaa00", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.6rem",
+          padding: "6px 16px", cursor: resending ? "wait" : "pointer", letterSpacing: "1px",
+        }}
+      >{resending ? "SENDING..." : "RESEND EMAIL"}</button>
+      {resendMsg && <span style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.55rem", color: resendMsg.startsWith("✓") ? "#00ff88" : "#ff3c3c", letterSpacing: "0.5px" }}>{resendMsg}</span>}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
 export default function KitVault() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -1187,42 +1225,9 @@ export default function KitVault() {
         )}
 
         {/* EMAIL VERIFICATION BANNER */}
-        {effectiveSignedIn && !emailVerified && (() => {
-          const [resending, setResending] = React.useState(false);
-          const [resendMsg, setResendMsg] = React.useState("");
-          const handleResend = async () => {
-            setResending(true); setResendMsg("");
-            try {
-              const res = await fetch("/api/auth/resend-verification", {
-                method: "POST", headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email: userEmail }),
-              });
-              const data = await res.json();
-              setResendMsg(data.ok ? "✓ Verification email sent!" : (data.error || "Failed"));
-            } catch { setResendMsg("Network error"); }
-            setResending(false);
-          };
-          return (
-            <div style={{
-              background: "rgba(255,170,0,0.08)", border: "1px solid rgba(255,170,0,0.25)",
-              padding: "12px 24px", display: "flex", alignItems: "center", justifyContent: "center",
-              gap: 16, flexWrap: "wrap",
-            }}>
-              <span style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.65rem", color: "#ffaa00", letterSpacing: "1px" }}>
-                ⚠ VERIFY YOUR EMAIL TO UNLOCK VAULT, HANGAR & BUILD FEATURES
-              </span>
-              <button
-                onClick={handleResend} disabled={resending}
-                style={{
-                  background: "rgba(255,170,0,0.1)", border: "1px solid rgba(255,170,0,0.4)",
-                  color: "#ffaa00", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.6rem",
-                  padding: "6px 16px", cursor: resending ? "wait" : "pointer", letterSpacing: "1px",
-                }}
-              >{resending ? "SENDING..." : "RESEND EMAIL"}</button>
-              {resendMsg && <span style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.55rem", color: resendMsg.startsWith("✓") ? "#00ff88" : "#ff3c3c", letterSpacing: "0.5px" }}>{resendMsg}</span>}
-            </div>
-          );
-        })()}
+        {effectiveSignedIn && !emailVerified && (
+          <VerificationBanner userEmail={userEmail} />
+        )}
 
         <ErrorBoundary>
           <Routes>
