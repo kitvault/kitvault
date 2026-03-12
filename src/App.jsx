@@ -1494,104 +1494,104 @@ export default function KitVault() {
                     </div>
                   </div>
                 ) : (
-                {(() => {
-                  const vaultKits = allKits.filter(k =>
-                    favourites.includes(k.id) ||
-                    buildProgress[k.id] === "inprogress" ||
-                    buildProgress[k.id] === "complete" ||
-                    buildProgress[k.id] === "backlog"
-                  );
-                  const favOnly = vaultKits.filter(k => favourites.includes(k.id));
-                  const inProgress = vaultKits.filter(k => buildProgress[k.id] === "inprogress");
-                  const complete = vaultKits.filter(k => buildProgress[k.id] === "complete");
-                  const backlog = vaultKits.filter(k =>
-                    buildProgress[k.id] === "backlog" && !favourites.includes(k.id)
-                  );
+                  (() => {
+                    const vaultKits = allKits.filter(k =>
+                      favourites.includes(k.id) ||
+                      buildProgress[k.id] === "inprogress" ||
+                      buildProgress[k.id] === "complete" ||
+                      buildProgress[k.id] === "backlog"
+                    );
+                    const favOnly = vaultKits.filter(k => favourites.includes(k.id));
+                    const inProgress = vaultKits.filter(k => buildProgress[k.id] === "inprogress");
+                    const complete = vaultKits.filter(k => buildProgress[k.id] === "complete");
+                    const backlog = vaultKits.filter(k =>
+                      buildProgress[k.id] === "backlog" && !favourites.includes(k.id)
+                    );
 
-                  return (
-                    <>
-                      <div className="page-hero">
-                        <div className="page-tag">PERSONAL COLLECTION</div>
-                        <div className="page-title">MY <span style={{ color: "var(--accent)" }}>VAULT</span></div>
-                        <div className="page-sub">{vaultKits.length} KIT{vaultKits.length !== 1 ? "S" : ""} TRACKED</div>
-                      </div>
-
-                      {vaultKits.length === 0 ? (
-                        <div className="vault-empty">
-                          <span className="vault-empty-icon">⭐</span>
-                          NOTHING IN YOUR VAULT YET<br />
-                          <span style={{ fontSize: "0.7rem", opacity: 0.5 }}>STAR A KIT OR SET A BUILD STATUS TO ADD IT HERE</span>
+                    return (
+                      <>
+                        <div className="page-hero">
+                          <div className="page-tag">PERSONAL COLLECTION</div>
+                          <div className="page-title">MY <span style={{ color: "var(--accent)" }}>VAULT</span></div>
+                          <div className="page-sub">{vaultKits.length} KIT{vaultKits.length !== 1 ? "S" : ""} TRACKED</div>
                         </div>
-                      ) : (
-                        <div style={{ padding: "0 40px 60px", marginTop: 48 }}>
-                          {favOnly.length > 0 && (
-                            <>
-                              <div className="section-header vault-section-header" style={{ padding: "0 0 20px", marginBottom: "4px", cursor: "pointer" }} onClick={() => toggleSection("fav")}>
-                                <span className="section-title" style={{ color: "var(--gold)" }}>⭐ FAVORITES</span>
-                                <div className="section-line" />
-                                <span className="section-count">{favOnly.length} KIT{favOnly.length !== 1 ? "S" : ""}</span>
-                                <span className="section-collapse-arrow">{collapsedSections["fav"] ? "▶" : "▼"}</span>
-                              </div>
-                              {!collapsedSections["fav"] && <div className="vault-grid" style={{ padding: "0 0 32px" }}>{renderWithDuplicates(favOnly, { showBacklog: true, showRemove: true, showTags: true })}</div>}
-                            </>
-                          )}
-                          {inProgress.length > 0 && (
-                            <>
-                              <div className="section-header vault-section-header" style={{ padding: "0 0 20px", marginBottom: "4px", cursor: "pointer" }} onClick={() => toggleSection("inprogress")}>
-                                <span className="section-title" style={{ color: "var(--gold)" }}>⚙ IN PROGRESS</span>
-                                <div className="section-line" />
-                                <span className="section-count">{inProgress.length} KIT{inProgress.length !== 1 ? "S" : ""}</span>
-                                <span className="section-collapse-arrow">{collapsedSections["inprogress"] ? "▶" : "▼"}</span>
-                              </div>
-                              {!collapsedSections["inprogress"] && <div className="vault-grid" style={{ padding: "0 0 32px" }}>{renderWithDuplicates(inProgress, { showBacklog: true, showRemove: true, showTags: true })}</div>}
-                            </>
-                          )}
-                          {complete.length > 0 && (
-                            <>
-                              <div className="section-header vault-section-header" style={{ padding: "0 0 20px", marginBottom: "4px", cursor: "pointer" }} onClick={() => toggleSection("complete")}>
-                                <span className="section-title" style={{ color: "var(--green)" }}>✓ COMPLETED</span>
-                                <div className="section-line" />
-                                <span className="section-count">{complete.length} KIT{complete.length !== 1 ? "S" : ""}</span>
-                                <span className="section-collapse-arrow">{collapsedSections["complete"] ? "▶" : "▼"}</span>
-                              </div>
-                              {!collapsedSections["complete"] && <div className="vault-grid" style={{ padding: "0 0 32px" }}>{renderWithDuplicates(complete, { showBacklog: true, showRemove: true, showTags: true })}</div>}
-                            </>
-                          )}
-                          {backlog.length > 0 && (
-                            <>
-                              <div className="section-header vault-section-header" style={{ padding: "0 0 20px", marginBottom: "4px", cursor: "pointer" }} onClick={() => toggleSection("backlog")}>
-                                <span className="section-title" style={{ color: "var(--text-dim)" }}>◻ BACKLOG</span>
-                                <div className="section-line" />
-                                <span className="section-count">{backlog.length} KIT{backlog.length !== 1 ? "S" : ""}</span>
-                                <span className="section-collapse-arrow">{collapsedSections["backlog"] ? "▶" : "▼"}</span>
-                              </div>
-                              {!collapsedSections["backlog"] && <div className="vault-grid" style={{ padding: "0 0 32px" }}>{renderWithDuplicates(backlog, { showBacklog: true, showRemove: true, showTags: true })}</div>}
-                            </>
-                          )}
-                          {(() => {
-                            const wishlistKits = allKits.filter(k => kitWishlist.includes(k.id));
-                            if (wishlistKits.length === 0) return null;
-                            return (
+
+                        {vaultKits.length === 0 ? (
+                          <div className="vault-empty">
+                            <span className="vault-empty-icon">⭐</span>
+                            NOTHING IN YOUR VAULT YET<br />
+                            <span style={{ fontSize: "0.7rem", opacity: 0.5 }}>STAR A KIT OR SET A BUILD STATUS TO ADD IT HERE</span>
+                          </div>
+                        ) : (
+                          <div style={{ padding: "0 40px 60px", marginTop: 48 }}>
+                            {favOnly.length > 0 && (
                               <>
-                                <div className="section-header vault-section-header" style={{ padding: "0 0 20px", marginBottom: "4px", cursor: "pointer" }} onClick={() => toggleSection("wishlist")}>
-                                  <span className="section-title" style={{ color: "#cc44ff" }}>✦ WISH LIST</span>
+                                <div className="section-header vault-section-header" style={{ padding: "0 0 20px", marginBottom: "4px", cursor: "pointer" }} onClick={() => toggleSection("fav")}>
+                                  <span className="section-title" style={{ color: "var(--gold)" }}>⭐ FAVORITES</span>
                                   <div className="section-line" />
-                                  <span className="section-count">{wishlistKits.length} KIT{wishlistKits.length !== 1 ? "S" : ""}</span>
-                                  <span className="section-collapse-arrow">{collapsedSections["wishlist"] ? "▶" : "▼"}</span>
+                                  <span className="section-count">{favOnly.length} KIT{favOnly.length !== 1 ? "S" : ""}</span>
+                                  <span className="section-collapse-arrow">{collapsedSections["fav"] ? "▶" : "▼"}</span>
                                 </div>
-                                {!collapsedSections["wishlist"] && (
-                                  <div className="vault-grid" style={{ padding: "0 0 32px" }}>
-                                    {wishlistKits.map(k => renderKitCard(k, { showWishlistRemove: true }))}
-                                  </div>
-                                )}
+                                {!collapsedSections["fav"] && <div className="vault-grid" style={{ padding: "0 0 32px" }}>{renderWithDuplicates(favOnly, { showBacklog: true, showRemove: true, showTags: true })}</div>}
                               </>
-                            );
-                          })()}
-                        </div>
-                      )}
-                    </>
-                  );
-                })()}
+                            )}
+                            {inProgress.length > 0 && (
+                              <>
+                                <div className="section-header vault-section-header" style={{ padding: "0 0 20px", marginBottom: "4px", cursor: "pointer" }} onClick={() => toggleSection("inprogress")}>
+                                  <span className="section-title" style={{ color: "var(--gold)" }}>⚙ IN PROGRESS</span>
+                                  <div className="section-line" />
+                                  <span className="section-count">{inProgress.length} KIT{inProgress.length !== 1 ? "S" : ""}</span>
+                                  <span className="section-collapse-arrow">{collapsedSections["inprogress"] ? "▶" : "▼"}</span>
+                                </div>
+                                {!collapsedSections["inprogress"] && <div className="vault-grid" style={{ padding: "0 0 32px" }}>{renderWithDuplicates(inProgress, { showBacklog: true, showRemove: true, showTags: true })}</div>}
+                              </>
+                            )}
+                            {complete.length > 0 && (
+                              <>
+                                <div className="section-header vault-section-header" style={{ padding: "0 0 20px", marginBottom: "4px", cursor: "pointer" }} onClick={() => toggleSection("complete")}>
+                                  <span className="section-title" style={{ color: "var(--green)" }}>✓ COMPLETED</span>
+                                  <div className="section-line" />
+                                  <span className="section-count">{complete.length} KIT{complete.length !== 1 ? "S" : ""}</span>
+                                  <span className="section-collapse-arrow">{collapsedSections["complete"] ? "▶" : "▼"}</span>
+                                </div>
+                                {!collapsedSections["complete"] && <div className="vault-grid" style={{ padding: "0 0 32px" }}>{renderWithDuplicates(complete, { showBacklog: true, showRemove: true, showTags: true })}</div>}
+                              </>
+                            )}
+                            {backlog.length > 0 && (
+                              <>
+                                <div className="section-header vault-section-header" style={{ padding: "0 0 20px", marginBottom: "4px", cursor: "pointer" }} onClick={() => toggleSection("backlog")}>
+                                  <span className="section-title" style={{ color: "var(--text-dim)" }}>◻ BACKLOG</span>
+                                  <div className="section-line" />
+                                  <span className="section-count">{backlog.length} KIT{backlog.length !== 1 ? "S" : ""}</span>
+                                  <span className="section-collapse-arrow">{collapsedSections["backlog"] ? "▶" : "▼"}</span>
+                                </div>
+                                {!collapsedSections["backlog"] && <div className="vault-grid" style={{ padding: "0 0 32px" }}>{renderWithDuplicates(backlog, { showBacklog: true, showRemove: true, showTags: true })}</div>}
+                              </>
+                            )}
+                            {(() => {
+                              const wishlistKits = allKits.filter(k => kitWishlist.includes(k.id));
+                              if (wishlistKits.length === 0) return null;
+                              return (
+                                <>
+                                  <div className="section-header vault-section-header" style={{ padding: "0 0 20px", marginBottom: "4px", cursor: "pointer" }} onClick={() => toggleSection("wishlist")}>
+                                    <span className="section-title" style={{ color: "#cc44ff" }}>✦ WISH LIST</span>
+                                    <div className="section-line" />
+                                    <span className="section-count">{wishlistKits.length} KIT{wishlistKits.length !== 1 ? "S" : ""}</span>
+                                    <span className="section-collapse-arrow">{collapsedSections["wishlist"] ? "▶" : "▼"}</span>
+                                  </div>
+                                  {!collapsedSections["wishlist"] && (
+                                    <div className="vault-grid" style={{ padding: "0 0 32px" }}>
+                                      {wishlistKits.map(k => renderKitCard(k, { showWishlistRemove: true }))}
+                                    </div>
+                                  )}
+                                </>
+                              );
+                            })()}
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
                 )}
               </>
             } />
