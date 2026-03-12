@@ -440,6 +440,36 @@ export default {
       ).bind(userId, amount, reason, refId || null, now).run();
     }
 
+    // ── GET /api/admin/users?q= — Admin: search registered users ──
+    if (path === "/api/admin/users" && request.method === "GET") {
+      const key = request.headers.get("X-Admin-Key");
+      if (key !== env.ADMIN_KEY) {
+        return new Response(JSON.stringify({ ok: false, error: "Unauthorized" }), {
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      try {
+        const q = url.searchParams.get("q") || "";
+        if (q.trim().length < 2) {
+          return new Response(JSON.stringify({ users: [] }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        const like = `%${q.trim()}%`;
+        const { results } = await env.DB.prepare(
+          "SELECT user_id, email, display_name FROM user_auth WHERE email LIKE ?1 OR user_id LIKE ?1 OR display_name LIKE ?1 ORDER BY email LIMIT 10"
+        ).bind(like).all();
+        const users = (results || []).map(r => ({ id: r.user_id, email: r.email, display_name: r.display_name || "" }));
+        return new Response(JSON.stringify({ users }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch (err) {
+        return new Response(JSON.stringify({ users: [], error: err.message }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     // ── POST /api/xp/grant — Admin: grant XP to any user ──────
     if (path === "/api/xp/grant" && request.method === "POST") {
       const key = request.headers.get("X-Admin-Key");
