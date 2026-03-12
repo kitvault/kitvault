@@ -376,7 +376,13 @@ export default {
           });
         }
 
-        return new Response(JSON.stringify({ ok: true, userId: payload.userId, email: payload.email, displayName: payload.displayName || "", avatarUrl: payload.avatarUrl || "", emailVerified: payload.emailVerified !== undefined ? payload.emailVerified : true }), {
+        // Check DB for current email_verified status (JWT may be stale)
+        const dbUser = await env.DB.prepare(
+          "SELECT email_verified FROM user_auth WHERE user_id = ?"
+        ).bind(payload.userId).first();
+        const verified = dbUser ? dbUser.email_verified === 1 : (payload.emailVerified !== undefined ? payload.emailVerified : true);
+
+        return new Response(JSON.stringify({ ok: true, userId: payload.userId, email: payload.email, displayName: payload.displayName || "", avatarUrl: payload.avatarUrl || "", emailVerified: verified }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       } catch (err) {
