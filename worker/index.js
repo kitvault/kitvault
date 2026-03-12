@@ -123,23 +123,38 @@ export default {
     // ── Resend email helper ──
     async function sendEmail(env, to, subject, html) {
       if (!env.RESEND_API_KEY) throw new Error("RESEND_API_KEY not configured");
+      if (!to) throw new Error("No recipient email address provided");
+
+      const payload = JSON.stringify({
+        from: "KitVault <noreply@kitvault.io>",
+        to: [to],
+        subject,
+        html,
+      });
+
       const res = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${env.RESEND_API_KEY}`,
+          "Accept": "application/json",
         },
-        body: JSON.stringify({
-          from: "KitVault <noreply@kitvault.io>",
-          to: [to],
-          subject,
-          html,
-        }),
+        body: payload,
       });
-      const text = await res.text();
+
+      // Read response safely
+      let text = "";
+      try { text = await res.text(); } catch (e) {
+        throw new Error(`Failed to read Resend response (${res.status}): ${e.message}`);
+      }
+
+      if (!text || text.trim() === "") {
+        throw new Error(`Resend empty response (${res.status}). Key len: ${env.RESEND_API_KEY?.length}, to: ${to}`);
+      }
+
       let data;
       try { data = JSON.parse(text); } catch {
-        throw new Error(`Resend API returned non-JSON (${res.status}): ${text.slice(0, 200)}`);
+        throw new Error(`Resend non-JSON (${res.status}): ${text.slice(0, 300)}`);
       }
       if (!res.ok) throw new Error(data.message || `Email send failed (${res.status})`);
       return data;
@@ -508,6 +523,39 @@ export default {
         }
 
         return new Response(JSON.stringify({ ok: true, message: "Email verified successfully" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch (err) {
+        return new Response(JSON.stringify({ ok: false, error: err.message }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
+    // ── GET /api/auth/test-resend — Diagnostic: test Resend API connectivity ──
+    if (path === "/api/auth/test-resend" && request.method === "GET") {
+      try {
+        const keyLen = env.RESEND_API_KEY ? env.RESEND_API_KEY.length : 0;
+        const keyStart = env.RESEND_API_KEY ? env.RESEND_API_KEY.slice(0, 8) : "MISSING";
+        
+        // Try a simple API call to Resend (list domains — read-only, no email sent)
+        const res = await fetch("https://api.resend.com/domains", {
+          method: "GET",
+          headers: {
+            "Authorization": `Bearer ${env.RESEND_API_KEY}`,
+            "Accept": "application/json",
+          },
+        });
+        let text = "";
+        try { text = await res.text(); } catch (e) { text = `read error: ${e.message}`; }
+        
+        return new Response(JSON.stringify({
+          ok: true,
+          keyLength: keyLen,
+          keyStart: keyStart,
+          resendStatus: res.status,
+          resendBody: text.slice(0, 500),
+        }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       } catch (err) {
