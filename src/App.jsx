@@ -63,6 +63,7 @@ export default function KitVault() {
   const [userDisplayName, setUserDisplayName] = useState("");
   const [userAvatarUrl, setUserAvatarUrl] = useState("");
   const [authLoading, setAuthLoading] = useState(true);
+  const [emailVerified, setEmailVerified] = useState(true); // default true so no flash
 
   const isSignedIn = !!userId;
 
@@ -76,6 +77,7 @@ export default function KitVault() {
           setUserEmail(data.email);
           setUserDisplayName(data.displayName || "");
           setUserAvatarUrl(data.avatarUrl || "");
+          setEmailVerified(data.emailVerified !== undefined ? data.emailVerified : true);
         }
       })
       .catch(() => { })
@@ -85,6 +87,8 @@ export default function KitVault() {
   // Kept for backward compat — code below references these
   const effectiveUserId = userId;
   const effectiveSignedIn = isSignedIn;
+  // verifiedUser = signed in AND email verified — gates vault/hangar/build features
+  const verifiedUser = isSignedIn && emailVerified;
 
   // ── Auth Handlers ─────────────────────────────────────────
   const handleLogin = async (email, password) => {
@@ -100,6 +104,7 @@ export default function KitVault() {
       setUserEmail(data.email);
       setUserDisplayName(data.displayName || "");
       setUserAvatarUrl(data.avatarUrl || "");
+      setEmailVerified(data.emailVerified !== undefined ? data.emailVerified : true);
       return { ok: true };
     }
     return { ok: false, error: data.error || "Login failed" };
@@ -118,6 +123,7 @@ export default function KitVault() {
       setUserEmail(data.email);
       setUserDisplayName(data.displayName || "");
       setUserAvatarUrl(data.avatarUrl || "");
+      setEmailVerified(data.emailVerified !== undefined ? data.emailVerified : false);
       return { ok: true };
     }
     return { ok: false, error: data.error || "Signup failed" };
@@ -136,6 +142,7 @@ export default function KitVault() {
       setUserEmail(data.email);
       setUserDisplayName(data.displayName || "");
       setUserAvatarUrl(data.avatarUrl || "");
+      setEmailVerified(true); // Google users are always verified
       return { ok: true };
     }
     return { ok: false, error: data.error || "Google sign-in failed" };
@@ -1178,8 +1185,168 @@ export default function KitVault() {
           <MarqueeStrip ownedSprites={paradeSprites} />
         )}
 
+        {/* EMAIL VERIFICATION BANNER */}
+        {effectiveSignedIn && !emailVerified && (() => {
+          const [resending, setResending] = React.useState(false);
+          const [resendMsg, setResendMsg] = React.useState("");
+          const handleResend = async () => {
+            setResending(true); setResendMsg("");
+            try {
+              const res = await fetch("/api/auth/resend-verification", {
+                method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email: userEmail }),
+              });
+              const data = await res.json();
+              setResendMsg(data.ok ? "✓ Verification email sent!" : (data.error || "Failed"));
+            } catch { setResendMsg("Network error"); }
+            setResending(false);
+          };
+          return (
+            <div style={{
+              background: "rgba(255,170,0,0.08)", border: "1px solid rgba(255,170,0,0.25)",
+              padding: "12px 24px", display: "flex", alignItems: "center", justifyContent: "center",
+              gap: 16, flexWrap: "wrap",
+            }}>
+              <span style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.65rem", color: "#ffaa00", letterSpacing: "1px" }}>
+                ⚠ VERIFY YOUR EMAIL TO UNLOCK VAULT, HANGAR & BUILD FEATURES
+              </span>
+              <button
+                onClick={handleResend} disabled={resending}
+                style={{
+                  background: "rgba(255,170,0,0.1)", border: "1px solid rgba(255,170,0,0.4)",
+                  color: "#ffaa00", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.6rem",
+                  padding: "6px 16px", cursor: resending ? "wait" : "pointer", letterSpacing: "1px",
+                }}
+              >{resending ? "SENDING..." : "RESEND EMAIL"}</button>
+              {resendMsg && <span style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.55rem", color: resendMsg.startsWith("✓") ? "#00ff88" : "#ff3c3c", letterSpacing: "0.5px" }}>{resendMsg}</span>}
+            </div>
+          );
+        })()}
+
         <ErrorBoundary>
           <Routes>
+
+            {/* ===== VERIFY EMAIL PAGE ===== */}
+            <Route path="/verify-email" element={(() => {
+              const VerifyEmail = () => {
+                const [status, setStatus] = React.useState("verifying");
+                const [msg, setMsg] = React.useState("");
+                React.useEffect(() => {
+                  const params = new URLSearchParams(window.location.search);
+                  const token = params.get("token");
+                  if (!token) { setStatus("error"); setMsg("Missing verification token"); return; }
+                  fetch(`/api/auth/verify-email?token=${token}`, { credentials: "include" })
+                    .then(r => r.json())
+                    .then(data => {
+                      if (data.ok) {
+                        setStatus("success"); setMsg(data.message || "Email verified!");
+                        setEmailVerified(true);
+                      } else {
+                        setStatus("error"); setMsg(data.error || "Verification failed");
+                      }
+                    })
+                    .catch(() => { setStatus("error"); setMsg("Network error"); });
+                }, []);
+                return (
+                  <div style={{ textAlign: "center", padding: "120px 20px" }}>
+                    {status === "verifying" && (
+                      <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.8rem", color: "var(--text-dim)", letterSpacing: "2px" }}>VERIFYING...</div>
+                    )}
+                    {status === "success" && (
+                      <>
+                        <div style={{ fontSize: "2rem", marginBottom: 16 }}>✓</div>
+                        <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.85rem", color: "#00ff88", letterSpacing: "2px", marginBottom: 16 }}>EMAIL VERIFIED</div>
+                        <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.65rem", color: "var(--text-dim)", letterSpacing: "0.5px", marginBottom: 24, lineHeight: 1.8 }}>{msg}</div>
+                        <button onClick={() => navigate("/")} style={{ background: "rgba(0,170,255,0.1)", border: "1px solid rgba(0,170,255,0.3)", color: "#00aaff", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.65rem", padding: "10px 24px", cursor: "pointer", letterSpacing: "1.5px" }}>
+                          ← BACK TO KITVAULT
+                        </button>
+                      </>
+                    )}
+                    {status === "error" && (
+                      <>
+                        <div style={{ fontSize: "2rem", marginBottom: 16 }}>✕</div>
+                        <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.85rem", color: "#ff2244", letterSpacing: "2px", marginBottom: 16 }}>VERIFICATION FAILED</div>
+                        <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.65rem", color: "var(--text-dim)", letterSpacing: "0.5px", marginBottom: 24, lineHeight: 1.8 }}>{msg}</div>
+                        <button onClick={() => navigate("/")} style={{ background: "rgba(0,170,255,0.1)", border: "1px solid rgba(0,170,255,0.3)", color: "#00aaff", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.65rem", padding: "10px 24px", cursor: "pointer", letterSpacing: "1.5px" }}>
+                          ← BACK TO KITVAULT
+                        </button>
+                      </>
+                    )}
+                  </div>
+                );
+              };
+              return <VerifyEmail />;
+            })()} />
+
+            {/* ===== RESET PASSWORD PAGE ===== */}
+            <Route path="/reset-password" element={(() => {
+              const ResetPassword = () => {
+                const [newPassword, setNewPassword] = React.useState("");
+                const [confirmPw, setConfirmPw] = React.useState("");
+                const [status, setStatus] = React.useState("form"); // form | loading | success | error
+                const [msg, setMsg] = React.useState("");
+                const params = new URLSearchParams(window.location.search);
+                const token = params.get("token");
+
+                const handleReset = async () => {
+                  if (!token) { setStatus("error"); setMsg("Missing reset token"); return; }
+                  if (newPassword.length < 8) { setMsg("Password must be at least 8 characters"); return; }
+                  if (newPassword !== confirmPw) { setMsg("Passwords don't match"); return; }
+                  setStatus("loading"); setMsg("");
+                  try {
+                    const res = await fetch("/api/auth/reset-password", {
+                      method: "POST", headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ token, newPassword }),
+                    });
+                    const data = await res.json();
+                    if (data.ok) { setStatus("success"); setMsg(data.message || "Password reset!"); }
+                    else { setStatus("form"); setMsg(data.error || "Reset failed"); }
+                  } catch { setStatus("form"); setMsg("Network error"); }
+                };
+
+                if (!token) return (
+                  <div style={{ textAlign: "center", padding: "120px 20px" }}>
+                    <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.85rem", color: "#ff2244", letterSpacing: "2px", marginBottom: 16 }}>INVALID RESET LINK</div>
+                    <button onClick={() => navigate("/")} style={{ background: "rgba(0,170,255,0.1)", border: "1px solid rgba(0,170,255,0.3)", color: "#00aaff", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.65rem", padding: "10px 24px", cursor: "pointer", letterSpacing: "1.5px" }}>← BACK TO KITVAULT</button>
+                  </div>
+                );
+
+                return (
+                  <div style={{ maxWidth: 420, margin: "80px auto", padding: "0 20px" }}>
+                    <div style={{ background: "linear-gradient(160deg,#0a1628 0%,#070f1e 100%)", border: "1px solid rgba(255,102,0,0.3)", padding: "36px 32px", clipPath: "polygon(0 0,96% 0,100% 4%,100% 100%,4% 100%,0 96%)" }}>
+                      <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.65rem", color: "#ff6600", letterSpacing: "3px", marginBottom: 24 }}>◈ RESET PASSWORD</div>
+
+                      {status === "success" ? (
+                        <>
+                          <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.7rem", color: "#00ff88", letterSpacing: "1px", marginBottom: 20, lineHeight: 1.8 }}>✓ {msg}</div>
+                          <button onClick={() => { navigate("/"); setShowLoginModal(true); }} style={{ width: "100%", background: "rgba(0,170,255,0.1)", border: "1px solid rgba(0,170,255,0.3)", color: "#00aaff", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.7rem", padding: "12px", cursor: "pointer", letterSpacing: "2px" }}>SIGN IN →</button>
+                        </>
+                      ) : (
+                        <>
+                          <div style={{ marginBottom: 14 }}>
+                            <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.55rem", color: "#5a7a9f", letterSpacing: "1px", marginBottom: 4 }}>NEW PASSWORD (8+ CHARACTERS)</div>
+                            <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="••••••••"
+                              style={{ width: "100%", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.1)", color: "#c8ddf5", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.7rem", padding: "10px 12px", outline: "none", boxSizing: "border-box" }} />
+                          </div>
+                          <div style={{ marginBottom: 14 }}>
+                            <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.55rem", color: "#5a7a9f", letterSpacing: "1px", marginBottom: 4 }}>CONFIRM PASSWORD</div>
+                            <input type="password" value={confirmPw} onChange={e => setConfirmPw(e.target.value)} placeholder="••••••••"
+                              onKeyDown={e => e.key === "Enter" && handleReset()}
+                              style={{ width: "100%", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.1)", color: "#c8ddf5", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.7rem", padding: "10px 12px", outline: "none", boxSizing: "border-box" }} />
+                          </div>
+                          {msg && <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.6rem", color: "#ff3c3c", letterSpacing: "0.5px", marginBottom: 12 }}>{msg}</div>}
+                          <button onClick={handleReset} disabled={status === "loading"}
+                            style={{ width: "100%", background: "rgba(255,102,0,0.1)", border: "1px solid rgba(255,102,0,0.3)", color: "#ff6600", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.7rem", padding: "12px", cursor: status === "loading" ? "wait" : "pointer", letterSpacing: "2px" }}>
+                            {status === "loading" ? "RESETTING..." : "SET NEW PASSWORD →"}
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                );
+              };
+              return <ResetPassword />;
+            })()} />
 
             {/* ===== HOME PAGE ===== */}
             <Route path="/" element={
@@ -1318,6 +1485,15 @@ export default function KitVault() {
             {/* ===== MY VAULT PAGE ===== */}
             <Route path="/vault" element={
               <>
+                {!verifiedUser && effectiveSignedIn ? (
+                  <div style={{ textAlign: "center", padding: "120px 20px" }}>
+                    <div style={{ fontSize: "2rem", marginBottom: 16 }}>📧</div>
+                    <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.85rem", color: "#ffaa00", letterSpacing: "2px", marginBottom: 16 }}>VERIFY YOUR EMAIL</div>
+                    <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.65rem", color: "var(--text-dim)", letterSpacing: "0.5px", lineHeight: 1.8, maxWidth: 400, margin: "0 auto" }}>
+                      Your vault, build timers, and hangar features are locked until you verify your email address. Check your inbox for a verification link.
+                    </div>
+                  </div>
+                ) : (
                 {(() => {
                   const vaultKits = allKits.filter(k =>
                     favourites.includes(k.id) ||
@@ -1416,6 +1592,7 @@ export default function KitVault() {
                     </>
                   );
                 })()}
+                )}
               </>
             } />
 

@@ -8,15 +8,16 @@ import { useState, useEffect, useRef } from "react";
 const GOOGLE_CLIENT_ID = "1048413363942-31kef3psma06tg0c13heiiufoier6ltb.apps.googleusercontent.com";
 
 export default function LoginModal({ onClose, onLogin, onSignup, onGoogleLogin }) {
-  const [mode, setMode] = useState("login"); // "login" or "signup"
+  const [mode, setMode] = useState("login"); // "login" | "signup" | "forgot"
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [forgotSent, setForgotSent] = useState(false);
   const googleBtnRef = useRef(null);
 
-  const resetFields = () => { setEmail(""); setPassword(""); setConfirmPassword(""); setError(""); };
+  const resetFields = () => { setEmail(""); setPassword(""); setConfirmPassword(""); setError(""); setForgotSent(false); };
 
   // Initialize Google Sign-In button
   useEffect(() => {
@@ -59,6 +60,29 @@ export default function LoginModal({ onClose, onLogin, onSignup, onGoogleLogin }
 
   const handleSubmit = async () => {
     setError("");
+    if (mode === "forgot") {
+      if (!email) { setError("Enter your email address"); return; }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) { setError("Invalid email format"); return; }
+      setLoading(true);
+      try {
+        const res = await fetch("/api/auth/forgot-password", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: email.trim() }),
+        });
+        const data = await res.json();
+        if (data.ok) {
+          setForgotSent(true);
+        } else {
+          setError(data.error || "Failed to send reset email");
+        }
+      } catch (err) {
+        setError("Network error");
+      }
+      setLoading(false);
+      return;
+    }
+
     if (!email || !password) { setError("Enter both email and password"); return; }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) { setError("Invalid email format"); return; }
     if (password.length < 8) { setError("Password must be at least 8 characters"); return; }
@@ -117,6 +141,62 @@ export default function LoginModal({ onClose, onLogin, onSignup, onGoogleLogin }
           >SIGN UP</button>
         </div>
 
+        {mode === "forgot" ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.65rem", color: "#ff6600", letterSpacing: "2px", marginBottom: 4 }}>RESET PASSWORD</div>
+            {forgotSent ? (
+              <>
+                <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.65rem", color: "#00ff88", letterSpacing: "0.5px", lineHeight: 1.8 }}>
+                  ✓ If that email is registered, a reset link has been sent. Check your inbox (and spam folder).
+                </div>
+                <button
+                  onClick={() => { setMode("login"); resetFields(); }}
+                  style={{
+                    width: "100%", background: "rgba(0,170,255,0.1)", border: "1px solid rgba(0,170,255,0.3)",
+                    color: "#00aaff", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.7rem",
+                    padding: "12px", cursor: "pointer", letterSpacing: "2px", marginTop: 8,
+                  }}
+                >← BACK TO SIGN IN</button>
+              </>
+            ) : (
+              <>
+                <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.6rem", color: "var(--text-dim,#5a7a9f)", letterSpacing: "0.5px", lineHeight: 1.8 }}>
+                  Enter the email address you signed up with and we'll send you a link to reset your password.
+                </div>
+                <div>
+                  <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.55rem", color: "var(--text-dim,#5a7a9f)", letterSpacing: "1px", marginBottom: 4 }}>EMAIL</div>
+                  <input
+                    type="email" value={email} onChange={e => setEmail(e.target.value)}
+                    placeholder="your@email.com"
+                    onKeyDown={e => e.key === "Enter" && handleSubmit()}
+                    style={{ width: "100%", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.1)", color: "#c8ddf5", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.7rem", padding: "10px 12px", letterSpacing: "0.5px", outline: "none", boxSizing: "border-box" }}
+                  />
+                </div>
+                {error && (
+                  <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.6rem", color: "#ff3c3c", letterSpacing: "0.5px" }}>{error}</div>
+                )}
+                <button
+                  onClick={handleSubmit} disabled={loading}
+                  style={{
+                    width: "100%", background: "rgba(255,102,0,0.1)", border: "1px solid rgba(255,102,0,0.3)",
+                    color: "#ff6600", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.7rem",
+                    padding: "12px", cursor: loading ? "wait" : "pointer", letterSpacing: "2px", marginTop: 4,
+                  }}
+                >
+                  {loading ? "SENDING..." : "SEND RESET LINK →"}
+                </button>
+                <button
+                  onClick={() => { setMode("login"); resetFields(); }}
+                  style={{
+                    width: "100%", background: "none", border: "none",
+                    color: "#3a5a7a", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.55rem",
+                    cursor: "pointer", letterSpacing: "1px", padding: "6px 0",
+                  }}
+                >← BACK TO SIGN IN</button>
+              </>
+            )}
+          </div>
+        ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <div>
             <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.55rem", color: "var(--text-dim,#5a7a9f)", letterSpacing: "1px", marginBottom: 4 }}>EMAIL</div>
@@ -167,6 +247,18 @@ export default function LoginModal({ onClose, onLogin, onSignup, onGoogleLogin }
             {loading ? (mode === "signup" ? "CREATING ACCOUNT..." : "SIGNING IN...") : (mode === "signup" ? "CREATE ACCOUNT →" : "SIGN IN →")}
           </button>
 
+          {mode === "login" && (
+            <button
+              onClick={() => { setMode("forgot"); resetFields(); }}
+              style={{
+                background: "none", border: "none", color: "#5a7a9f",
+                fontFamily: "'Share Tech Mono',monospace", fontSize: "0.55rem",
+                cursor: "pointer", letterSpacing: "1px", padding: "2px 0",
+                textAlign: "center",
+              }}
+            >FORGOT PASSWORD?</button>
+          )}
+
           <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.5rem", color: "var(--text-dim,#5a7a9f)", letterSpacing: "0.5px", lineHeight: 1.8, textAlign: "center", marginTop: 4 }}>
             {mode === "login"
               ? "Don't have an account? Click SIGN UP above."
@@ -174,6 +266,7 @@ export default function LoginModal({ onClose, onLogin, onSignup, onGoogleLogin }
             }
           </div>
         </div>
+        )}
 
         <button onClick={onClose} style={{ position: "absolute", top: 16, right: 16, background: "none", border: "1px solid rgba(255,255,255,0.1)", color: "#5a7a9f", fontFamily: "'Share Tech Mono',monospace", fontSize: "0.8rem", width: 32, height: 32, cursor: "pointer" }}>✕</button>
       </div>

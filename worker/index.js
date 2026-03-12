@@ -113,6 +113,42 @@ export default {
       return payload;
     }
 
+    // ── Email token helper ──
+    function generateToken() {
+      const bytes = new Uint8Array(32);
+      crypto.getRandomValues(bytes);
+      return Array.from(bytes).map(b => b.toString(16).padStart(2, "0")).join("");
+    }
+
+    // ── Resend email helper ──
+    async function sendEmail(env, to, subject, html) {
+      const res = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${env.RESEND_API_KEY}`,
+        },
+        body: JSON.stringify({
+          from: "KitVault <noreply@kitvault.io>",
+          to: [to],
+          subject,
+          html,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Email send failed");
+      return data;
+    }
+
+    // ── Rate limit check: max N emails per address per hour ──
+    async function checkEmailRateLimit(env, email, maxPerHour = 5) {
+      const oneHourAgo = Math.floor(Date.now() / 1000) - 3600;
+      const row = await env.DB.prepare(
+        "SELECT COUNT(*) as cnt FROM email_tokens WHERE email = ? AND created_at > ?"
+      ).bind(email, oneHourAgo).first();
+      return (row?.cnt || 0) < maxPerHour;
+    }
+
     // ══════════════════════════════════════════════════════════
     // AUTH ENDPOINTS
     // ══════════════════════════════════════════════════════════
@@ -149,7 +185,7 @@ export default {
           userId = existing.user_id;
           // Update display name and avatar from Google on each login
           await env.DB.prepare(
-            "UPDATE user_auth SET display_name = ?, avatar_url = ?, auth_provider = 'google', updated_at = CURRENT_TIMESTAMP WHERE user_id = ?"
+            "UPDATE user_auth SET display_name = ?, avatar_url = ?, auth_provider = 'google', email_verified = 1, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?"
           ).bind(displayName, avatarUrl, userId).run();
         } else {
           // Create new user
@@ -158,13 +194,13 @@ export default {
           userId = "google_" + Array.from(randomBytes).map(b => b.toString(16).padStart(2, "0")).join("");
 
           await env.DB.prepare(
-            "INSERT INTO user_auth (user_id, email, pw_hash, pw_salt, display_name, avatar_url, auth_provider, created_at, updated_at) VALUES (?, ?, '', '', ?, ?, 'google', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
+            "INSERT INTO user_auth (user_id, email, pw_hash, pw_salt, display_name, avatar_url, auth_provider, email_verified, created_at, updated_at) VALUES (?, ?, '', '', ?, ?, 'google', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
           ).bind(userId, email, displayName, avatarUrl).run();
         }
 
-        const token = await createJWT({ userId, email, displayName, avatarUrl }, env.JWT_SECRET);
+        const token = await createJWT({ userId, email, displayName, avatarUrl, emailVerified: true }, env.JWT_SECRET);
 
-        return new Response(JSON.stringify({ ok: true, userId, email, displayName, avatarUrl }), {
+        return new Response(JSON.stringify({ ok: true, userId, email, displayName, avatarUrl, emailVerified: true }), {
           headers: { ...corsHeaders, "Content-Type": "application/json", "Set-Cookie": setAuthCookie(token, corsOrigin) },
         });
       } catch (err) {
@@ -215,13 +251,36 @@ export default {
         const pwHash = await hashPassword(password, salt);
 
         await env.DB.prepare(
-          "INSERT INTO user_auth (user_id, email, pw_hash, pw_salt, display_name, avatar_url, auth_provider, created_at, updated_at) VALUES (?, ?, ?, ?, '', '', 'email', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
+          "INSERT INTO user_auth (user_id, email, pw_hash, pw_salt, display_name, avatar_url, auth_provider, email_verified, created_at, updated_at) VALUES (?, ?, ?, ?, '', '', 'email', 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
         ).bind(localId, email.trim().toLowerCase(), pwHash, salt).run();
 
-        // Auto-login: set httpOnly cookie
-        const token = await createJWT({ userId: localId, email: email.trim().toLowerCase(), displayName: "", avatarUrl: "" }, env.JWT_SECRET);
+        // Send verification email
+        const cleanEmail = email.trim().toLowerCase();
+        try {
+          const token = generateToken();
+          const expiresAt = Math.floor(Date.now() / 1000) + 24 * 60 * 60; // 24h
+          await env.DB.prepare(
+            "INSERT INTO email_tokens (token, email, user_id, type, expires_at, created_at) VALUES (?, ?, ?, 'verify', ?, ?)"
+          ).bind(token, cleanEmail, localId, expiresAt, Math.floor(Date.now() / 1000)).run();
+          const verifyUrl = `https://kitvault.io/verify-email?token=${token}`;
+          await sendEmail(env, cleanEmail, "Verify your KitVault account", `
+            <div style="font-family:monospace;background:#0a1220;color:#c8ddf5;padding:40px;max-width:500px">
+              <div style="font-size:20px;font-weight:bold;margin-bottom:8px">KIT<span style="color:#ff6600">VAULT</span></div>
+              <div style="font-size:11px;color:#5a7a9f;letter-spacing:2px;margin-bottom:24px">VERIFY YOUR EMAIL</div>
+              <p style="font-size:13px;line-height:1.8;color:#9ab0cc">Click the button below to verify your email and unlock all KitVault features — your vault, build timers, hangar profile, and more.</p>
+              <a href="${verifyUrl}" style="display:inline-block;background:#00aaff;color:#fff;padding:12px 28px;text-decoration:none;font-family:monospace;font-size:13px;letter-spacing:1px;margin:20px 0">VERIFY EMAIL →</a>
+              <p style="font-size:11px;color:#3a5a7a;margin-top:24px">If you didn't create this account, you can ignore this email. This link expires in 24 hours.</p>
+            </div>
+          `);
+        } catch (emailErr) {
+          console.error("Verification email failed:", emailErr.message);
+          // Account is created, just couldn't send email — they can resend later
+        }
 
-        return new Response(JSON.stringify({ ok: true, userId: localId, email: email.trim().toLowerCase(), displayName: "", avatarUrl: "" }), {
+        // Auto-login: set httpOnly cookie
+        const token = await createJWT({ userId: localId, email: cleanEmail, displayName: "", avatarUrl: "", emailVerified: false }, env.JWT_SECRET);
+
+        return new Response(JSON.stringify({ ok: true, userId: localId, email: cleanEmail, displayName: "", avatarUrl: "", emailVerified: false }), {
           headers: { ...corsHeaders, "Content-Type": "application/json", "Set-Cookie": setAuthCookie(token, corsOrigin) },
         });
       } catch (err) {
@@ -243,7 +302,7 @@ export default {
         }
 
         const row = await env.DB.prepare(
-          "SELECT user_id, pw_hash, pw_salt, display_name, avatar_url FROM user_auth WHERE email = ?"
+          "SELECT user_id, pw_hash, pw_salt, display_name, avatar_url, email_verified FROM user_auth WHERE email = ?"
         ).bind(email.trim().toLowerCase()).first();
 
         if (!row) {
@@ -266,9 +325,10 @@ export default {
           });
         }
 
-        const token = await createJWT({ userId: row.user_id, email: email.trim().toLowerCase(), displayName: row.display_name || "", avatarUrl: row.avatar_url || "" }, env.JWT_SECRET);
+        const emailVerified = row.email_verified === 1 || row.email_verified === true;
+        const token = await createJWT({ userId: row.user_id, email: email.trim().toLowerCase(), displayName: row.display_name || "", avatarUrl: row.avatar_url || "", emailVerified }, env.JWT_SECRET);
 
-        return new Response(JSON.stringify({ ok: true, userId: row.user_id, email: email.trim().toLowerCase(), displayName: row.display_name || "", avatarUrl: row.avatar_url || "" }), {
+        return new Response(JSON.stringify({ ok: true, userId: row.user_id, email: email.trim().toLowerCase(), displayName: row.display_name || "", avatarUrl: row.avatar_url || "", emailVerified }), {
           headers: { ...corsHeaders, "Content-Type": "application/json", "Set-Cookie": setAuthCookie(token, corsOrigin) },
         });
       } catch (err) {
@@ -296,7 +356,7 @@ export default {
           });
         }
 
-        return new Response(JSON.stringify({ ok: true, userId: payload.userId, email: payload.email, displayName: payload.displayName || "", avatarUrl: payload.avatarUrl || "" }), {
+        return new Response(JSON.stringify({ ok: true, userId: payload.userId, email: payload.email, displayName: payload.displayName || "", avatarUrl: payload.avatarUrl || "", emailVerified: payload.emailVerified !== undefined ? payload.emailVerified : true }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       } catch (err) {
@@ -393,6 +453,243 @@ export default {
       }
     }
 
+    // ── GET /api/auth/verify-email?token= — Verify email address ──
+    if (path === "/api/auth/verify-email" && request.method === "GET") {
+      try {
+        const token = url.searchParams.get("token");
+        if (!token) {
+          return new Response(JSON.stringify({ ok: false, error: "Missing token" }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        const now = Math.floor(Date.now() / 1000);
+        const row = await env.DB.prepare(
+          "SELECT email, user_id, used FROM email_tokens WHERE token = ? AND type = 'verify' AND expires_at > ?"
+        ).bind(token, now).first();
+
+        if (!row) {
+          return new Response(JSON.stringify({ ok: false, error: "Invalid or expired verification link" }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        if (row.used) {
+          return new Response(JSON.stringify({ ok: true, message: "Email already verified" }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Mark email as verified
+        await env.DB.prepare(
+          "UPDATE user_auth SET email_verified = 1, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?"
+        ).bind(row.user_id).run();
+
+        // Mark token as used
+        await env.DB.prepare(
+          "UPDATE email_tokens SET used = 1 WHERE token = ?"
+        ).bind(token).run();
+
+        // Issue a fresh JWT with emailVerified: true so the user doesn't have to re-login
+        const userRow = await env.DB.prepare(
+          "SELECT user_id, email, display_name, avatar_url FROM user_auth WHERE user_id = ?"
+        ).bind(row.user_id).first();
+
+        if (userRow) {
+          const jwt = await createJWT({ userId: userRow.user_id, email: userRow.email, displayName: userRow.display_name || "", avatarUrl: userRow.avatar_url || "", emailVerified: true }, env.JWT_SECRET);
+          return new Response(JSON.stringify({ ok: true, message: "Email verified successfully" }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json", "Set-Cookie": setAuthCookie(jwt, corsOrigin) },
+          });
+        }
+
+        return new Response(JSON.stringify({ ok: true, message: "Email verified successfully" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch (err) {
+        return new Response(JSON.stringify({ ok: false, error: err.message }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
+    // ── POST /api/auth/resend-verification — Resend verification email ──
+    if (path === "/api/auth/resend-verification" && request.method === "POST") {
+      try {
+        const { email } = await request.json();
+        if (!email) {
+          return new Response(JSON.stringify({ ok: false, error: "Missing email" }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        const cleanEmail = email.trim().toLowerCase();
+
+        const user = await env.DB.prepare(
+          "SELECT user_id, email_verified FROM user_auth WHERE email = ?"
+        ).bind(cleanEmail).first();
+
+        if (!user) {
+          // Don't reveal whether the email exists
+          return new Response(JSON.stringify({ ok: true, message: "If that email is registered, a verification link has been sent." }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        if (user.email_verified === 1) {
+          return new Response(JSON.stringify({ ok: true, message: "Email is already verified." }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Rate limit
+        const allowed = await checkEmailRateLimit(env, cleanEmail);
+        if (!allowed) {
+          return new Response(JSON.stringify({ ok: false, error: "Too many requests. Please wait before requesting another email." }), {
+            status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        const token = generateToken();
+        const expiresAt = Math.floor(Date.now() / 1000) + 24 * 60 * 60;
+        await env.DB.prepare(
+          "INSERT INTO email_tokens (token, email, user_id, type, expires_at, created_at) VALUES (?, ?, ?, 'verify', ?, ?)"
+        ).bind(token, cleanEmail, user.user_id, expiresAt, Math.floor(Date.now() / 1000)).run();
+
+        const verifyUrl = `https://kitvault.io/verify-email?token=${token}`;
+        await sendEmail(env, cleanEmail, "Verify your KitVault account", `
+          <div style="font-family:monospace;background:#0a1220;color:#c8ddf5;padding:40px;max-width:500px">
+            <div style="font-size:20px;font-weight:bold;margin-bottom:8px">KIT<span style="color:#ff6600">VAULT</span></div>
+            <div style="font-size:11px;color:#5a7a9f;letter-spacing:2px;margin-bottom:24px">VERIFY YOUR EMAIL</div>
+            <p style="font-size:13px;line-height:1.8;color:#9ab0cc">Click the button below to verify your email and unlock all KitVault features.</p>
+            <a href="${verifyUrl}" style="display:inline-block;background:#00aaff;color:#fff;padding:12px 28px;text-decoration:none;font-family:monospace;font-size:13px;letter-spacing:1px;margin:20px 0">VERIFY EMAIL →</a>
+            <p style="font-size:11px;color:#3a5a7a;margin-top:24px">This link expires in 24 hours.</p>
+          </div>
+        `);
+
+        return new Response(JSON.stringify({ ok: true, message: "Verification email sent." }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch (err) {
+        return new Response(JSON.stringify({ ok: false, error: err.message }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
+    // ── POST /api/auth/forgot-password — Send password reset email ──
+    if (path === "/api/auth/forgot-password" && request.method === "POST") {
+      try {
+        const { email } = await request.json();
+        if (!email) {
+          return new Response(JSON.stringify({ ok: false, error: "Missing email" }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        const cleanEmail = email.trim().toLowerCase();
+
+        // Always return success to not reveal if email exists
+        const successResp = { ok: true, message: "If that email is registered, a reset link has been sent." };
+
+        const user = await env.DB.prepare(
+          "SELECT user_id, auth_provider FROM user_auth WHERE email = ?"
+        ).bind(cleanEmail).first();
+
+        if (!user || user.auth_provider === "google") {
+          // Google users can't reset — they don't have a password
+          return new Response(JSON.stringify(successResp), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Rate limit
+        const allowed = await checkEmailRateLimit(env, cleanEmail);
+        if (!allowed) {
+          return new Response(JSON.stringify({ ok: false, error: "Too many requests. Please wait before requesting another email." }), {
+            status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Invalidate any previous reset tokens for this user
+        await env.DB.prepare(
+          "UPDATE email_tokens SET used = 1 WHERE user_id = ? AND type = 'reset' AND used = 0"
+        ).bind(user.user_id).run();
+
+        const token = generateToken();
+        const expiresAt = Math.floor(Date.now() / 1000) + 60 * 60; // 1 hour
+        await env.DB.prepare(
+          "INSERT INTO email_tokens (token, email, user_id, type, expires_at, created_at) VALUES (?, ?, ?, 'reset', ?, ?)"
+        ).bind(token, cleanEmail, user.user_id, expiresAt, Math.floor(Date.now() / 1000)).run();
+
+        const resetUrl = `https://kitvault.io/reset-password?token=${token}`;
+        await sendEmail(env, cleanEmail, "Reset your KitVault password", `
+          <div style="font-family:monospace;background:#0a1220;color:#c8ddf5;padding:40px;max-width:500px">
+            <div style="font-size:20px;font-weight:bold;margin-bottom:8px">KIT<span style="color:#ff6600">VAULT</span></div>
+            <div style="font-size:11px;color:#5a7a9f;letter-spacing:2px;margin-bottom:24px">PASSWORD RESET</div>
+            <p style="font-size:13px;line-height:1.8;color:#9ab0cc">We received a request to reset your KitVault password. Click the button below to choose a new one.</p>
+            <a href="${resetUrl}" style="display:inline-block;background:#ff6600;color:#fff;padding:12px 28px;text-decoration:none;font-family:monospace;font-size:13px;letter-spacing:1px;margin:20px 0">RESET PASSWORD →</a>
+            <p style="font-size:11px;color:#3a5a7a;margin-top:24px">This link expires in 1 hour. If you didn't request this, you can safely ignore this email.</p>
+          </div>
+        `);
+
+        return new Response(JSON.stringify(successResp), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch (err) {
+        return new Response(JSON.stringify({ ok: false, error: err.message }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
+    // ── POST /api/auth/reset-password — Set new password using reset token ──
+    if (path === "/api/auth/reset-password" && request.method === "POST") {
+      try {
+        const { token, newPassword } = await request.json();
+        if (!token || !newPassword) {
+          return new Response(JSON.stringify({ ok: false, error: "Missing token or new password" }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        if (newPassword.length < 8) {
+          return new Response(JSON.stringify({ ok: false, error: "Password must be at least 8 characters" }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        const now = Math.floor(Date.now() / 1000);
+        const row = await env.DB.prepare(
+          "SELECT user_id, used FROM email_tokens WHERE token = ? AND type = 'reset' AND expires_at > ?"
+        ).bind(token, now).first();
+
+        if (!row || row.used) {
+          return new Response(JSON.stringify({ ok: false, error: "Invalid or expired reset link" }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Set new password
+        const newSalt = generateSalt();
+        const newHash = await hashPassword(newPassword, newSalt);
+
+        await env.DB.prepare(
+          "UPDATE user_auth SET pw_hash = ?, pw_salt = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?"
+        ).bind(newHash, newSalt, row.user_id).run();
+
+        // Mark token as used
+        await env.DB.prepare(
+          "UPDATE email_tokens SET used = 1 WHERE token = ?"
+        ).bind(token).run();
+
+        return new Response(JSON.stringify({ ok: true, message: "Password reset successfully. You can now log in." }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch (err) {
+        return new Response(JSON.stringify({ ok: false, error: err.message }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     // ══════════════════════════════════════════════════════════
     // XP + SPRITE ENDPOINTS
     // ══════════════════════════════════════════════════════════
@@ -438,36 +735,6 @@ export default {
       await env.DB.prepare(
         "INSERT INTO xp_log (user_id, amount, reason, ref_id, created_at) VALUES (?, ?, ?, ?, ?)"
       ).bind(userId, amount, reason, refId || null, now).run();
-    }
-
-    // ── GET /api/admin/users?q= — Admin: search registered users ──
-    if (path === "/api/admin/users" && request.method === "GET") {
-      const key = request.headers.get("X-Admin-Key");
-      if (key !== env.ADMIN_KEY) {
-        return new Response(JSON.stringify({ ok: false, error: "Unauthorized" }), {
-          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      try {
-        const q = url.searchParams.get("q") || "";
-        if (q.trim().length < 2) {
-          return new Response(JSON.stringify({ users: [] }), {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-        const like = `%${q.trim()}%`;
-        const { results } = await env.DB.prepare(
-          "SELECT user_id, email, display_name FROM user_auth WHERE email LIKE ?1 OR user_id LIKE ?1 OR display_name LIKE ?1 ORDER BY email LIMIT 10"
-        ).bind(like).all();
-        const users = (results || []).map(r => ({ id: r.user_id, email: r.email, display_name: r.display_name || "" }));
-        return new Response(JSON.stringify({ users }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      } catch (err) {
-        return new Response(JSON.stringify({ users: [], error: err.message }), {
-          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
     }
 
     // ── POST /api/xp/grant — Admin: grant XP to any user ──────
