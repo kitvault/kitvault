@@ -56,7 +56,7 @@ export default function LoginModal({ onClose, onLogin, onSignup, onGoogleLogin }
     } else {
       setTimeout(initGoogle, 100);
     }
-  }, [onGoogleLogin, onClose]);
+  }, [onGoogleLogin]);
 
   const handleSubmit = async () => {
     setError("");

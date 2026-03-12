@@ -91,7 +91,7 @@ export default function KitVault() {
   const verifiedUser = isSignedIn && emailVerified;
 
   // ── Auth Handlers ─────────────────────────────────────────
-  const handleLogin = async (email, password) => {
+  const handleLogin = useCallback(async (email, password) => {
     const res = await fetch("/api/auth/login", {
       method: "POST",
       credentials: "include",
@@ -100,7 +100,6 @@ export default function KitVault() {
     });
     const data = await res.json();
     if (data.ok) {
-      setIsSignedIn(true);
       setUserId(data.userId);
       setUserEmail(data.email);
       setUserDisplayName(data.displayName || "");
@@ -109,9 +108,9 @@ export default function KitVault() {
       return { ok: true };
     }
     return { ok: false, error: data.error || "Login failed" };
-  };
+  }, []);
 
-  const handleSignup = async (email, password) => {
+  const handleSignup = useCallback(async (email, password) => {
     const res = await fetch("/api/auth/signup", {
       method: "POST",
       credentials: "include",
@@ -120,7 +119,6 @@ export default function KitVault() {
     });
     const data = await res.json();
     if (data.ok) {
-      setIsSignedIn(true);
       setUserId(data.userId);
       setUserEmail(data.email);
       setUserDisplayName(data.displayName || "");
@@ -129,7 +127,7 @@ export default function KitVault() {
       return { ok: true };
     }
     return { ok: false, error: data.error || "Signup failed" };
-  };
+  }, []);
 
   const handleGoogleLogin = useCallback(async (credential) => {
     const res = await fetch("/api/auth/google", {
@@ -161,6 +159,7 @@ export default function KitVault() {
   const [openNav, setOpenNav] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const handleCloseLoginModal = useCallback(() => setShowLoginModal(false), []);
   const toggleNav = (name) => setOpenNav(prev => prev === name ? null : name);
   const closeNav = () => setOpenNav(null);
   const closeMobileMenu = () => { setMobileMenuOpen(false); closeNav(); };
@@ -2106,7 +2105,7 @@ export default function KitVault() {
         {/* LOGIN MODAL */}
         {showLoginModal && (
           <LoginModal
-            onClose={() => setShowLoginModal(false)}
+            onClose={handleCloseLoginModal}
             onLogin={handleLogin}
             onSignup={handleSignup}
             onGoogleLogin={handleGoogleLogin}
