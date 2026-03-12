@@ -293,6 +293,7 @@ function KitImage({ kit, isAdmin, adminKey, onKitUpdated }) {
   const [dragOver, setDragOver] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState(null);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
   const fileRef = useRef(null);
   const imgSrc = kit.imageUrl || kit.image_url || "";
 
@@ -318,12 +319,15 @@ function KitImage({ kit, isAdmin, adminKey, onKitUpdated }) {
   };
 
   const handleDrop = (e) => { e.preventDefault(); setDragOver(false); if (isAdmin) uploadImage(e.dataTransfer.files[0]); };
-  const handleClick = () => { if (isAdmin && !uploading) fileRef.current?.click(); };
+  const handleClick = () => {
+    if (isAdmin && !uploading) { fileRef.current?.click(); return; }
+    if (!isAdmin && imgSrc) setLightboxOpen(true);
+  };
 
   return (
     <div className="kit-image-section" style={{ padding: 0 }}>
       <div className="kit-image-wrap"
-        style={{ "--ki-accent": gc(kit.grade).accent, ...(isAdmin ? { cursor: "pointer" } : {}), ...(dragOver ? { borderColor: "#00aaff", boxShadow: "0 0 20px rgba(0,170,255,0.2)" } : {}) }}
+        style={{ "--ki-accent": gc(kit.grade).accent, ...((isAdmin || imgSrc) ? { cursor: "pointer" } : {}), ...(dragOver ? { borderColor: "#00aaff", boxShadow: "0 0 20px rgba(0,170,255,0.2)" } : {}) }}
         onDragOver={e => { if (isAdmin) { e.preventDefault(); setDragOver(true); } }}
         onDragLeave={() => setDragOver(false)}
         onDrop={handleDrop}
@@ -360,6 +364,50 @@ function KitImage({ kit, isAdmin, adminKey, onKitUpdated }) {
         <div className="kit-image-label">{kit.grade} {kit.scale} · {kit.name}</div>
       </div>
       {error && <div style={{ fontSize: "0.6rem", color: "#ff2244", marginTop: 8, letterSpacing: "0.5px" }}>✕ {error}</div>}
+
+      {/* ── Image Lightbox ── */}
+      {lightboxOpen && imgSrc && (
+        <div
+          style={{
+            position: "fixed", inset: 0, zIndex: 3000,
+            background: "rgba(0,5,18,0.92)", backdropFilter: "blur(8px)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            padding: 20, cursor: "zoom-out",
+          }}
+          onClick={() => setLightboxOpen(false)}
+        >
+          <div style={{ position: "relative", maxWidth: "90vw", maxHeight: "90vh" }} onClick={e => e.stopPropagation()}>
+            <img
+              src={imgSrc}
+              alt={`${kit.name} — ${kit.grade} ${kit.scale}`}
+              style={{
+                display: "block", maxWidth: "90vw", maxHeight: "85vh",
+                objectFit: "contain", border: "1px solid rgba(255,255,255,0.08)",
+                background: "#0a0e14",
+              }}
+            />
+            <div style={{
+              textAlign: "center", marginTop: 12,
+              fontFamily: "'Share Tech Mono',monospace", fontSize: "0.6rem",
+              color: "var(--text-dim, #5a7a9f)", letterSpacing: "1.5px",
+            }}>
+              {kit.grade} {kit.scale} · {kit.name}
+            </div>
+            <button
+              onClick={() => setLightboxOpen(false)}
+              style={{
+                position: "absolute", top: -14, right: -14,
+                width: 32, height: 32, borderRadius: "50%",
+                background: "rgba(0,5,18,0.85)", border: "1px solid rgba(255,255,255,0.15)",
+                color: "#fff", fontSize: "1rem", cursor: "pointer",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontFamily: "'Share Tech Mono',monospace",
+              }}
+              aria-label="Close"
+            >✕</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

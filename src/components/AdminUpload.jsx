@@ -82,6 +82,32 @@ export default function AdminUpload() {
   const [xpUserId, setXpUserId]   = useState("");
   const [xpAmount, setXpAmount]   = useState("500");
   const [xpGrantStatus, setXpGrantStatus] = useState(null);
+  const [userSearchResults, setUserSearchResults] = useState([]);
+  const [userSearchLoading, setUserSearchLoading] = useState(false);
+  const userSearchTimer = useRef(null);
+
+  const searchUsers = (query) => {
+    setXpUserId(query);
+    setUserSearchResults([]);
+    if (userSearchTimer.current) clearTimeout(userSearchTimer.current);
+    if (query.trim().length < 2) return;
+    userSearchTimer.current = setTimeout(async () => {
+      setUserSearchLoading(true);
+      try {
+        const res = await fetch(`/api/admin/users?q=${encodeURIComponent(query.trim())}`, {
+          headers: { "X-Admin-Key": adminKey },
+        });
+        const data = await res.json();
+        if (Array.isArray(data.users)) setUserSearchResults(data.users);
+      } catch (_) { }
+      setUserSearchLoading(false);
+    }, 300);
+  };
+
+  const selectUser = (user) => {
+    setXpUserId(user.id);
+    setUserSearchResults([]);
+  };
 
   const grantXP = async () => {
     if (!xpUserId.trim() || !xpAmount) return;
@@ -378,11 +404,31 @@ export default function AdminUpload() {
          ═══════════════════════════════════════════════════════ */}
       <div style={S.section}>
         <div style={S.sectionTitle}>◈ GRANT XP — ADMIN TEST TOOL</div>
-        <div style={S.note}>Credit XP to any user by their Clerk user ID. Use this to test the sprite shop without waiting to earn XP naturally.</div>
+        <div style={S.note}>Credit XP to any user by their internal user ID. Use this to test the sprite shop without waiting to earn XP naturally.</div>
         <div style={{ display: "flex", gap: 10, alignItems: "flex-end", flexWrap: "wrap" }}>
-          <div style={{ flex: 2, minWidth: 200 }}>
-            <div style={{ fontSize: "0.5rem", color: "#5a7a9f", letterSpacing: "1px", marginBottom: 4 }}>CLERK USER ID</div>
-            <input value={xpUserId} onChange={e => setXpUserId(e.target.value)} placeholder="user_2abc123..." style={{ ...S.input, marginBottom: 0 }} />
+          <div style={{ flex: 2, minWidth: 200, position: "relative" }}>
+            <div style={{ fontSize: "0.5rem", color: "#5a7a9f", letterSpacing: "1px", marginBottom: 4 }}>USER (SEARCH BY EMAIL OR ID)</div>
+            <input value={xpUserId} onChange={e => searchUsers(e.target.value)} placeholder="Search email or paste user ID..." style={{ ...S.input, marginBottom: 0 }} />
+            {(userSearchResults.length > 0 || userSearchLoading) && (
+              <div style={{ position: "absolute", top: "100%", left: 0, right: 0, zIndex: 10, background: "#0a1220", border: "1px solid #1a2f50", maxHeight: 180, overflowY: "auto", marginTop: 2 }}>
+                {userSearchLoading && (
+                  <div style={{ padding: "8px 12px", fontSize: "0.6rem", color: "#5a7a9f", letterSpacing: "1px" }}>Searching...</div>
+                )}
+                {userSearchResults.map(u => (
+                  <div key={u.id} onClick={() => selectUser(u)}
+                    style={{ padding: "8px 12px", cursor: "pointer", borderBottom: "1px solid #111a2a", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, transition: "background 0.15s" }}
+                    onMouseEnter={e => e.currentTarget.style.background = "rgba(0,170,255,0.08)"}
+                    onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                  >
+                    <div>
+                      <div style={{ fontSize: "0.65rem", color: "#c8ddf5" }}>{u.email}</div>
+                      <div style={{ fontSize: "0.5rem", color: "#5a7a9f" }}>{u.display_name || "—"}</div>
+                    </div>
+                    <div style={{ fontSize: "0.45rem", color: "#2a4060", fontFamily: "'Share Tech Mono',monospace" }}>#{u.id}</div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
           <div style={{ width: 120 }}>
             <div style={{ fontSize: "0.5rem", color: "#5a7a9f", letterSpacing: "1px", marginBottom: 4 }}>AMOUNT</div>
@@ -400,7 +446,7 @@ export default function AdminUpload() {
           </div>
         )}
         <div style={{ ...S.note, marginTop: 12, opacity: 0.5 }}>
-          ⓘ Find your Clerk user ID in the Clerk dashboard → Users, or check your browser's DevTools network tab after logging in (look for <code style={S.code}>userId</code>).
+          ⓘ Type an email to search registered users, or paste a user ID directly. Check the <code style={S.code}>user_auth</code> table in D1 if needed.
         </div>
       </div>
 
