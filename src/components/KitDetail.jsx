@@ -1574,6 +1574,97 @@ export default function KitDetail({
       {/* ── COMMENTS ─────────────────────────────────────────── */}
       <CommentSection kitId={kit.id} isSignedIn={isSignedIn} user={user} />
 
+      {/* ── RELATED KITS — internal linking for SEO ────────── */}
+      {(() => {
+        // Same grade first, exclude current kit
+        const sameGrade = allKits.filter(k => k.grade === kit.grade && k.id !== kit.id);
+        let related = sameGrade.sort(() => 0.5 - Math.random()).slice(0, 6);
+        // If fewer than 3 same-grade, fill with other kits
+        if (related.length < 3) {
+          const others = allKits.filter(k => k.id !== kit.id && !related.find(r => r.id === k.id))
+            .sort(() => 0.5 - Math.random()).slice(0, 6 - related.length);
+          related = [...related, ...others];
+        }
+        if (related.length === 0) return null;
+        const accent = gc(kit.grade);
+        return (
+          <div style={{ marginTop: 32, paddingTop: 24, borderTop: "1px solid var(--border, #1a2f50)" }}>
+            <div className="section-header" style={{ padding: "0 0 16px" }}>
+              <span className="section-title">MORE {kit.grade} KITS</span>
+              <div className="section-line" />
+            </div>
+            <div style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
+              gap: 10,
+            }}>
+              {related.map(r => {
+                const rc = gc(r.grade);
+                return (
+                  <div
+                    key={r.id}
+                    onClick={() => navigate(`/kit/${slugify(r)}`)}
+                    style={{
+                      cursor: "pointer",
+                      background: "var(--card-bg, #0d1926)",
+                      border: "1px solid var(--border, #1a2f50)",
+                      borderTop: `3px solid ${rc.accent}`,
+                      padding: "12px 10px",
+                      transition: "border-color 0.2s",
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.borderColor = rc.accent}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border, #1a2f50)"; e.currentTarget.style.borderTop = `3px solid ${rc.accent}`; }}
+                  >
+                    <div style={{
+                      fontFamily: "'Share Tech Mono', monospace",
+                      fontSize: "0.5rem",
+                      letterSpacing: "2px",
+                      color: rc.accent,
+                      marginBottom: 4,
+                    }}>
+                      {r.grade} · {r.scale}
+                    </div>
+                    <div style={{
+                      fontFamily: "'Rajdhani', sans-serif",
+                      fontSize: "0.8rem",
+                      fontWeight: 700,
+                      color: "var(--text-heading, #c8ddf5)",
+                      lineHeight: 1.2,
+                      marginBottom: 6,
+                      display: "-webkit-box",
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: "vertical",
+                      overflow: "hidden",
+                    }}>
+                      {r.name}
+                    </div>
+                    {r.manuals?.length > 0 && (
+                      <div style={{
+                        fontFamily: "'Share Tech Mono', monospace",
+                        fontSize: "0.45rem",
+                        color: "var(--text-dim, #5a7a9f)",
+                        letterSpacing: "1px",
+                      }}>
+                        {r.manuals.length} MANUAL{r.manuals.length !== 1 ? "S" : ""}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{ textAlign: "center", marginTop: 16 }}>
+              <button
+                className="grade-kits-link"
+                onClick={() => navigate("/")}
+                style={{ fontSize: "0.6rem", padding: "8px 20px" }}
+              >
+                VIEW ALL KITS IN LIBRARY →
+              </button>
+            </div>
+          </div>
+        );
+      })()}
+
       {fullscreenManual && (
         <PdfFullscreenModal manual={fullscreenManual} onClose={() => setFullscreenManual(null)} />
       )}

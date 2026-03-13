@@ -2531,6 +2531,18 @@ Sitemap: https://kitvault.io/sitemap.xml`;
       <p>See how the Gunpla community rates the ${kit.name} across difficulty, detail, articulation, value, and fun factor. Compare ratings with other ${gradeName} kits to decide what to build next.</p>
     </section>
     ${kit.series ? `<section><h2>Series</h2><p>The ${kit.name} is from the ${kit.series} series. Browse other kits from this series on KitVault.</p></section>` : ""}
+    <section>
+      <h2>More ${gradeName} Kits</h2>
+      <nav>
+        <p>Browse other ${gradeName} Gunpla kits on KitVault:</p>
+        <ul>
+${results.filter(k => k.grade === kit.grade && k.id !== kit.id).slice(0, 8).map(k =>
+  `          <li><a href="https://kitvault.io/kit/${slugify(k)}">${k.grade} ${k.scale} ${k.name}</a></li>`
+).join("\n")}
+        </ul>
+        <p><a href="https://kitvault.io/grade/${gradeKey}">View all ${gradeName} kits</a> · <a href="https://kitvault.io">Browse the full library</a> · <a href="https://kitvault.io/features">KitVault features</a></p>
+      </nav>
+    </section>
   </main>
   <footer>
     <p><a href="https://kitvault.io">KitVault.io</a> — Free Gunpla build tracker, digital manual archive, and backlog manager.</p>

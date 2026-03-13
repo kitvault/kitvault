@@ -394,7 +394,7 @@
     color: rgba(255,204,0,0.4);
   }
   .hangar-xp-badge {
-    font-size: 0.45rem; background: rgba(255,204,0,0.15);
+    font-size: 0.5rem; background: rgba(255,204,0,0.15);
     padding: 1px 6px; border-radius: 1px;
   }
   /* Vault button */
@@ -1562,7 +1562,7 @@
     .header { padding: 0 12px; min-height: auto; }
     .logo { font-size: 1.2rem; gap: 8px; }
     .logo-icon { width: 30px; height: 30px; font-size: 0.85rem; }
-    .logo-sub { font-size: 0.42rem; letter-spacing: 2px; }
+    .logo-sub { font-size: 0.5rem; letter-spacing: 2px; }
     .header-right { gap: 6px; min-height: 56px; flex-wrap: wrap; }
     /* Push theme/profile/cog to far right on mobile */
     .hamburger-btn { order: -1; }
@@ -1702,6 +1702,13 @@
     .kit-image-section { margin: 0 16px 20px; }
     .kit-image-wrap { padding: 16px; clip-path: none; }
     .kit-image { height: 220px; }
+
+    /* Vault grid: single column on mobile to prevent overflow */
+    .vault-grid {
+      padding: 0 16px 40px;
+      grid-template-columns: 1fr;
+      gap: 14px;
+    }
 
     /* Footer */
     .footer {
@@ -2210,13 +2217,13 @@
     }
     .hero-stat-block:last-child { border-right: none; }
     .hero-stat-val { font-size: 1.1rem; letter-spacing: 1px; margin-bottom: 5px; }
-    .hero-stat-lbl { font-size: 0.42rem; letter-spacing: 1px; }
+    .hero-stat-lbl { font-size: 0.55rem; letter-spacing: 1px; }
 
     .hero-recent-grid { gap: 6px; }
     .hero-recent-card { width: 80px; }
     .hero-recent-img { height: 70px; }
     .hero-recent-kit { font-size: 0.65rem; }
-    .hero-recent-user { font-size: 0.45rem; }
+    .hero-recent-user { font-size: 0.5rem; }
 
     .hero-slide-arrow { width: 26px; height: 40px; font-size: 1.1rem; }
     .hero-slide-arrow.left  { left: 4px; }

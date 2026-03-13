@@ -668,7 +668,7 @@ export default function Gallery({ allKits, effectiveUser, effectiveSignedIn: sig
                 <div key={post.id} style={S.card} onClick={() => setSelectedPost(post)}
                   onMouseEnter={e => e.currentTarget.style.borderColor = c.accent}
                   onMouseLeave={e => e.currentTarget.style.borderColor = "var(--border, #1a2f50)"}>
-                  {firstImg && <img src={firstImg} alt={`${post.kit_grade} ${post.kit_scale} ${post.kit_name} by ${post.username}`} style={S.cardImg} />}
+                  {firstImg && <img src={firstImg} alt={`${post.kit_grade} ${post.kit_scale} ${post.kit_name} by ${post.username}`} style={S.cardImg} loading="lazy" />}
                   <div style={{height:3,background:c.accent}} />
                   <div style={S.cardBody}>
                     <div style={{...S.cardGrade, color: c.accent}}>{post.kit_grade} · {post.kit_scale}</div>
@@ -676,7 +676,7 @@ export default function Gallery({ allKits, effectiveUser, effectiveSignedIn: sig
                     {post.caption && <div style={S.cardCaption}>{post.caption.length > 100 ? post.caption.slice(0, 100) + "..." : post.caption}</div>}
                     <div style={S.cardFooter}>
                       <div style={S.cardUser}>
-                        {post.avatar_url && <img src={post.avatar_url} alt="" style={S.cardAvatar} />}
+                        {post.avatar_url && <img src={post.avatar_url} alt="" style={S.cardAvatar} loading="lazy" />}
                         <span>{post.username}</span>
                         <span>· {timeAgo(post.created_at)}</span>
                       </div>
