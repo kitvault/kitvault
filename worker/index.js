@@ -2176,6 +2176,294 @@ export default {
       }
     }
 
+    // ══════════════════════════════════════════════════════════
+    // SEO — BOT PRE-RENDERING FOR /kit/:slug
+    // ══════════════════════════════════════════════════════════
+
+    // Slugify — must match frontend grades.js exactly
+    function slugify(kitOrName) {
+      const raw = typeof kitOrName === "string"
+        ? kitOrName
+        : `${kitOrName.grade}-${kitOrName.scale}-${kitOrName.name}`;
+      return raw
+        .toLowerCase()
+        .replace(/\//g, "-")
+        .replace(/[^a-z0-9-]/g, "-")
+        .replace(/-+/g, "-")
+        .replace(/^-|-$/g, "");
+    }
+
+    // Detect search engine crawlers
+    function isBot(request) {
+      const ua = (request.headers.get("User-Agent") || "").toLowerCase();
+      return /googlebot|bingbot|slurp|duckduckbot|baiduspider|yandexbot|facebot|twitterbot|linkedinbot|discordbot|telegrambot|whatsapp|applebot|semrushbot|ahrefsbot|mj12bot|rogerbot|dotbot|petalbot/.test(ua);
+    }
+
+    // Grade display names for meta descriptions
+    const GRADE_NAMES = {
+      hg: "High Grade", mg: "Master Grade", rg: "Real Grade",
+      pg: "Perfect Grade", sd: "Super Deformed", eg: "Entry Grade",
+      mgsd: "Master Grade SD",
+    };
+
+    // ── GET /sitemap.xml — Auto-generated sitemap from D1 ──
+    if (path === "/sitemap.xml" && request.method === "GET") {
+      try {
+        const { results } = await env.DB.prepare(
+          "SELECT grade, scale, name, created_at FROM kits ORDER BY created_at DESC"
+        ).all();
+
+        const BASE = "https://kitvault.io";
+
+        // Static pages with their priority and change frequency
+        const staticPages = [
+          { loc: "/", priority: "1.0", changefreq: "daily" },
+          { loc: "/gallery", priority: "0.8", changefreq: "daily" },
+          { loc: "/vault", priority: "0.7", changefreq: "weekly" },
+          { loc: "/resources", priority: "0.6", changefreq: "monthly" },
+          { loc: "/support", priority: "0.5", changefreq: "monthly" },
+        ];
+
+        // Grade pages
+        const gradePages = ["hg", "mg", "rg", "pg", "sd", "eg", "mgsd"].map(g => ({
+          loc: `/grade/${g}`,
+          priority: "0.7",
+          changefreq: "weekly",
+        }));
+
+        // Kit pages from D1
+        const kitPages = (results || []).map(kit => {
+          const slug = slugify(kit);
+          const date = kit.created_at
+            ? new Date(kit.created_at * 1000).toISOString().split("T")[0]
+            : new Date().toISOString().split("T")[0];
+          return {
+            loc: `/kit/${slug}`,
+            priority: "0.8",
+            changefreq: "weekly",
+            lastmod: date,
+          };
+        });
+
+        const allPages = [...staticPages, ...gradePages, ...kitPages];
+
+        const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${allPages.map(p => `  <url>
+    <loc>${BASE}${p.loc}</loc>
+    ${p.lastmod ? `<lastmod>${p.lastmod}</lastmod>` : ""}
+    <changefreq>${p.changefreq}</changefreq>
+    <priority>${p.priority}</priority>
+  </url>`).join("\n")}
+</urlset>`;
+
+        return new Response(xml, {
+          status: 200,
+          headers: {
+            "Content-Type": "application/xml; charset=UTF-8",
+            "Cache-Control": "public, max-age=3600, s-maxage=86400",
+          },
+        });
+      } catch (err) {
+        return new Response(`<!-- Sitemap error: ${err.message} -->`, {
+          status: 500, headers: { "Content-Type": "application/xml" },
+        });
+      }
+    }
+
+    // ── GET /robots.txt — Search engine directives + sitemap reference ──
+    if (path === "/robots.txt" && request.method === "GET") {
+      const robotsTxt = `User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /api/
+
+Sitemap: https://kitvault.io/sitemap.xml`;
+
+      return new Response(robotsTxt, {
+        status: 200,
+        headers: {
+          "Content-Type": "text/plain; charset=UTF-8",
+          "Cache-Control": "public, max-age=86400",
+        },
+      });
+    }
+
+    // ── GET /api/kit-by-slug/:slug — Resolve a kit + manuals by URL slug ──
+    if (request.method === "GET" && path.startsWith("/api/kit-by-slug/")) {
+      try {
+        const slug = path.replace("/api/kit-by-slug/", "");
+        if (!slug) {
+          return new Response(JSON.stringify({ ok: false, error: "Missing slug" }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Fetch all kits and match by slug (D1 has no slug column, so we compute it)
+        const { results } = await env.DB.prepare(`
+          SELECT k.id, k.grade, k.scale, k.name, k.series, k.image_url, k.amazon_asin,
+            json_group_array(json_object(
+              'id', m.id, 'kit_id', m.kit_id, 'name', m.name,
+              'url', m.url, 'lang', m.lang, 'pages', m.pages, 'size', m.size
+            )) as manuals
+          FROM kits k
+          LEFT JOIN manuals m ON m.kit_id = k.id
+          GROUP BY k.id
+        `).all();
+
+        const kit = results.find(k => slugify(k) === slug);
+        if (!kit) {
+          return new Response(JSON.stringify({ ok: false, error: "Kit not found" }), {
+            status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        kit.manuals = JSON.parse(kit.manuals).filter(m => m.id !== null);
+
+        // Get community rating
+        const ratingRow = await env.DB.prepare(
+          `SELECT AVG(difficulty) as difficulty, AVG(articulation) as articulation,
+                  AVG(detail) as detail, AVG(fun_factor) as fun_factor,
+                  AVG(value) as value, COUNT(*) as count
+           FROM kit_ratings WHERE kit_id = ?`
+        ).bind(kit.id).first();
+
+        kit.community_rating = ratingRow?.count > 0 ? {
+          difficulty: Math.round((ratingRow.difficulty || 0) * 10) / 10,
+          articulation: Math.round((ratingRow.articulation || 0) * 10) / 10,
+          detail: Math.round((ratingRow.detail || 0) * 10) / 10,
+          fun_factor: Math.round((ratingRow.fun_factor || 0) * 10) / 10,
+          value: Math.round((ratingRow.value || 0) * 10) / 10,
+          count: ratingRow.count,
+        } : null;
+
+        return new Response(JSON.stringify({ ok: true, kit }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch (err) {
+        return new Response(JSON.stringify({ ok: false, error: err.message }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
+    // ── Bot pre-rendering for /kit/:slug pages ──
+    if (path.startsWith("/kit/") && isBot(request)) {
+      try {
+        const slug = path.replace("/kit/", "").replace(/\/$/, "");
+        if (!slug) {
+          return new Response("Not found", { status: 404 });
+        }
+
+        // Find the kit by computed slug
+        const { results } = await env.DB.prepare(`
+          SELECT k.id, k.grade, k.scale, k.name, k.series, k.image_url,
+            COUNT(m.id) as manual_count
+          FROM kits k
+          LEFT JOIN manuals m ON m.kit_id = k.id
+          WHERE 1=1
+          GROUP BY k.id
+        `).all();
+
+        const kit = results.find(k => slugify(k) === slug);
+        if (!kit) {
+          return new Response("Not found", { status: 404 });
+        }
+
+        // Get community rating for structured data
+        const ratingRow = await env.DB.prepare(
+          `SELECT AVG(fun_factor) as avg_score, COUNT(*) as count FROM kit_ratings WHERE kit_id = ?`
+        ).bind(kit.id).first();
+
+        const gradeKey = kit.grade.toLowerCase();
+        const gradeName = GRADE_NAMES[gradeKey] || kit.grade;
+        const displayTitle = `${kit.grade} ${kit.scale} ${kit.name}`;
+        const pageTitle = `${displayTitle} — Digital Manual & Build Tracker | KitVault`;
+        const metaDesc = `Track your build progress on the ${displayTitle}. View the full digital manual, log build hours, earn XP, and manage your backlog — all free on KitVault.`;
+        const canonicalUrl = `https://kitvault.io/kit/${slug}`;
+        const imageUrl = kit.image_url || "https://kitvault.io/og-default.png";
+
+        // Build JSON-LD structured data
+        const jsonLd = {
+          "@context": "https://schema.org",
+          "@type": "Product",
+          name: displayTitle,
+          description: metaDesc,
+          image: imageUrl,
+          brand: { "@type": "Brand", name: "Bandai" },
+          category: `Gunpla > ${gradeName}`,
+          url: canonicalUrl,
+        };
+        if (ratingRow?.count > 0) {
+          jsonLd.aggregateRating = {
+            "@type": "AggregateRating",
+            ratingValue: Math.round((ratingRow.avg_score || 0) * 10) / 10,
+            bestRating: 10,
+            ratingCount: ratingRow.count,
+          };
+        }
+
+        const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${pageTitle}</title>
+  <meta name="description" content="${metaDesc}">
+  <link rel="canonical" href="${canonicalUrl}">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="product">
+  <meta property="og:title" content="${pageTitle}">
+  <meta property="og:description" content="${metaDesc}">
+  <meta property="og:url" content="${canonicalUrl}">
+  <meta property="og:image" content="${imageUrl}">
+  <meta property="og:site_name" content="KitVault">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="${pageTitle}">
+  <meta name="twitter:description" content="${metaDesc}">
+  <meta name="twitter:image" content="${imageUrl}">
+
+  <!-- JSON-LD Structured Data -->
+  <script type="application/ld+json">${JSON.stringify(jsonLd)}</script>
+</head>
+<body>
+  <header>
+    <h1>${displayTitle}</h1>
+    <p>${gradeName} — ${kit.scale} Scale</p>
+  </header>
+  <main>
+    <section>
+      <h2>Build Progress Tracker</h2>
+      <p>Track your build from unboxing to completion. Log build hours, mark steps complete, and earn XP as you go.</p>
+    </section>
+    <section>
+      <h2>Digital Manual</h2>
+      <p>View the full ${kit.manual_count > 0 ? kit.manual_count : ""} digital instruction manual${kit.manual_count !== 1 ? "s" : ""} for the ${displayTitle} right in your browser. No downloads required.</p>
+    </section>
+    <section>
+      <h2>Community Ratings</h2>
+      <p>See how the Gunpla community rates the ${kit.name} across difficulty, detail, articulation, value, and fun factor.</p>
+    </section>
+    ${kit.series ? `<section><h2>Series</h2><p>${kit.series}</p></section>` : ""}
+  </main>
+  <footer>
+    <p><a href="https://kitvault.io">KitVault.io</a> — The Gunpla build tracker and manual archive.</p>
+  </footer>
+</body>
+</html>`;
+
+        return new Response(html, {
+          status: 200,
+          headers: { "Content-Type": "text/html; charset=UTF-8", "Cache-Control": "public, max-age=3600, s-maxage=86400" },
+        });
+      } catch (err) {
+        // If bot rendering fails, fall through to SPA
+      }
+    }
+
     return new Response(JSON.stringify({ error: "Not found" }), {
       status: 404,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
