@@ -108,7 +108,7 @@ export default function LoginModal({ onClose, onLogin, onSignup, onGoogleLogin }
         <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: "0.65rem", color: "#00aaff", letterSpacing: "3px", marginBottom: 16 }}>◈ KITVAULT ACCOUNT</div>
 
         {/* Google Sign-In Button */}
-        <div ref={googleBtnRef} style={{ display: "flex", justifyContent: "center", marginBottom: 20 }} />
+        <div ref={googleBtnRef} style={{ display: "flex", justifyContent: "center", marginBottom: 20, borderRadius: 4, overflow: "hidden" }} />
 
         {/* Divider */}
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
