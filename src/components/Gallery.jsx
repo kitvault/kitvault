@@ -233,7 +233,7 @@ function UploadModal({ allKits, onClose, onUploaded, user }) {
           <div style={S.previewRow}>
             {previews.map((src, i) => (
               <div key={i} style={{position:"relative"}}>
-                <img src={src} alt="" style={S.previewThumb} />
+                <img src={src} alt="Upload preview" style={S.previewThumb} />
                 <button style={S.previewRemove} onClick={() => removeFile(i)}>✕</button>
               </div>
             ))}
@@ -323,7 +323,7 @@ function PostDetail({ post, onClose, onRefresh, userLikes, toggleLike, user, isS
       <div style={S.detailModal} onClick={e => e.stopPropagation()}>
         {/* Image viewer */}
         <div style={S.detailImgWrap}>
-          {images[imgIdx] && <img src={images[imgIdx]} alt="" style={S.detailImg} />}
+          {images[imgIdx] && <img src={images[imgIdx]} alt={`${post.kit_grade} ${post.kit_scale} ${post.kit_name} by ${post.username}`} style={S.detailImg} />}
           {images.length > 1 && (
             <>
               <button style={{...S.detailNav, left: 0}} onClick={() => setImgIdx(i => (i - 1 + images.length) % images.length)}>‹</button>
@@ -668,7 +668,7 @@ export default function Gallery({ allKits, effectiveUser, effectiveSignedIn: sig
                 <div key={post.id} style={S.card} onClick={() => setSelectedPost(post)}
                   onMouseEnter={e => e.currentTarget.style.borderColor = c.accent}
                   onMouseLeave={e => e.currentTarget.style.borderColor = "var(--border, #1a2f50)"}>
-                  {firstImg && <img src={firstImg} alt="" style={S.cardImg} />}
+                  {firstImg && <img src={firstImg} alt={`${post.kit_grade} ${post.kit_scale} ${post.kit_name} by ${post.username}`} style={S.cardImg} />}
                   <div style={{height:3,background:c.accent}} />
                   <div style={S.cardBody}>
                     <div style={{...S.cardGrade, color: c.accent}}>{post.kit_grade} · {post.kit_scale}</div>

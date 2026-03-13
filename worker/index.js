@@ -2218,6 +2218,7 @@ export default {
         // Static pages with their priority and change frequency
         const staticPages = [
           { loc: "/", priority: "1.0", changefreq: "daily" },
+          { loc: "/features", priority: "0.9", changefreq: "monthly" },
           { loc: "/gallery", priority: "0.8", changefreq: "daily" },
           { loc: "/vault", priority: "0.7", changefreq: "weekly" },
           { loc: "/resources", priority: "0.6", changefreq: "monthly" },
@@ -2347,6 +2348,72 @@ Sitemap: https://kitvault.io/sitemap.xml`;
       }
     }
 
+    // ── Bot pre-rendering for /features landing page ──
+    if (path === "/features" && isBot(request)) {
+      const featTitle = "Features — Free Gunpla Build Tracker & Manual Archive | KitVault";
+      const featDesc = "Track your Gunpla backlog, log build hours with a built-in timer, browse free digital Gundam manuals, and manage your kit collection. KitVault is the best free Gunpla building app.";
+      const featUrl = "https://kitvault.io/features";
+
+      const featHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${featTitle}</title>
+  <meta name="description" content="${featDesc}">
+  <link rel="canonical" href="${featUrl}">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="${featTitle}">
+  <meta property="og:description" content="${featDesc}">
+  <meta property="og:url" content="${featUrl}">
+  <meta property="og:site_name" content="KitVault">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="${featTitle}">
+  <meta name="twitter:description" content="${featDesc}">
+</head>
+<body>
+  <header>
+    <h1>The Free Gunpla Building App</h1>
+    <p>Track your backlog, log build hours, and browse digital Gundam manuals — all in one place.</p>
+  </header>
+  <main>
+    <section>
+      <h2>Free Digital Gundam Manual Archive</h2>
+      <p>Browse hundreds of Gunpla assembly manuals directly in your browser. Every grade from Entry Grade to Perfect Grade, all in one searchable archive. No downloads required — view any manual page while you build.</p>
+    </section>
+    <section>
+      <h2>Track Your Gunpla Backlog</h2>
+      <p>Organize your entire Gunpla collection. Mark kits as backlog, in-progress, or complete. See everything you own at a glance and decide what to build next. Your vault syncs across devices.</p>
+    </section>
+    <section>
+      <h2>Gunpla Build Timer and Hour Logger</h2>
+      <p>Log your build hours per kit with a built-in timer. Start when you sit down, pause when you take a break, and see your total build time grow. Compare times with the community and track progress across every kit.</p>
+    </section>
+    <section>
+      <h2>Step-by-Step Build Progress Tracking</h2>
+      <p>Track your build page by page through the manual. Mark steps complete, see your progress percentage climb, and earn XP as you go. KitVault gives you a clear picture of where you are in every build.</p>
+    </section>
+    <section>
+      <h2>Community Ratings and Reviews</h2>
+      <p>Rate kits across difficulty, articulation, detail, fun factor, and value. See community scores before you buy. Find the best Gunpla kits for beginners or advanced builders.</p>
+    </section>
+    <section>
+      <h2>Share Your Completed Builds</h2>
+      <p>Upload photos of finished kits to the community gallery. Browse what other builders are completing, leave comments, and get inspired for your next build.</p>
+    </section>
+  </main>
+  <footer>
+    <p><a href="https://kitvault.io">KitVault.io</a> — Free Gunpla build tracker, digital manual archive, and backlog manager.</p>
+  </footer>
+</body>
+</html>`;
+
+      return new Response(featHtml, {
+        status: 200,
+        headers: { "Content-Type": "text/html; charset=UTF-8", "Cache-Control": "public, max-age=3600, s-maxage=86400" },
+      });
+    }
+
     // ── Bot pre-rendering for /kit/:slug pages ──
     if (path.startsWith("/kit/") && isBot(request)) {
       try {
@@ -2379,9 +2446,21 @@ Sitemap: https://kitvault.io/sitemap.xml`;
         const gradeName = GRADE_NAMES[gradeKey] || kit.grade;
         const displayTitle = `${kit.grade} ${kit.scale} ${kit.name}`;
         const pageTitle = `${displayTitle} — Digital Manual & Build Tracker | KitVault`;
-        const metaDesc = `Track your build progress on the ${displayTitle}. View the full digital manual, log build hours, earn XP, and manage your backlog — all free on KitVault.`;
         const canonicalUrl = `https://kitvault.io/kit/${slug}`;
         const imageUrl = kit.image_url || "https://kitvault.io/og-default.png";
+
+        // Grade-aware meta descriptions with long-tail keywords
+        const gradeDescriptions = {
+          pg: `View the free digital manual for the ${displayTitle} and track your Perfect Grade build from start to finish. Log build hours, manage your Gunpla backlog, and earn XP on KitVault.`,
+          mg: `Free digital manual and build tracker for the ${displayTitle}. Log your Master Grade build time, track progress step by step, and manage your Gunpla backlog on KitVault.`,
+          rg: `Track your ${displayTitle} build with a free digital manual viewer and build timer. Real Grade detail deserves a real build log — manage your Gunpla backlog on KitVault.`,
+          hg: `Free ${displayTitle} digital manual and build tracker. Track your High Grade build progress, log build hours, and manage your Gunpla backlog — all free on KitVault.`,
+          eg: `${displayTitle} digital manual and build tracker. Perfect for your first Gunpla build — track progress, log build time, and manage your backlog free on KitVault.`,
+          sd: `Free digital manual for the ${displayTitle}. Track your Super Deformed build, log hours, and manage your Gunpla backlog on KitVault — the free Gunpla building app.`,
+          mgsd: `View the free digital manual for the ${displayTitle}. Track your MGSD build progress, log build time, and manage your Gunpla backlog on KitVault.`,
+        };
+        const metaDesc = gradeDescriptions[gradeKey]
+          || `Free digital manual and build tracker for the ${displayTitle}. Log build hours, track progress, and manage your Gunpla backlog on KitVault.`;
 
         // Build JSON-LD structured data
         const jsonLd = {
@@ -2432,25 +2511,29 @@ Sitemap: https://kitvault.io/sitemap.xml`;
 <body>
   <header>
     <h1>${displayTitle}</h1>
-    <p>${gradeName} — ${kit.scale} Scale</p>
+    <p>${gradeName} — ${kit.scale} Scale Gunpla Model Kit by Bandai</p>
   </header>
   <main>
     <section>
+      <h2>Free Digital Manual for ${kit.name}</h2>
+      <p>View the complete ${kit.manual_count > 0 ? kit.manual_count : ""} digital instruction manual${kit.manual_count !== 1 ? "s" : ""} for the ${displayTitle} directly in your browser. Browse every page of the Gundam manual online — no downloads or PDFs required. KitVault hosts a growing archive of Gunpla manuals for every grade.</p>
+    </section>
+    <section>
       <h2>Build Progress Tracker</h2>
-      <p>Track your build from unboxing to completion. Log build hours, mark steps complete, and earn XP as you go.</p>
+      <p>Track your ${displayTitle} build from unboxing to completion. Use the built-in Gunpla build timer to log your hours, mark manual steps complete, and earn XP as you build. Whether this kit is in your backlog or currently on your desk, KitVault helps you manage your entire Gunpla collection.</p>
     </section>
     <section>
-      <h2>Digital Manual</h2>
-      <p>View the full ${kit.manual_count > 0 ? kit.manual_count : ""} digital instruction manual${kit.manual_count !== 1 ? "s" : ""} for the ${displayTitle} right in your browser. No downloads required.</p>
+      <h2>Gunpla Backlog Manager</h2>
+      <p>Add the ${kit.name} to your backlog, mark it as in-progress, or log it as complete. KitVault is a free Gunpla building app that lets you track every kit you own, want, or have finished — all in one place.</p>
     </section>
     <section>
-      <h2>Community Ratings</h2>
-      <p>See how the Gunpla community rates the ${kit.name} across difficulty, detail, articulation, value, and fun factor.</p>
+      <h2>Community Ratings &amp; Reviews</h2>
+      <p>See how the Gunpla community rates the ${kit.name} across difficulty, detail, articulation, value, and fun factor. Compare ratings with other ${gradeName} kits to decide what to build next.</p>
     </section>
-    ${kit.series ? `<section><h2>Series</h2><p>${kit.series}</p></section>` : ""}
+    ${kit.series ? `<section><h2>Series</h2><p>The ${kit.name} is from the ${kit.series} series. Browse other kits from this series on KitVault.</p></section>` : ""}
   </main>
   <footer>
-    <p><a href="https://kitvault.io">KitVault.io</a> — The Gunpla build tracker and manual archive.</p>
+    <p><a href="https://kitvault.io">KitVault.io</a> — Free Gunpla build tracker, digital manual archive, and backlog manager.</p>
   </footer>
 </body>
 </html>`;

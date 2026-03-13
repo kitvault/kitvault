@@ -489,7 +489,7 @@ function BuildPhotos({ kitId, isSignedIn, user }) {
             <div key={photo.id} style={{ position: "relative", aspectRatio: "1", overflow: "hidden", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.06)", cursor: "pointer" }}>
               <img
                 src={photo.image_url}
-                alt="Build photo"
+                alt={`${kit.grade} ${kit.scale} ${kit.name} build photo`}
                 style={{ width: "100%", height: "100%", objectFit: "cover" }}
                 loading="lazy"
                 onClick={() => setViewPhoto(photo)}
@@ -554,7 +554,7 @@ function BuildPhotos({ kitId, isSignedIn, user }) {
         >
           <img
             src={viewPhoto.image_url}
-            alt="Build photo"
+            alt={`${kit.grade} ${kit.scale} ${kit.name} build photo`}
             style={{ maxWidth: "90vw", maxHeight: "90vh", objectFit: "contain" }}
             onClick={e => e.stopPropagation()}
           />
@@ -638,7 +638,7 @@ function CommunityBuilds({ kitId, kitName }) {
       {viewImg && (
         <div style={CB.overlay} onClick={() => setViewImg(null)}>
           <div onClick={e => e.stopPropagation()} style={{ textAlign: "center" }}>
-            <img src={viewImg.src} alt="" style={CB.fullImg} />
+            <img src={viewImg.src} alt={`${kitName} build by ${viewImg.username}`} style={CB.fullImg} />
             <div style={{ marginTop: 12, fontSize: "0.65rem", color: "#9ab0cc", fontFamily: "'Share Tech Mono',monospace" }}>
               {viewImg.caption && <div style={{ marginBottom: 4 }}>{viewImg.caption}</div>}
               <div style={{ fontSize: "0.55rem", color: "var(--text-dim,#5a7a9f)" }}>

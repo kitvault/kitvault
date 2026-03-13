@@ -24,6 +24,7 @@ import KitDetail from "./components/KitDetail.jsx";
 import ToolPage from "./components/ToolPage.jsx";
 import Gallery from "./components/Gallery.jsx";
 import Hangar from "./components/Hangar.jsx";
+import FeaturesPage from "./components/FeaturesPage.jsx";
 
 // SEO
 import useSEO, { SEO, kitSEO, gradeSEO, toolSEO, hangarSEO } from "./hooks/useSEO.js";
@@ -708,6 +709,7 @@ export default function KitVault() {
     if (p === "/support") return SEO.support;
     if (p === "/disclaimer") return SEO.disclaimer;
     if (p === "/admin") return SEO.admin;
+    if (p === "/features") return SEO.features;
     if (p.startsWith("/kit/")) {
       const slug = p.replace("/kit/", "");
       const kit = allKits.find(k => slugify(k) === slug);
@@ -1678,6 +1680,9 @@ export default function KitVault() {
                 </div>
               </>
             } />
+
+            {/* ===== FEATURES / LANDING PAGE ===== */}
+            <Route path="/features" element={<FeaturesPage allKitsCount={allKits.length} />} />
 
             {/* ===== GALLERY PAGE ===== */}
             <Route path="/gallery" element={<Gallery allKits={allKits} effectiveUser={effectiveSignedIn ? { id: effectiveUserId, email: userEmail, fullName: userDisplayName, firstName: userDisplayName, username: userEmail, imageUrl: userAvatarUrl } : null} effectiveSignedIn={effectiveSignedIn} />} />
