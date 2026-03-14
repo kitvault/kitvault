@@ -120,6 +120,33 @@ export default {
       return Array.from(bytes).map(b => b.toString(16).padStart(2, "0")).join("");
     }
 
+    // ══════════════════════════════════════════════════════════
+    // RATE LIMITING (D1-based)
+    // ══════════════════════════════════════════════════════════
+
+    // Check + increment rate limit. Returns { allowed: bool, remaining: int, retryAfterSecs: int }
+    // key: e.g. "login:user@email.com" or "forgot:1.2.3.4"
+    // maxAttempts: max allowed in the window
+    // windowSecs: sliding window in seconds
+    async function checkRateLimit(db, key, maxAttempts, windowSecs) {
+      const now = Math.floor(Date.now() / 1000);
+      const windowStart = now - windowSecs;
+
+      // Clean up expired entries and count recent attempts in one go
+      await db.prepare("DELETE FROM rate_limits WHERE key = ? AND attempted_at < ?").bind(key, windowStart).run();
+      const countRow = await db.prepare("SELECT COUNT(*) as cnt, MIN(attempted_at) as oldest FROM rate_limits WHERE key = ?").bind(key).first();
+      const count = countRow?.cnt || 0;
+
+      if (count >= maxAttempts) {
+        const retryAfter = (countRow.oldest + windowSecs) - now;
+        return { allowed: false, remaining: 0, retryAfterSecs: Math.max(retryAfter, 1) };
+      }
+
+      // Record this attempt
+      await db.prepare("INSERT INTO rate_limits (key, attempted_at) VALUES (?, ?)").bind(key, now).run();
+      return { allowed: true, remaining: maxAttempts - count - 1, retryAfterSecs: 0 };
+    }
+
     // ── Resend email helper ──
     async function sendEmail(env, to, subject, html) {
       if (!env.RESEND_API_KEY) throw new Error("RESEND_API_KEY not configured");
@@ -321,9 +348,19 @@ export default {
           });
         }
 
+        const cleanEmail = email.trim().toLowerCase();
+
+        // Rate limit: 5 attempts per email per 15 minutes
+        const rl = await checkRateLimit(env.DB, `login:${cleanEmail}`, 5, 900);
+        if (!rl.allowed) {
+          return new Response(JSON.stringify({ ok: false, error: `Too many login attempts. Try again in ${Math.ceil(rl.retryAfterSecs / 60)} minute${Math.ceil(rl.retryAfterSecs / 60) !== 1 ? "s" : ""}.` }), {
+            status: 429, headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": String(rl.retryAfterSecs) },
+          });
+        }
+
         const row = await env.DB.prepare(
           "SELECT user_id, pw_hash, pw_salt, display_name, avatar_url, email_verified FROM user_auth WHERE email = ?"
-        ).bind(email.trim().toLowerCase()).first();
+        ).bind(cleanEmail).first();
 
         if (!row) {
           return new Response(JSON.stringify({ ok: false, error: "Invalid email or password" }), {
@@ -346,9 +383,9 @@ export default {
         }
 
         const emailVerified = row.email_verified === 1 || row.email_verified === true;
-        const token = await createJWT({ userId: row.user_id, email: email.trim().toLowerCase(), displayName: row.display_name || "", avatarUrl: row.avatar_url || "", emailVerified }, env.JWT_SECRET);
+        const token = await createJWT({ userId: row.user_id, email: cleanEmail, displayName: row.display_name || "", avatarUrl: row.avatar_url || "", emailVerified }, env.JWT_SECRET);
 
-        return new Response(JSON.stringify({ ok: true, userId: row.user_id, email: email.trim().toLowerCase(), displayName: row.display_name || "", avatarUrl: row.avatar_url || "", emailVerified }), {
+        return new Response(JSON.stringify({ ok: true, userId: row.user_id, email: cleanEmail, displayName: row.display_name || "", avatarUrl: row.avatar_url || "", emailVerified }), {
           headers: { ...corsHeaders, "Content-Type": "application/json", "Set-Cookie": setAuthCookie(token, corsOrigin) },
         });
       } catch (err) {
@@ -538,39 +575,6 @@ export default {
       }
     }
 
-    // ── GET /api/auth/test-resend — Diagnostic: test Resend API connectivity ──
-    if (path === "/api/auth/test-resend" && request.method === "GET") {
-      try {
-        const keyLen = env.RESEND_API_KEY ? env.RESEND_API_KEY.length : 0;
-        const keyStart = env.RESEND_API_KEY ? env.RESEND_API_KEY.slice(0, 8) : "MISSING";
-        
-        // Try a simple API call to Resend (list domains — read-only, no email sent)
-        const res = await fetch("https://api.resend.com/domains", {
-          method: "GET",
-          headers: {
-            "Authorization": `Bearer ${env.RESEND_API_KEY}`,
-            "Accept": "application/json",
-          },
-        });
-        let text = "";
-        try { text = await res.text(); } catch (e) { text = `read error: ${e.message}`; }
-        
-        return new Response(JSON.stringify({
-          ok: true,
-          keyLength: keyLen,
-          keyStart: keyStart,
-          resendStatus: res.status,
-          resendBody: text.slice(0, 500),
-        }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      } catch (err) {
-        return new Response(JSON.stringify({ ok: false, error: err.message }), {
-          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-    }
-
     // ── POST /api/auth/resend-verification — Resend verification email ──
     if (path === "/api/auth/resend-verification" && request.method === "POST") {
       try {
@@ -659,7 +663,14 @@ export default {
           });
         }
 
-        // Rate limit
+        // Rate limit — per-email (existing) + per-IP (prevents email enumeration)
+        const clientIp = request.headers.get("CF-Connecting-IP") || "unknown";
+        const ipRl = await checkRateLimit(env.DB, `forgot-ip:${clientIp}`, 5, 900);
+        if (!ipRl.allowed) {
+          return new Response(JSON.stringify({ ok: false, error: "Too many requests. Please wait before requesting another email." }), {
+            status: 429, headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": String(ipRl.retryAfterSecs) },
+          });
+        }
         const allowed = await checkEmailRateLimit(env, cleanEmail);
         if (!allowed) {
           return new Response(JSON.stringify({ ok: false, error: "Too many requests. Please wait before requesting another email." }), {
@@ -2246,7 +2257,17 @@ export default {
           };
         });
 
-        const allPages = [...staticPages, ...gradePages, ...kitPages];
+        // Public hangar pages
+        const { results: publicHangars } = await env.DB.prepare(
+          "SELECT username FROM user_profiles WHERE is_public = 1 ORDER BY username ASC"
+        ).all();
+        const hangarPages = (publicHangars || []).map(h => ({
+          loc: `/hangar/${h.username}`,
+          priority: "0.6",
+          changefreq: "weekly",
+        }));
+
+        const allPages = [...staticPages, ...gradePages, ...kitPages, ...hangarPages];
 
         const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
@@ -2366,10 +2387,12 @@ Sitemap: https://kitvault.io/sitemap.xml`;
   <meta property="og:title" content="${featTitle}">
   <meta property="og:description" content="${featDesc}">
   <meta property="og:url" content="${featUrl}">
+  <meta property="og:image" content="https://kitvault.io/og-default.png">
   <meta property="og:site_name" content="KitVault">
-  <meta name="twitter:card" content="summary">
+  <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="${featTitle}">
   <meta name="twitter:description" content="${featDesc}">
+  <meta name="twitter:image" content="https://kitvault.io/og-default.png">
 </head>
 <body>
   <header>
@@ -2412,6 +2435,237 @@ Sitemap: https://kitvault.io/sitemap.xml`;
         status: 200,
         headers: { "Content-Type": "text/html; charset=UTF-8", "Cache-Control": "public, max-age=3600, s-maxage=86400" },
       });
+    }
+
+    // ── Bot pre-rendering for /grade/:slug pages ──
+    if (path.match(/^\/grade\/[a-z]+$/) && isBot(request)) {
+      try {
+        const gradeSlug = path.replace("/grade/", "").replace(/\/$/, "");
+        const gradeName = GRADE_NAMES[gradeSlug];
+        if (!gradeName) return new Response("Not found", { status: 404 });
+
+        const scaleMap = { hg: "1/144", rg: "1/144", mg: "1/100", pg: "1/60", eg: "1/144", sd: "SD", mgsd: "SD" };
+        const scale = scaleMap[gradeSlug] || "";
+
+        // Fetch kits in this grade
+        const { results: gradeKits } = await env.DB.prepare(`
+          SELECT k.id, k.grade, k.scale, k.name, k.series, k.image_url,
+            COUNT(m.id) as manual_count
+          FROM kits k
+          LEFT JOIN manuals m ON m.kit_id = k.id
+          WHERE LOWER(k.grade) = ?
+          GROUP BY k.id
+          ORDER BY k.name ASC
+        `).bind(gradeSlug).all();
+
+        const kitCount = gradeKits.length;
+        const canonicalUrl = `https://kitvault.io/grade/${gradeSlug}`;
+        const gradeUpper = gradeSlug.toUpperCase();
+
+        const gradeDescriptions = {
+          pg: `Browse all ${kitCount} Perfect Grade (PG) 1/60 Gunpla kits with free digital manuals, build timers, and progress tracking. PG kits are Bandai's ultimate scale — explore the full PG lineup on KitVault.`,
+          mg: `Explore all ${kitCount} Master Grade (MG) 1/100 Gunpla kits on KitVault. Browse free digital manuals, track your MG builds, log build hours, and manage your backlog.`,
+          rg: `Browse all ${kitCount} Real Grade (RG) 1/144 Gunpla kits with free digital manuals and build tracking. RG packs Master Grade detail into 1/144 scale — explore the full lineup on KitVault.`,
+          hg: `Explore all ${kitCount} High Grade (HG) 1/144 Gunpla kits on KitVault. Browse free digital manuals, track your HG builds, and manage your Gunpla backlog.`,
+          eg: `Browse all ${kitCount} Entry Grade (EG) Gunpla kits — perfect for beginners. Free digital manuals, build tracking, and progress logging on KitVault.`,
+          sd: `Explore all ${kitCount} Super Deformed (SD) Gunpla kits on KitVault. Browse free digital manuals, track builds, and manage your SD collection.`,
+          mgsd: `Browse all ${kitCount} Master Grade SD (MGSD) Gunpla kits. Free digital manuals, build timers, and progress tracking on KitVault.`,
+        };
+        const metaDesc = gradeDescriptions[gradeSlug] || `Browse all ${kitCount} ${gradeName} Gunpla kits with free digital manuals and build tracking on KitVault.`;
+        const pageTitle = `${gradeName} (${gradeUpper}) Gunpla Kits — Scale, Difficulty & Build Time | KitVault`;
+
+        const jsonLd = {
+          "@context": "https://schema.org",
+          "@type": "CollectionPage",
+          name: `${gradeName} Gunpla Kits`,
+          description: metaDesc,
+          url: canonicalUrl,
+          numberOfItems: kitCount,
+          provider: { "@type": "Organization", name: "KitVault", url: "https://kitvault.io" },
+        };
+
+        const kitListHtml = gradeKits.slice(0, 50).map(k =>
+          `          <li><a href="https://kitvault.io/kit/${slugify(k)}">${k.grade} ${k.scale} ${k.name}</a>${k.manual_count > 0 ? ` — ${k.manual_count} manual${k.manual_count !== 1 ? "s" : ""}` : ""}</li>`
+        ).join("\n");
+
+        // Links to other grades
+        const otherGrades = Object.entries(GRADE_NAMES).filter(([g]) => g !== gradeSlug);
+        const otherGradesHtml = otherGrades.map(([g, n]) =>
+          `          <li><a href="https://kitvault.io/grade/${g}">${n} (${g.toUpperCase()}) kits</a></li>`
+        ).join("\n");
+
+        const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${pageTitle}</title>
+  <meta name="description" content="${metaDesc}">
+  <link rel="canonical" href="${canonicalUrl}">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="${pageTitle}">
+  <meta property="og:description" content="${metaDesc}">
+  <meta property="og:url" content="${canonicalUrl}">
+  <meta property="og:image" content="https://kitvault.io/og-default.png">
+  <meta property="og:site_name" content="KitVault">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="${pageTitle}">
+  <meta name="twitter:description" content="${metaDesc}">
+  <meta name="twitter:image" content="https://kitvault.io/og-default.png">
+  <script type="application/ld+json">${JSON.stringify(jsonLd)}</script>
+</head>
+<body>
+  <header>
+    <h1>${gradeName} (${gradeUpper}) Gunpla Kits</h1>
+    <p>Browse all ${kitCount} ${gradeName} ${scale ? scale + " scale " : ""}Gunpla model kits with free digital manuals, build timers, and progress tracking on KitVault.</p>
+  </header>
+  <main>
+    <section>
+      <h2>All ${gradeName} Kits on KitVault</h2>
+      <ul>
+${kitListHtml}
+      </ul>
+    </section>
+    <section>
+      <h2>About ${gradeName} Gunpla</h2>
+      <p>${gradeName} (${gradeUpper}) is one of Bandai's Gunpla model kit grades. Track your ${gradeName} builds with KitVault's free build timer, log your progress step by step through the digital manual, and manage your Gunpla backlog — all in one place.</p>
+    </section>
+    <section>
+      <h2>Other Gunpla Grades</h2>
+      <ul>
+${otherGradesHtml}
+      </ul>
+    </section>
+  </main>
+  <footer>
+    <p><a href="https://kitvault.io">KitVault.io</a> — Free Gunpla build tracker, digital manual archive, and backlog manager. <a href="https://kitvault.io/features">Features</a></p>
+  </footer>
+</body>
+</html>`;
+
+        return new Response(html, {
+          status: 200,
+          headers: { "Content-Type": "text/html; charset=UTF-8", "Cache-Control": "public, max-age=3600, s-maxage=86400" },
+        });
+      } catch (err) {
+        // Fall through to SPA
+      }
+    }
+
+    // ── Bot pre-rendering for /hangar/:username pages ──
+    if (path.match(/^\/hangar\/[a-z0-9_-]+$/) && isBot(request)) {
+      try {
+        const username = path.replace("/hangar/", "").replace(/\/$/, "");
+        if (!username) return new Response("Not found", { status: 404 });
+
+        // Look up public profile
+        const profile = await env.DB.prepare("SELECT * FROM user_profiles WHERE username = ? AND is_public = 1").bind(username).first();
+        if (!profile) return new Response("Not found", { status: 404 });
+
+        // Get vault stats
+        const progressRow = await env.DB.prepare("SELECT favourites, progress, timers FROM user_progress WHERE user_id = ?").bind(profile.user_id).first();
+        const progress = progressRow?.progress ? JSON.parse(progressRow.progress) : {};
+        const timers = progressRow?.timers ? JSON.parse(progressRow.timers) : {};
+
+        const completed = Object.values(progress).filter(s => s === "complete").length;
+        const inProgress = Object.values(progress).filter(s => s === "inprogress").length;
+        const backlog = Object.values(progress).filter(s => s === "backlog").length;
+        const totalKits = completed + inProgress + backlog;
+        const totalBuildTime = Object.values(timers).reduce((sum, t) => sum + (t?.accumulated || 0), 0);
+        const buildHours = Math.round(totalBuildTime / 3600);
+
+        // Get completed kit names for structured content
+        const completedKitIds = Object.entries(progress).filter(([, s]) => s === "complete").map(([id]) => Number(id));
+        let completedKits = [];
+        if (completedKitIds.length > 0) {
+          const placeholders = completedKitIds.map(() => "?").join(",");
+          const { results } = await env.DB.prepare(`SELECT id, grade, scale, name FROM kits WHERE id IN (${placeholders})`).bind(...completedKitIds).all();
+          completedKits = results || [];
+        }
+
+        // Gallery posts
+        const { results: galleryPosts } = await env.DB.prepare(
+          "SELECT kit_name, kit_grade FROM gallery WHERE user_id = ? ORDER BY created_at DESC LIMIT 20"
+        ).bind(profile.user_id).all();
+
+        const displayName = profile.display_name || username;
+        const canonicalUrl = `https://kitvault.io/hangar/${username}`;
+        const pageTitle = `${displayName}'s Gunpla Hangar — ${totalKits} Kits | KitVault`;
+        const metaDesc = `Check out ${displayName}'s Gunpla collection on KitVault. ${completed} completed build${completed !== 1 ? "s" : ""}, ${inProgress} in progress, ${backlog} in backlog${buildHours > 0 ? `, ${buildHours}+ hours logged` : ""}. Browse their builds, photos, and ratings.`;
+        const imageUrl = profile.avatar_url || "https://kitvault.io/og-default.png";
+
+        const jsonLd = {
+          "@context": "https://schema.org",
+          "@type": "ProfilePage",
+          name: `${displayName}'s Gunpla Hangar`,
+          description: metaDesc,
+          url: canonicalUrl,
+          mainEntity: {
+            "@type": "Person",
+            name: displayName,
+            url: canonicalUrl,
+          },
+        };
+
+        const completedListHtml = completedKits.slice(0, 20).map(k =>
+          `          <li><a href="https://kitvault.io/kit/${slugify(k)}">${k.grade} ${k.scale} ${k.name}</a></li>`
+        ).join("\n");
+
+        const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${pageTitle}</title>
+  <meta name="description" content="${metaDesc}">
+  <link rel="canonical" href="${canonicalUrl}">
+  <meta property="og:type" content="profile">
+  <meta property="og:title" content="${pageTitle}">
+  <meta property="og:description" content="${metaDesc}">
+  <meta property="og:url" content="${canonicalUrl}">
+  <meta property="og:image" content="${imageUrl}">
+  <meta property="og:site_name" content="KitVault">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="${pageTitle}">
+  <meta name="twitter:description" content="${metaDesc}">
+  <meta name="twitter:image" content="${imageUrl}">
+  <script type="application/ld+json">${JSON.stringify(jsonLd)}</script>
+</head>
+<body>
+  <header>
+    <h1>${displayName}'s Gunpla Hangar</h1>
+    <p>${totalKits} kits in collection · ${completed} completed · ${inProgress} in progress · ${backlog} in backlog${buildHours > 0 ? ` · ${buildHours}+ build hours logged` : ""}</p>
+  </header>
+  <main>
+    ${profile.bio ? `<section><h2>About</h2><p>${profile.bio}</p></section>` : ""}
+    ${completedKits.length > 0 ? `<section>
+      <h2>Completed Builds</h2>
+      <ul>
+${completedListHtml}
+      </ul>
+    </section>` : ""}
+    ${galleryPosts.length > 0 ? `<section>
+      <h2>Gallery Posts</h2>
+      <p>${displayName} has shared ${galleryPosts.length} build${galleryPosts.length !== 1 ? "s" : ""} in the KitVault community gallery.</p>
+    </section>` : ""}
+    <section>
+      <h2>Build Your Own Hangar</h2>
+      <p>Create your free KitVault account to track your Gunpla backlog, log build hours, and share your completed builds. <a href="https://kitvault.io">Get started on KitVault</a>.</p>
+    </section>
+  </main>
+  <footer>
+    <p><a href="https://kitvault.io">KitVault.io</a> — Free Gunpla build tracker, digital manual archive, and backlog manager. <a href="https://kitvault.io/features">Features</a></p>
+  </footer>
+</body>
+</html>`;
+
+        return new Response(html, {
+          status: 200,
+          headers: { "Content-Type": "text/html; charset=UTF-8", "Cache-Control": "public, max-age=3600, s-maxage=86400" },
+        });
+      } catch (err) {
+        // Fall through to SPA
+      }
     }
 
     // ── Bot pre-rendering for /kit/:slug pages ──

@@ -2064,6 +2064,15 @@ export default function KitVault() {
         <footer className="footer">
           <span className="footer-logo">KITVAULT.IO</span>
           <button
+            onClick={() => navigate("/features")}
+            style={{
+              background: "none", border: "1px solid var(--border, #1a2f50)",
+              color: "var(--text-dim, #5a7a9f)", fontFamily: "'Share Tech Mono',monospace",
+              fontSize: "0.55rem", padding: "6px 14px", cursor: "pointer",
+              letterSpacing: "2px", transition: "all 0.2s",
+            }}
+          >FEATURES</button>
+          <button
             onClick={() => navigate("/support")}
             style={{
               background: "rgba(255,204,0,0.08)", border: "1px solid rgba(255,204,0,0.25)",
